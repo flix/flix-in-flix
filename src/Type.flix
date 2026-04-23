@@ -13,6 +13,11 @@ instance Kinded[TypeVariable] {
 }
 
 
+instance FreeTypeVariable[TypeVariable] {
+    pub def freeTypeVariables(a: TypeVariable): List[TypeVariable] = a :: Nil
+}
+
+
 pub enum TypeConstructor(Id, Kind) with Eq, ToString, Hash, Order
 
 
@@ -61,6 +66,12 @@ instance Kinded[AssociatedMember] {
 }
 
 
+instance FreeTypeVariable[AssociatedMember] {
+    pub def freeTypeVariables(a: AssociatedMember): List[TypeVariable] =
+        a |> AssociatedMember.ty |> FreeTypeVariable.freeTypeVariables
+}
+
+
 pub enum TypeApplication(Type, Type) with Eq, ToString, Hash, Order
 
 
@@ -100,6 +111,13 @@ instance Kinded[TypeApplication] {
             )
         }
     }
+}
+
+
+instance FreeTypeVariable[TypeApplication] {
+    pub def freeTypeVariables(a: TypeApplication): List[TypeVariable] =
+        (a |> TypeApplication.function |> FreeTypeVariable.freeTypeVariables) :::
+        (a |> TypeApplication.argument |> FreeTypeVariable.freeTypeVariables)
 }
 
 
@@ -216,6 +234,31 @@ instance Kinded[SetFormula] {
 }
 
 
+instance FreeTypeVariable[SetFormula] {
+    pub def freeTypeVariables(a: SetFormula): List[TypeVariable] =
+        match a {
+            case SetFormula.Singleton(_) => Nil
+
+            case SetFormula.Binary(binarySetFormula) =>
+                (binarySetFormula |> BinarySetFormula.left |> FreeTypeVariable.freeTypeVariables) :::
+                (binarySetFormula |> BinarySetFormula.right |> FreeTypeVariable.freeTypeVariables)
+
+            case SetFormula.Complement(setFormula) =>
+                setFormula |> FreeTypeVariable.freeTypeVariables
+
+            case SetFormula.TypeVariable(typeVariable) =>
+                typeVariable |> FreeTypeVariable.freeTypeVariables
+
+            case SetFormula.Gen(_) => Nil
+
+            case SetFormula.AssociatedMember(associatedMember) =>
+                associatedMember |> FreeTypeVariable.freeTypeVariables
+
+            case SetFormula.Empty => Nil
+        }
+}
+
+
 pub enum Type with Eq, ToString, Hash, Order {
     case Variable(TypeVariable)
     case TypeConstructor(TypeConstructor)
@@ -276,5 +319,28 @@ instance Substitutable[Type] {
         case Type.TypeConstructor(_) =>  a
 
         case Type.AssociatedMember(_) => a
+    }
+}
+
+
+instance FreeTypeVariable[Type] {
+    pub def freeTypeVariables(a: Type): List[TypeVariable] = match a {
+        case Type.Variable(variable) =>
+            variable |> FreeTypeVariable.freeTypeVariables
+
+        case Type.TypeConstructor(_) =>
+            Nil
+
+        case Type.AssociatedMember(associatedMember) =>
+            associatedMember |> FreeTypeVariable.freeTypeVariables
+
+        case Type.TypeApplication(typeApplication) =>
+            typeApplication |> FreeTypeVariable.freeTypeVariables
+
+        case Type.SetFormula(setFormula) =>
+            setFormula |> FreeTypeVariable.freeTypeVariables
+
+        case Type.Gen(_) =>
+            Nil
     }
 }
