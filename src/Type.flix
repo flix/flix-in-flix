@@ -28,13 +28,31 @@ instance Kinded[TypeConstructor] {
 }
 
 
-pub enum AssociatedMember(Id, Kind) with Eq, ToString, Hash, Order
+pub enum AssociatedMember(Id, Type, Kind) with Eq, ToString, Hash, Order
 
 
 mod AssociatedMember {
     pub def kind(associatedMember: AssociatedMember): Kind = match associatedMember {
-        case AssociatedMember(_, kind) => kind
+        case AssociatedMember(_, _, kind) => kind
     }
+
+
+    pub def ty(associatedMember: AssociatedMember): Type = match associatedMember {
+        case AssociatedMember(_, ty, _) => ty
+    }
+}
+
+
+instance Substitutable[AssociatedMember] {
+    pub def apply(a: AssociatedMember, substitution: Substitution): AssociatedMember = 
+        match a {
+            case AssociatedMember.AssociatedMember(id, ty, kind) => 
+                AssociatedMember.AssociatedMember(
+                    id,
+                    substitution |> Substitutable.apply(ty),
+                    kind
+                )
+        }
 }
 
 
@@ -56,6 +74,17 @@ mod TypeApplication {
     pub def argument(typeapplication: TypeApplication): Type
         = match typeapplication {
             case TypeApplication(_, argument) => argument
+        }
+}
+
+instance Substitutable[TypeApplication] {
+    pub def apply(a: TypeApplication, substitution: Substitution): TypeApplication = 
+        match a {
+            case TypeApplication.TypeApplication(function, argument) => 
+                TypeApplication.TypeApplication(
+                    substitution |> Substitutable.apply(function),
+                    substitution |> Substitutable.apply(argument)
+                )
         }
 }
 
@@ -100,6 +129,19 @@ pub enum BinarySetFormula(SetFormula, SetBinaryOp, SetFormula)
     with Eq, ToString, Hash, Order
 
 
+instance Substitutable[BinarySetFormula] {
+    pub def apply(a: BinarySetFormula, substitution: Substitution): BinarySetFormula = 
+        match a {
+            case BinarySetFormula.BinarySetFormula(left, op, right) => 
+                BinarySetFormula.BinarySetFormula(
+                    substitution |> Substitutable.apply(left),
+                    op,
+                    substitution |> Substitutable.apply(right)
+                )
+        }
+}
+
+
 mod BinarySetFormula {
     pub def left(binarySetFormula: BinarySetFormula): SetFormula = 
         match binarySetFormula {
@@ -134,9 +176,39 @@ pub enum SetFormula with Eq, ToString, Hash, Order {
     case Binary(BinarySetFormula)
     case Complement(SetFormula)
     case TypeVariable(TypeVariable)
+    case Gen(Gen)
     case AssociatedMember(AssociatedMember)
     case Empty
 }
+
+
+instance Substitutable[SetFormula] {
+    pub def apply(a: SetFormula, substitution: Substitution): SetFormula  
+        = match a {
+            case SetFormula.Singleton(_) => a
+
+            case SetFormula.Binary(binarySetFormula) => 
+                SetFormula.Binary(substitution |> Substitutable.apply(binarySetFormula))
+
+            case SetFormula.Complement(setFormula) => 
+                SetFormula.Complement(substitution |> Substitutable.apply(setFormula))
+
+            case SetFormula.TypeVariable(typeVariable) => 
+                substitution 
+                    |> Substitution.get(typeVariable)
+                    |> Option.map(Type.unwrapSetFormula)
+                    |> Option.getWithDefault(a)
+
+            case SetFormula.Gen(_) => a
+
+            case SetFormula.AssociatedMember(associatedMember) =>
+                SetFormula.AssociatedMember(associatedMember)
+
+            case SetFormula.Empty =>
+                SetFormula.Empty
+        }
+}
+
 
 
 instance Kinded[SetFormula] {
@@ -149,8 +221,17 @@ pub enum Type with Eq, ToString, Hash, Order {
     case TypeConstructor(TypeConstructor)
     case AssociatedMember(AssociatedMember)
     case TypeApplication(TypeApplication)
+    case SetFormula(SetFormula)
     case Gen(Gen)
 } 
+
+
+mod Type {
+    pub def unwrapSetFormula(ty: Type): SetFormula = match ty {
+        case Type.SetFormula(setFormula) => setFormula
+        case _ => bug!("Expected a SetFormula type, but found: ${ty}")
+    }
+}
 
 
 instance Kinded[Type] {
@@ -169,5 +250,31 @@ instance Kinded[Type] {
 
         case Type.Gen(gen) => 
             gen |> Kinded.kind
+
+        case Type.SetFormula(setFormula) =>
+            setFormula |> Kinded.kind
+    }
+}
+
+
+instance Substitutable[Type] {
+    pub def apply(a: Type, substitution: Substitution): Type = match a {
+        case Type.Variable(variable) => 
+            substitution 
+                |> Substitution.get(variable)
+                |> Option.getWithDefault(a)
+
+        case Type.TypeApplication(typeApplication) => Type.TypeApplication(
+            substitution |> Substitutable.apply(typeApplication)
+        )
+
+        case Type.SetFormula(setFormula) =>
+            Type.SetFormula(substitution |> Substitutable.apply(setFormula))
+
+        case Type.Gen(_) => a
+
+        case Type.TypeConstructor(_) =>  a
+
+        case Type.AssociatedMember(_) => a
     }
 }
