@@ -10,7 +10,7 @@ def freeTypeVariablesOfVariable(): Unit \ Assert = {
 def freeTypeVariablesOfTypeApplication(): Unit \ Assert = {
     let x = TypeVariable.TypeVariable(Id.Id("x"), Kind.TypeStar);
     let y = TypeVariable.TypeVariable(Id.Id("y"), Kind.TypeStar);
-    let ty = Type.TypeApplication(
+    let ty = Type.Application(
         TypeApplication.TypeApplication(
             Type.Variable(x),
             Type.Variable(y)

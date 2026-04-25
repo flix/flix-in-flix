@@ -261,9 +261,9 @@ instance FreeTypeVariable[SetFormula] {
 
 pub enum Type with Eq, ToString, Hash, Order {
     case Variable(TypeVariable)
-    case TypeConstructor(TypeConstructor)
+    case Constructor(TypeConstructor)
     case AssociatedMember(AssociatedMember)
-    case TypeApplication(TypeApplication)
+    case Application(TypeApplication)
     case SetFormula(SetFormula)
     case Gen(Gen)
 } 
@@ -282,14 +282,14 @@ instance Kinded[Type] {
         case Type.Variable(variable) => 
             variable |> Kinded.kind
 
-        case Type.TypeConstructor(typeconstructor) => 
-            typeconstructor |> Kinded.kind
+        case Type.Constructor(constructor) => 
+            constructor |> Kinded.kind
 
         case Type.AssociatedMember(associatedMember) =>
             associatedMember |> Kinded.kind
 
-        case Type.TypeApplication(typeApplication) =>
-            typeApplication |> Kinded.kind
+        case Type.Application(application) =>
+            application |> Kinded.kind
 
         case Type.Gen(gen) => 
             gen |> Kinded.kind
@@ -307,7 +307,7 @@ instance Substitutable[Type] {
                 |> Substitution.get(variable)
                 |> Option.getWithDefault(a)
 
-        case Type.TypeApplication(typeApplication) => Type.TypeApplication(
+        case Type.Application(typeApplication) => Type.Application(
             substitution |> Substitutable.apply(typeApplication)
         )
 
@@ -316,7 +316,7 @@ instance Substitutable[Type] {
 
         case Type.Gen(_) => a
 
-        case Type.TypeConstructor(_) =>  a
+        case Type.Constructor(_) =>  a
 
         case Type.AssociatedMember(_) => a
     }
@@ -328,14 +328,14 @@ instance FreeTypeVariable[Type] {
         case Type.Variable(variable) =>
             variable |> FreeTypeVariable.freeTypeVariables
 
-        case Type.TypeConstructor(_) =>
+        case Type.Constructor(_) =>
             Nil
 
         case Type.AssociatedMember(associatedMember) =>
             associatedMember |> FreeTypeVariable.freeTypeVariables
 
-        case Type.TypeApplication(typeApplication) =>
-            typeApplication |> FreeTypeVariable.freeTypeVariables
+        case Type.Application(application) =>
+            application |> FreeTypeVariable.freeTypeVariables
 
         case Type.SetFormula(setFormula) =>
             setFormula |> FreeTypeVariable.freeTypeVariables
@@ -343,4 +343,11 @@ instance FreeTypeVariable[Type] {
         case Type.Gen(_) =>
             Nil
     }
+}
+
+
+pub restrictable enum Test[s] with Eq, ToString, Hash, Order {
+    case A,
+    case B,
+    case C
 }
