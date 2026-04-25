@@ -13,6 +13,12 @@ instance Substitutable[List[a]] with Substitutable[a] {
 
 
 mod Substitution {
+    def map(s: Substitution): Map[TypeVariable, Type] 
+        = match s {
+            case Substitution.Substitution(m) => m
+        }
+
+
     pub def empty(): Substitution = Substitution(Map.empty())
 
 
@@ -20,4 +26,14 @@ mod Substitution {
         = match subst {
             case Substitution(map) => map |> Map.get(tyVar)
         }
+
+    
+    pub def compose(s1: Substitution, s2: Substitution): Substitution = {
+        let s2Map = s2 |> map;
+
+        let composedMap = s2Map 
+            |> Map.map(v -> s1 |> Substitutable.apply(v));
+
+        Substitution.Substitution(Map.union(composedMap, s2Map))
+    }
 }
