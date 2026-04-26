@@ -1,3 +1,4 @@
+// `x -> [x]`
 @Test
 def freeTypeVariablesOfVariable(): Unit \ Assert = {
     let x = TypeVariable.TypeVariable(Id.Id("x"), Kind.TypeStar);
@@ -6,6 +7,7 @@ def freeTypeVariablesOfVariable(): Unit \ Assert = {
     Assert.assertEq(expected = x :: Nil, ty |> FreeTypeVariable.freeTypeVariables)
 }
 
+// `x y -> [x, y]`
 @Test
 def freeTypeVariablesOfTypeApplication(): Unit \ Assert = {
     let x = TypeVariable.TypeVariable(Id.Id("x"), Kind.TypeStar);
@@ -20,6 +22,7 @@ def freeTypeVariablesOfTypeApplication(): Unit \ Assert = {
     Assert.assertEq(expected = x :: y :: Nil, ty |> FreeTypeVariable.freeTypeVariables)
 }
 
+// `(x + ~y) -> [x, y]`
 @Test
 def freeTypeVariablesOfSetFormula(): Unit \ Assert = {
     let x = TypeVariable.TypeVariable(Id.Id("x"), Kind.EffectStar);
