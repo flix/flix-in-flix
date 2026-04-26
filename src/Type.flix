@@ -45,6 +45,11 @@ mod AssociatedMember {
     pub def ty(associatedMember: AssociatedMember): Type = match associatedMember {
         case AssociatedMember(_, ty, _) => ty
     }
+
+
+    pub def id(associatedMember: AssociatedMember): Id = match associatedMember {
+        case AssociatedMember(id, _, _) => id
+    }
 }
 
 
