@@ -23,7 +23,7 @@ pub def matchTypes(
             mergedSubst <- Substitution.merge(funcSubst, argSubst)
                 |> Option.map(Ok)
                 |> Option.getWithDefault(
-                    Err(MatchError.KindMismatch)
+                    Err(MatchError.DoesNotMatch)
                 )
         ) yield mergedSubst
     }

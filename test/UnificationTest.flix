@@ -1,15 +1,8 @@
-def mkTypeVar(name: String, kind: Kind): TypeVariable =
-    TypeVariable.TypeVariable(Id.Id(name), kind)
-
-
-def mkTypeCon(name: String, kind: Kind): TypeConstructor =
-    TypeConstructor.TypeConstructor(Id.Id(name), kind)
-
-
+// `x ~ Int32 -> { x -> Int32 }`
 @Test
 def matchTypesVariableCreatesSubstitution(): Unit \ Assert = {
-    let x = mkTypeVar("x", Kind.TypeStar);
-    let int32 = Type.Constructor(mkTypeCon("Int32", Kind.TypeStar));
+    let x = Type.mkTypeVar("x", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
 
     Assert.assertEq(
         expected = Ok(Substitution.singleton(x, int32)),
@@ -18,9 +11,10 @@ def matchTypesVariableCreatesSubstitution(): Unit \ Assert = {
 }
 
 
+// `x : Type ~ {} -> KindMismatch`
 @Test
 def matchTypesVariableRejectsKindMismatch(): Unit \ Assert = {
-    let x = mkTypeVar("x", Kind.TypeStar);
+    let x = Type.mkTypeVar("x", Kind.TypeStar);
     let emptySet = Type.SetFormula(SetFormula.Empty);
 
     Assert.assertEq(
@@ -30,14 +24,15 @@ def matchTypesVariableRejectsKindMismatch(): Unit \ Assert = {
 }
 
 
+// `f x ~ Unary Int32 -> { f -> Unary, x -> Int32 }`
 @Test
 def matchTypesApplicationMergesSubstitutions(): Unit \ Assert = {
     let t = Kind.TypeStar;
     let tToT = Kind.Function(FunctionKind.FunctionKind(t, t));
-    let f = mkTypeVar("f", tToT);
-    let x = mkTypeVar("x", t);
-    let unary = Type.Constructor(mkTypeCon("Unary", tToT));
-    let int32 = Type.Constructor(mkTypeCon("Int32", t));
+    let f = Type.mkTypeVar("f", tToT);
+    let x = Type.mkTypeVar("x", t);
+    let unary = Type.Constructor(Type.mkTypeCon("Unary", tToT));
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", t));
 
     let left = Type.Application(
         TypeApplication.TypeApplication(Type.Variable(f), Type.Variable(x))
@@ -57,19 +52,20 @@ def matchTypesApplicationMergesSubstitutions(): Unit \ Assert = {
 }
 
 
+// `Pair x x ~ Pair Int32 Bool -> DoesNotMatch`
 @Test
 def matchTypesApplicationRejectsInconsistentSubstitution(): Unit \ Assert = {
     let t = Kind.TypeStar;
-    let pair = Type.Constructor(mkTypeCon(
+    let pair = Type.Constructor(Type.mkTypeCon(
         "Pair",
         Kind.Function(FunctionKind.FunctionKind(
             t,
             Kind.Function(FunctionKind.FunctionKind(t, t))
         ))
     ));
-    let x = mkTypeVar("x", t);
-    let int32 = Type.Constructor(mkTypeCon("Int32", t));
-    let bool = Type.Constructor(mkTypeCon("Bool", t));
+    let x = Type.mkTypeVar("x", t);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", t));
+    let bool = Type.Constructor(Type.mkTypeCon("Bool", t));
 
     let left = Type.Application(TypeApplication.TypeApplication(
         Type.Application(TypeApplication.TypeApplication(
@@ -87,17 +83,18 @@ def matchTypesApplicationRejectsInconsistentSubstitution(): Unit \ Assert = {
     ));
 
     Assert.assertEq(
-        expected = Err(MatchError.KindMismatch),
+        expected = Err(MatchError.DoesNotMatch),
         matchTypes(left, right)
     )
 }
 
 
+// `Assoc x ~ Assoc Int32 -> { x -> Int32 }`
 @Test
 def matchTypesAssociatedMemberMatchesUnderlyingArgument(): Unit \ Assert = {
     let assocId = Id.Id("Assoc");
-    let x = mkTypeVar("x", Kind.TypeStar);
-    let int32 = Type.Constructor(mkTypeCon("Int32", Kind.TypeStar));
+    let x = Type.mkTypeVar("x", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
 
     let left = Type.AssociatedMember(AssociatedMember.AssociatedMember(
         assocId,
