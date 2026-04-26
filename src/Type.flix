@@ -54,12 +54,12 @@ mod AssociatedMember {
 
 
 instance Substitutable[AssociatedMember] {
-    pub def apply(a: AssociatedMember, substitution: Substitution): AssociatedMember = 
+    pub def apply(substitution: Substitution, a: AssociatedMember): AssociatedMember = 
         match a {
             case AssociatedMember.AssociatedMember(id, ty, kind) => 
                 AssociatedMember.AssociatedMember(
                     id,
-                    substitution |> Substitutable.apply(ty),
+                    ty |> Substitutable.apply(substitution),
                     kind
                 )
         }
@@ -94,12 +94,12 @@ mod TypeApplication {
 }
 
 instance Substitutable[TypeApplication] {
-    pub def apply(a: TypeApplication, substitution: Substitution): TypeApplication = 
+    pub def apply(substitution: Substitution, a: TypeApplication): TypeApplication = 
         match a {
             case TypeApplication.TypeApplication(function, argument) => 
                 TypeApplication.TypeApplication(
-                    substitution |> Substitutable.apply(function),
-                    substitution |> Substitutable.apply(argument)
+                    function |> Substitutable.apply(substitution),
+                    argument |> Substitutable.apply(substitution)
                 )
         }
 }
@@ -153,13 +153,13 @@ pub enum BinarySetFormula(SetFormula, SetBinaryOp, SetFormula)
 
 
 instance Substitutable[BinarySetFormula] {
-    pub def apply(a: BinarySetFormula, substitution: Substitution): BinarySetFormula = 
+    pub def apply(substitution: Substitution, a: BinarySetFormula): BinarySetFormula = 
         match a {
             case BinarySetFormula.BinarySetFormula(left, op, right) => 
                 BinarySetFormula.BinarySetFormula(
-                    substitution |> Substitutable.apply(left),
+                    left |> Substitutable.apply(substitution),
                     op,
-                    substitution |> Substitutable.apply(right)
+                    right |> Substitutable.apply(substitution)
                 )
         }
 }
@@ -206,15 +206,15 @@ pub enum SetFormula with Eq, ToString, Hash, Order {
 
 
 instance Substitutable[SetFormula] {
-    pub def apply(a: SetFormula, substitution: Substitution): SetFormula  
+    pub def apply(substitution: Substitution, a: SetFormula): SetFormula  
         = match a {
             case SetFormula.Singleton(_) => a
 
             case SetFormula.Binary(binarySetFormula) => 
-                SetFormula.Binary(substitution |> Substitutable.apply(binarySetFormula))
+                SetFormula.Binary(binarySetFormula |> Substitutable.apply(substitution))
 
             case SetFormula.Complement(setFormula) => 
-                SetFormula.Complement(substitution |> Substitutable.apply(setFormula))
+                SetFormula.Complement(setFormula |> Substitutable.apply(substitution))
 
             case SetFormula.TypeVariable(typeVariable) => 
                 substitution 
@@ -306,18 +306,18 @@ instance Kinded[Type] {
 
 
 instance Substitutable[Type] {
-    pub def apply(a: Type, substitution: Substitution): Type = match a {
+    pub def apply(substitution: Substitution, a: Type): Type = match a {
         case Type.Variable(variable) => 
             substitution 
                 |> Substitution.get(variable)
                 |> Option.getWithDefault(a)
 
         case Type.Application(typeApplication) => Type.Application(
-            substitution |> Substitutable.apply(typeApplication)
+            typeApplication |> Substitutable.apply(substitution)
         )
 
         case Type.SetFormula(setFormula) =>
-            Type.SetFormula(substitution |> Substitutable.apply(setFormula))
+            Type.SetFormula(setFormula |> Substitutable.apply(substitution))
 
         case Type.Gen(_) => a
 
@@ -350,9 +350,3 @@ instance FreeTypeVariable[Type] {
     }
 }
 
-
-pub restrictable enum Test[s] with Eq, ToString, Hash, Order {
-    case A,
-    case B,
-    case C
-}

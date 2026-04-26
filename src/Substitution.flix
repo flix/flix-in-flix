@@ -2,13 +2,13 @@ pub enum Substitution(Map[TypeVariable, Type]) with Eq, ToString, Hash, Order
 
 
 pub trait Substitutable[a] {
-    pub def apply(a: a, substitution: Substitution): a
+    pub def apply(substitution: Substitution, a: a): a
 }
 
 
 instance Substitutable[List[a]] with Substitutable[a] {
-    pub def apply(a: List[a], substitution: Substitution): List[a] = 
-        a |> List.map(x -> substitution |> Substitutable.apply(x))
+    pub def apply(substitution: Substitution, a: List[a]): List[a] = 
+        a |> List.map(x -> x |> Substitutable.apply(substitution))
 }
 
 
@@ -36,7 +36,7 @@ mod Substitution {
         let s2Map = s2 |> map;
 
         let composedMap = s2Map 
-            |> Map.map(v -> s1 |> Substitutable.apply(v));
+            |> Map.map(v -> v |> Substitutable.apply(s1));
 
         Substitution.Substitution(Map.union(composedMap, s2Map))
     }
