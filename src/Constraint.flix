@@ -4,6 +4,18 @@ pub enum ClassConstraint(Id, Type) with Eq, ToString, Hash, Order
 pub enum EqualityConstraint(Type, Type) with Eq, ToString, Hash, Order
 
 
+mod EqualityConstraint {
+    pub def left(constraint: EqualityConstraint): Type = match constraint {
+        case EqualityConstraint(left, _) => left
+    }
+
+
+    pub def right(constraint: EqualityConstraint): Type = match constraint {
+        case EqualityConstraint(_, right) => right
+    }
+}
+
+
 pub enum Constraint with Eq, ToString, Hash, Order {
     case Class(ClassConstraint),
     case Equality(EqualityConstraint)
