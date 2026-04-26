@@ -275,6 +275,18 @@ pub enum Type with Eq, ToString, Hash, Order {
 
 
 mod Type {
+    pub def mkTypeVar(name: String, kind: Kind): TypeVariable =
+        TypeVariable.TypeVariable(Id.Id(name), kind)
+
+
+    pub def mkTypeCon(name: String, kind: Kind): TypeConstructor =
+        TypeConstructor.TypeConstructor(Id.Id(name), kind)
+
+
+    pub def mkAssoc(name: String, ty: Type, kind: Kind): AssociatedMember =
+        AssociatedMember.AssociatedMember(Id.Id(name), ty, kind)
+
+
     pub def unwrapSetFormula(ty: Type): SetFormula = match ty {
         case Type.SetFormula(setFormula) => setFormula
         case _ => bug!("Expected a SetFormula type, but found: ${ty}")
@@ -349,4 +361,3 @@ instance FreeTypeVariable[Type] {
             Nil
     }
 }
-
