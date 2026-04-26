@@ -18,6 +18,10 @@ mod Substitution {
             case Substitution.Substitution(m) => m
         }
 
+    
+    pub def singleton(tyVar: TypeVariable, ty: Type): Substitution = 
+        Substitution.Substitution(Map.singleton(tyVar, ty))
+
 
     pub def empty(): Substitution = Substitution(Map.empty())
 
@@ -35,5 +39,29 @@ mod Substitution {
             |> Map.map(v -> s1 |> Substitutable.apply(v));
 
         Substitution.Substitution(Map.union(composedMap, s2Map))
+    }
+
+
+    pub def merge(s1: Substitution, s2: Substitution): Option[Substitution] = {
+        // check overlapping keys and ensure they are equal
+        let overlappingKeys = (s1 |> map) 
+            |> Map.keysOf
+            |> Set.filter(k -> (s2 |> map) |> Map.memberOf(k));
+
+        let isConsistent = overlappingKeys
+            |> Set.forAll(k -> 
+                (s1 |> map) |> Map.get(k) == 
+                (s2 |> map) |> Map.get(k)
+            );
+
+        if (isConsistent) {
+            Some(Substitution.Substitution(
+                (s1 |> map) |> Map.union(s2 |> map)
+            ))
+        } else {
+            None
+        }
+        
+
     }
 }
