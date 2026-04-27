@@ -335,3 +335,141 @@ def unifyOneStepAssociatedMemberWithoutReductionHasNoApplicableRule(): Unit \ As
         )
     )
 }
+
+
+// `Unary x ~ Unary Int32 -> [], { x -> Int32 }`
+@Test
+def unifyRepeatApplicationFullyUnifies(): Unit \ Assert = {
+    let t = Kind.TypeStar;
+    let tToT = Kind.Function(FunctionKind.FunctionKind(t, t));
+    let unary = Type.Constructor(Type.mkTypeCon("Unary", tToT));
+    let x = Type.mkTypeVar("x", t);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", t));
+
+    let constraints = unMkEquality(
+        Type.Application(TypeApplication.TypeApplication(
+            unary,
+            Type.Variable(x)
+        )),
+        Type.Application(TypeApplication.TypeApplication(
+            unary,
+            int32
+        ))
+    ) :: Nil;
+
+    let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
+
+    Assert.assertEq(expected = Nil, remaining);
+    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(x))
+}
+
+
+// `Int32 ~ Bool, x ~ Int32 -> [Int32 ~ Bool], { x -> Int32 }`
+@Test
+def unifyRepeatPreservesUnsolvedConstraints(): Unit \ Assert = {
+    let x = Type.mkTypeVar("x", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.TypeStar));
+
+    let constraints = unMkEquality(int32, bool)
+        :: unMkEquality(Type.Variable(x), int32)
+        :: Nil;
+
+    let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
+
+    Assert.assertEq(expected = unMkEquality(int32, bool) :: Nil, remaining);
+    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(x))
+}
+
+
+// given: { Elem x = Bool }
+// `Elem x ~ Bool -> [], {}`
+@Test
+def unifyRepeatConsumesResidualEqualityFromAssociatedMemberReduction(): Unit \ Assert = {
+    let x = Type.mkTypeVar("x", Kind.TypeStar);
+    let assoc = Type.mkAssoc("Elem", Type.Variable(x), Kind.TypeStar);
+    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.TypeStar));
+
+    let constraints = unMkEquality(Type.AssociatedMember(assoc), bool) :: Nil;
+
+    let (remaining, subst) = unifyRepeat(
+        unEmptyConstraintEnv(),
+        unMkGivenEquality(Type.AssociatedMember(assoc), bool) :: Nil,
+        constraints
+    );
+
+    Assert.assertEq(expected = Nil, remaining);
+    Assert.assertEq(expected = Substitution.empty(), subst)
+}
+
+
+// constraintEnv: { AssocA x = AssocB x, AssocB x = Int32 }
+// `AssocA x ~ Int32 -> [], {}`
+@Test
+def unifyRepeatFullyReducesChainedAssociatedMembers(): Unit \ Assert = {
+    let x = Type.mkTypeVar("x", Kind.TypeStar);
+    let assocA = Type.mkAssoc("AssocA", Type.Variable(x), Kind.TypeStar);
+    let assocB = Type.mkAssoc("AssocB", Type.Variable(x), Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+
+    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+        Map.union(
+            Map.singleton(
+                Id.Id("AssocA"),
+                unMkEquality(
+                    Type.AssociatedMember(assocA),
+                    Type.AssociatedMember(assocB)
+                ) :: Nil
+            ),
+            Map.singleton(
+                Id.Id("AssocB"),
+                unMkEquality(Type.AssociatedMember(assocB), int32) :: Nil
+            )
+        )
+    );
+
+    let constraints = unMkEquality(Type.AssociatedMember(assocA), int32) :: Nil;
+
+    let (remaining, subst) = unifyRepeat(constraintEnv, Nil, constraints);
+
+    Assert.assertEq(expected = Nil, remaining);
+    Assert.assertEq(expected = Substitution.empty(), subst)
+}
+
+
+// `x ~ Int32, y ~ x -> [], { x -> Int32, y -> Int32 }`
+@Test
+def unifyRepeatComposesSubstitutionsAcrossSteps(): Unit \ Assert = {
+    let x = Type.mkTypeVar("x", Kind.TypeStar);
+    let y = Type.mkTypeVar("y", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+
+    let constraints = unMkEquality(Type.Variable(x), int32)
+        :: unMkEquality(Type.Variable(y), Type.Variable(x))
+        :: Nil;
+
+    let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
+
+    Assert.assertEq(expected = Nil, remaining);
+    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(x));
+    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(y))
+}
+
+
+// `y ~ x, x ~ Int32 -> [], { x -> Int32, y -> Int32 }`
+@Test
+def unifyRepeatComposesSubstitutionsAcrossStepsInReverseOrder(): Unit \ Assert = {
+    let x = Type.mkTypeVar("x", Kind.TypeStar);
+    let y = Type.mkTypeVar("y", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+
+    let constraints = unMkEquality(Type.Variable(y), Type.Variable(x))
+        :: unMkEquality(Type.Variable(x), int32)
+        :: Nil;
+
+    let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
+
+    Assert.assertEq(expected = Nil, remaining);
+    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(x));
+    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(y))
+}
