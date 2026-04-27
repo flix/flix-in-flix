@@ -2,89 +2,103 @@ def reduceAssociatedMemberOneStep(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
     assoc: AssociatedMember
-): Type = {
-    let argument = assoc 
+): Option[Type] = {
+    let reducedInner = assoc 
         |> AssociatedMember.ty 
-        |> reduceTypeOneStep(constraintEnv, given);
+        |> reduceTypeOneStep(constraintEnv, given)
+        |> Option.map(reducedTy -> Type.AssociatedMember(
+            AssociatedMember.AssociatedMember(
+                assoc |> AssociatedMember.id, 
+                reducedTy, 
+                assoc |> AssociatedMember.kind
+            )
+        ));
 
-    let reducedAM = Type.AssociatedMember(
-        AssociatedMember.AssociatedMember(
-            assoc |> AssociatedMember.id,
-            argument,
-            assoc |> AssociatedMember.kind
-        )
-    );
+    match reducedInner {
+        case Some(s) => Some(s)
+        
+        case None => {
+            let constraintFromGiven = given
+                |> List.filterMap(c -> c |> Constraint.asEqualityConstraint);
+            let constraintFromEnv = constraintEnv
+                |> ConstraintEnvironment.lookupAssociatedMemberEquality(
+                    assoc |> AssociatedMember.id
+                );
 
-    let constraintFromGiven = given
-        |> List.filterMap(c -> c |> Constraint.asEqualityConstraint);
-    let constraintFromEnv = constraintEnv
-        |> ConstraintEnvironment.lookupAssociatedMemberEquality(
-            assoc |> AssociatedMember.id
-        );
+            let allConstraints = constraintFromGiven ++ constraintFromEnv;
 
-    let allConstraints = constraintFromGiven ++ constraintFromEnv;
+            allConstraints
+                |> List.findMap(c -> {
+                    let leftAM = c |> EqualityConstraint.left;
 
-    allConstraints
-        |> List.findMap(c -> {
-            let leftAM = c |> EqualityConstraint.left;
-
-            forM (
-                subst <- matchTypes(leftAM, reducedAM) 
-                    |> Result.toOption
-            ) yield c 
-                |> EqualityConstraint.right 
-                |> Substitutable.apply(subst)
-        })
-        |> Option.getWithDefault(reducedAM)
+                    forM (
+                        subst <- matchTypes(
+                            leftAM, 
+                            Type.AssociatedMember(assoc)
+                        ) 
+                            |> Result.toOption
+                    ) yield c 
+                        |> EqualityConstraint.right 
+                        |> Substitutable.apply(subst)
+                })
+        }
+    }
 }
+
 
 
 def reduceSetFormulaOneStep(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
     setFormula: SetFormula
-): SetFormula = {
+): Option[SetFormula] = {
     match setFormula {
-        case SetFormula.Singleton(_) => setFormula
+        case SetFormula.Singleton(_) => None,
+
+        case SetFormula.TypeVariable(_) => None,
+
+        case SetFormula.Gen(_) => None,
+
+        case SetFormula.Empty => None,
 
         case SetFormula.Binary(binarySetFormula) => {
-            let left = binarySetFormula
+            let reducedLeft = binarySetFormula 
                 |> BinarySetFormula.left
-                |> reduceSetFormulaOneStep(constraintEnv, given);
-            let right = binarySetFormula
-                |> BinarySetFormula.right
-                |> reduceSetFormulaOneStep(constraintEnv, given);
+                |> reduceSetFormulaOneStep(constraintEnv, given)
+                |> Option.map(s -> SetFormula.Binary(
+                    BinarySetFormula.BinarySetFormula(
+                        s,
+                        binarySetFormula |> BinarySetFormula.op,
+                        binarySetFormula |> BinarySetFormula.right
+                    )
+                ));
 
-            SetFormula.Binary(BinarySetFormula.BinarySetFormula(
-                left,
-                binarySetFormula |> BinarySetFormula.op,
-                right
-            ))
+            if (reducedLeft |> Option.isEmpty)
+                binarySetFormula |> BinarySetFormula.right
+                    |> reduceSetFormulaOneStep(constraintEnv, given)
+                    |> Option.map(s -> SetFormula.Binary(
+                        BinarySetFormula.BinarySetFormula(
+                            binarySetFormula |> BinarySetFormula.left,
+                            binarySetFormula |> BinarySetFormula.op,
+                            s
+                        )
+                    ))
+            else reducedLeft
         }
 
-        case SetFormula.Complement(inner) =>
-            SetFormula.Complement(
-                inner |> reduceSetFormulaOneStep(constraintEnv, given)
-            )
+        case SetFormula.Complement(inner) => 
+            inner |> reduceSetFormulaOneStep(constraintEnv, given)
+                |> Option.map(s -> SetFormula.Complement(s))
 
-        case SetFormula.TypeVariable(_) => setFormula
+        case SetFormula.AssociatedMember(assoc) => 
+            reduceAssociatedMemberOneStep(constraintEnv, given, assoc)
+                |> Option.map(ty -> match ty {
+                    case Type.SetFormula(sf) => sf,
+                    case Type.AssociatedMember(s) => 
+                        SetFormula.AssociatedMember(s),
 
-        case SetFormula.Gen(_) => setFormula
-
-        case SetFormula.AssociatedMember(assoc) =>
-            match reduceAssociatedMemberOneStep(constraintEnv, given, assoc) {
-                case Type.AssociatedMember(reducedAssoc) =>
-                    SetFormula.AssociatedMember(reducedAssoc)
-
-                case Type.SetFormula(reducedSetFormula) =>
-                    reducedSetFormula
-
-                case unexpected => bug!(
-                    "Expected associated member reduction to yield an effect, but found: ${unexpected}"
-                )
-            }
-
-        case SetFormula.Empty => setFormula
+                    case _ => bug!("Expected a set formula")
+                })
     }
 }
 
@@ -93,44 +107,42 @@ def reduceTypeOneStep(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
     ty: Type
-): Type = { 
+): Option[Type] = { 
     match ty {
-        case Type.Variable(_) => ty,
-        case Type.Constructor(_) => ty,
-        case Type.AssociatedMember(assoc) =>
+        case Type.Variable(_) => None,
+        case Type.Constructor(_) => None,
+        case Type.Gen(_) => None
+
+        case Type.AssociatedMember(assoc) => 
             reduceAssociatedMemberOneStep(constraintEnv, given, assoc)
 
         case Type.Application(app) => {
-            let func = app
+            let reducedFn = app 
                 |> TypeApplication.function
-                |> reduceTypeOneStep(constraintEnv, given);
-            let arg = app
-                |> TypeApplication.argument
-                |> reduceTypeOneStep(constraintEnv, given);
+                |> reduceTypeOneStep(constraintEnv, given)
+                |> Option.map(redFn -> Type.Application(
+                    TypeApplication.TypeApplication(
+                        redFn,
+                        app |> TypeApplication.argument
+                    )
+                ));
 
-            Type.Application(TypeApplication.TypeApplication(
-                func, arg
-            ))
+            if (reducedFn |> Option.isEmpty)
+                app
+                    |> TypeApplication.function
+                    |> reduceTypeOneStep(constraintEnv, given)
+                    |> Option.map(redFn -> Type.Application(
+                        TypeApplication.TypeApplication(
+                            redFn,
+                            app |> TypeApplication.argument
+                        )
+                    ))
+            else
+                reducedFn
         }
 
-        case Type.SetFormula(setFormula) =>
-            Type.SetFormula(
-                setFormula |> reduceSetFormulaOneStep(constraintEnv, given)
-            )
-
-        case Type.Gen(_) => ty
+        case Type.SetFormula(setFormula) => 
+            reduceSetFormulaOneStep(constraintEnv, given, setFormula)
+                |> Option.map(Type.SetFormula)  
     }
-}
-
-
-@Tailrec
-pub def reduceType(
-    constraintEnv: ConstraintEnvironment,
-    given: List[Constraint],
-    ty: Type
-): Type = {
-    let reducedTy = reduceTypeOneStep(constraintEnv, given, ty);
-
-    if (reducedTy == ty) reducedTy
-    else reduceType(constraintEnv, given, reducedTy)
 }
