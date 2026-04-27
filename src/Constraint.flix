@@ -4,6 +4,25 @@ pub enum ClassConstraint(Id, Type) with Eq, ToString, Hash, Order
 pub enum EqualityConstraint(Type, Type) with Eq, ToString, Hash, Order
 
 
+instance Substitutable[EqualityConstraint] {
+    pub def apply(
+        substitution: Substitution, 
+        a: EqualityConstraint
+    ): EqualityConstraint =  {
+        let left = a 
+            |> EqualityConstraint.left 
+            |> Substitutable.apply(substitution);
+        
+        let right = a
+            |> EqualityConstraint.right
+            |> Substitutable.apply(substitution);
+
+        EqualityConstraint.EqualityConstraint(left, right)
+    }
+}
+
+
+
 mod EqualityConstraint {
     pub def left(constraint: EqualityConstraint): Type = match constraint {
         case EqualityConstraint(left, _) => left
