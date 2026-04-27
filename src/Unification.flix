@@ -56,3 +56,92 @@ pub def matchTypes(
 }
 
 
+pub enum UnificationError with Eq, ToString, Hash, Order {
+    case OccursCheckFailed,
+    case KindMismatch
+    case DoesNotUnify
+}
+
+
+pub def unifyOneStep(
+    constraintEnv: ConstraintEnvironment,
+    given: List[Constraint],
+    left: Type,
+    right: Type
+): Result[UnificationError, (List[EqualityConstraint], Substitution)] =
+    match (left, right) {
+        case (
+            Type.Application(leftApp),
+            Type.Application(rightApp)
+        ) => {
+            let leftFunc = leftApp |> TypeApplication.function;
+            let leftArg = leftApp |> TypeApplication.argument;
+
+            let rightFunc = rightApp |> TypeApplication.function;
+            let rightArg = rightApp |> TypeApplication.argument;
+
+            Ok((
+                EqualityConstraint.EqualityConstraint(leftFunc, rightFunc)
+                :: EqualityConstraint.EqualityConstraint(leftArg, rightArg)
+                :: Nil,
+                Substitution.empty()
+            ))
+        }
+
+        case (Type.Variable(leftVar),  _) => bindVar(leftVar, right)
+            |> Result.map(x -> (Nil, x)),
+
+        case (_, Type.Variable(rightVar)) => bindVar(rightVar, left)
+            |> Result.map(x -> (Nil, x)),
+
+        case (Type.Constructor(leftCon), Type.Constructor(rightCon)) 
+            if leftCon == rightCon => Ok((Nil, Substitution.empty()))
+
+        case (Type.AssociatedMember(leftAM), _) => 
+            bindAM(constraintEnv, given, leftAM, right)
+            |> Result.map(x -> (x, Substitution.empty()))
+
+        case (_, Type.AssociatedMember(rightAM)) => 
+            bindAM(constraintEnv, given, rightAM, left)
+            |> Result.map(x -> (x, Substitution.empty()))
+
+        // TODO: Boolean unification for set formulas
+        case (Type.SetFormula(leftSet), Type.SetFormula(rightSet)) => ???
+
+        case _ => Err(UnificationError.DoesNotUnify)
+    }
+
+
+def bindAM(
+    constraintEnv: ConstraintEnvironment,
+    given: List[Constraint],
+    am: AssociatedMember, 
+    ty: Type
+): Result[UnificationError, List[EqualityConstraint]] = {
+    let amReduced = reduceType(constraintEnv, given, Type.AssociatedMember(am));
+
+    if (amReduced == ty) 
+        Ok(Nil)
+    else if (amReduced |> Kinded.kind != ty |> Kinded.kind) 
+        Err(UnificationError.KindMismatch)
+    else
+        Ok(EqualityConstraint.EqualityConstraint(amReduced, ty) :: Nil)
+}
+
+
+def bindVar(
+    var: TypeVariable, 
+    ty: Type
+): Result[UnificationError, Substitution] = {
+    if (ty == Type.Variable(var)) 
+        Ok(Substitution.empty())
+    else if (ty 
+        |> FreeTypeVariable.freeTypeVariables 
+        |> List.memberOf(var)
+    )
+        Err(UnificationError.OccursCheckFailed)
+    else if (var |> Kinded.kind != ty |> Kinded.kind) 
+        Err(UnificationError.KindMismatch)
+    else
+        Ok(Substitution.singleton(var, ty))
+}
