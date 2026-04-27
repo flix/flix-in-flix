@@ -74,7 +74,8 @@ def reduceSetFormulaOneStep(
                 ));
 
             if (reducedLeft |> Option.isEmpty)
-                binarySetFormula |> BinarySetFormula.right
+                binarySetFormula 
+                    |> BinarySetFormula.right
                     |> reduceSetFormulaOneStep(constraintEnv, given)
                     |> Option.map(s -> SetFormula.Binary(
                         BinarySetFormula.BinarySetFormula(
