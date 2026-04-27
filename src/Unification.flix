@@ -57,13 +57,23 @@ pub def matchTypes(
 
 
 pub enum UnificationError with Eq, ToString, Hash, Order {
-    case OccursCheckFailed,
+    case OccursCheckFailed
     case KindMismatch
-    case DoesNotUnify
+    case NoApplicableRule
 }
 
 
 pub def unifyOneStep(
+    constraintEnv: ConstraintEnvironment,
+    given: List[Constraint],
+    left: Type,
+    right: Type
+): Result[UnificationError, (List[EqualityConstraint], Substitution)] =
+    if (left == right) Ok((Nil, Substitution.empty()))
+    else unifyOneStepWithoutEq(constraintEnv, given, left, right)
+
+
+def unifyOneStepWithoutEq(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
     left: Type,
@@ -94,9 +104,6 @@ pub def unifyOneStep(
         case (_, Type.Variable(rightVar)) => bindVar(rightVar, left)
             |> Result.map(x -> (Nil, x)),
 
-        case (Type.Constructor(leftCon), Type.Constructor(rightCon)) 
-            if leftCon == rightCon => Ok((Nil, Substitution.empty()))
-
         case (Type.AssociatedMember(leftAM), _) => 
             bindAM(constraintEnv, given, leftAM, right)
             |> Result.map(x -> (x, Substitution.empty()))
@@ -108,7 +115,7 @@ pub def unifyOneStep(
         // TODO: Boolean unification for set formulas
         case (Type.SetFormula(leftSet), Type.SetFormula(rightSet)) => ???
 
-        case _ => Err(UnificationError.DoesNotUnify)
+        case _ => Err(UnificationError.NoApplicableRule)
     }
 
 
@@ -118,14 +125,14 @@ def bindAM(
     am: AssociatedMember, 
     ty: Type
 ): Result[UnificationError, List[EqualityConstraint]] = {
-    let amReduced = reduceType(constraintEnv, given, Type.AssociatedMember(am));
+    forM (
+        reducedAm <- reduceTypeOneStep(constraintEnv, given, Type.AssociatedMember(am)) 
+            |> Option.toOk(UnificationError.NoApplicableRule);
 
-    if (amReduced == ty) 
-        Ok(Nil)
-    else if (amReduced |> Kinded.kind != ty |> Kinded.kind) 
-        Err(UnificationError.KindMismatch)
-    else
-        Ok(EqualityConstraint.EqualityConstraint(amReduced, ty) :: Nil)
+        _ <- if (reducedAm |> Kinded.kind != ty |> Kinded.kind) 
+                Err(UnificationError.KindMismatch)
+            else Ok(())
+    )  yield EqualityConstraint.EqualityConstraint(reducedAm, ty) :: Nil
 }
 
 
