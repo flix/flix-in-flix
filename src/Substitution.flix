@@ -38,7 +38,7 @@ mod Substitution {
         let composedMap = s2Map 
             |> Map.map(v -> v |> Substitutable.apply(s1));
 
-        Substitution.Substitution(Map.union(composedMap, s2Map))
+        Substitution.Substitution(Map.union(composedMap, s1 |> map))
     }
 
 

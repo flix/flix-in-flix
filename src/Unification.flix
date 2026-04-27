@@ -195,7 +195,7 @@ def repeatUnificationHelper(
                 constraintEnv,
                 given,
                 nextConstraints,
-                Substitution.compose(currentSubst, subst)
+                Substitution.compose(subst, currentSubst)
             )
 
         case None => (constraints, currentSubst)
