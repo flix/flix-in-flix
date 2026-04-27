@@ -218,7 +218,7 @@ def unifyOneStepRightVariableRejectsKindMismatch(): Unit \ Assert = {
 
 // `Int32 ~ Int32 -> no new constraints`
 @Test
-def unifyOneStepMatchingConstructorsSucceeds(): Unit \ Assert = {
+def unifyOneStepIdenticalTypesShortCircuits(): Unit \ Assert = {
     let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
 
     Assert.assertEq(
@@ -228,29 +228,32 @@ def unifyOneStepMatchingConstructorsSucceeds(): Unit \ Assert = {
 }
 
 
-// `Int32 ~ Bool -> DoesNotUnify`
+// `Int32 ~ Bool -> NoApplicableRule`
 @Test
-def unifyOneStepDifferentConstructorsDoNotUnify(): Unit \ Assert = {
+def unifyOneStepDifferentConstructorsHaveNoApplicableRule(): Unit \ Assert = {
     let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
     let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.TypeStar));
 
     Assert.assertEq(
-        expected = Err(UnificationError.DoesNotUnify),
+        expected = Err(UnificationError.NoApplicableRule),
         unifyOneStep(unEmptyConstraintEnv(), Nil, int32, bool)
     )
 }
 
 
 // given: { Elem x = Bool }
-// `Elem x ~ Bool -> no new constraints`
+// `Elem x ~ Bool -> { Bool ~ Bool }`
 @Test
-def unifyOneStepAssociatedMemberUsesGivenReduction(): Unit \ Assert = {
+def unifyOneStepAssociatedMemberUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
     let x = Type.mkTypeVar("x", Kind.TypeStar);
     let assoc = Type.mkAssoc("Elem", Type.Variable(x), Kind.TypeStar);
     let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.TypeStar));
 
     Assert.assertEq(
-        expected = Ok((Nil, Substitution.empty())),
+        expected = Ok((
+            unMkEquality(bool, bool) :: Nil,
+            Substitution.empty()
+        )),
         unifyOneStep(
             unEmptyConstraintEnv(),
             unMkGivenEquality(Type.AssociatedMember(assoc), bool) :: Nil,
@@ -309,6 +312,25 @@ def unifyOneStepAssociatedMemberRejectsKindMismatchAfterReduction(): Unit \ Asse
             constraintEnv,
             Nil,
             Type.AssociatedMember(readAssoc),
+            int32
+        )
+    )
+}
+
+
+// `Elem x ~ Int32 -> NoApplicableRule`
+@Test
+def unifyOneStepAssociatedMemberWithoutReductionHasNoApplicableRule(): Unit \ Assert = {
+    let x = Type.mkTypeVar("x", Kind.TypeStar);
+    let assoc = Type.mkAssoc("Elem", Type.Variable(x), Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+
+    Assert.assertEq(
+        expected = Err(UnificationError.NoApplicableRule),
+        unifyOneStep(
+            unEmptyConstraintEnv(),
+            Nil,
+            Type.AssociatedMember(assoc),
             int32
         )
     )
