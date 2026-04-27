@@ -129,12 +129,12 @@ def reduceTypeOneStep(
 
             if (reducedFn |> Option.isEmpty)
                 app
-                    |> TypeApplication.function
+                    |> TypeApplication.argument
                     |> reduceTypeOneStep(constraintEnv, given)
-                    |> Option.map(redFn -> Type.Application(
+                    |> Option.map(redArg -> Type.Application(
                         TypeApplication.TypeApplication(
-                            redFn,
-                            app |> TypeApplication.argument
+                            app |> TypeApplication.function,
+                            redArg
                         )
                     ))
             else
