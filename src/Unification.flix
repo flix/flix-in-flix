@@ -8,7 +8,8 @@ pub def matchTypes(
     left: Type, 
     right: Type
 ): Result[MatchError, Substitution] = match (left, right) {
-    case ( Type.Application(leftApp),
+    case ( 
+        Type.Application(leftApp),
         Type.Application(rightApp)
     ) => {
         forM (
@@ -47,8 +48,7 @@ pub def matchTypes(
     case (Type.AssociatedMember(leftAM), Type.AssociatedMember(rightAM)) 
         if leftAM |> AssociatedMember.id == rightAM |> AssociatedMember.id => {
             matchTypes(
-                leftAM |> AssociatedMember.ty,
-                rightAM |> AssociatedMember.ty
+                leftAM |> AssociatedMember.ty, rightAM |> AssociatedMember.ty
             )
         }
 
