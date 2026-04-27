@@ -152,3 +152,66 @@ def bindVar(
     else
         Ok(Substitution.singleton(var, ty))
 }
+
+
+def repeatUnificationHelper(
+    constraintEnv: ConstraintEnvironment,
+    given: List[Constraint],
+    constraints: List[EqualityConstraint],
+    currentSubst: Substitution
+): (List[EqualityConstraint], Substitution) = {
+    def findApplicable(
+        processed: List[EqualityConstraint],
+        pending: List[EqualityConstraint]
+    ): Option[(List[EqualityConstraint], Substitution)] = match pending {
+        case Nil => None
+
+        case head :: tail => {
+            // if we can apply some rule to head, then we have made progress
+            match unifyOneStep(
+                constraintEnv,
+                given, 
+                head |> EqualityConstraint.left, 
+                head |> EqualityConstraint.right
+            ) {
+                case Ok((unifyEqConstr, subst)) => {
+                    // apply substitution to the remaining constraints
+                    let nextConstraints = 
+                        (processed ++ tail)
+                            |> List.map(c -> c |> Substitutable.apply(subst))
+                        ++ unifyEqConstr;
+
+                    Some((nextConstraints, subst))
+                }
+
+                case Err(_) => findApplicable(head :: processed, tail)
+            }
+        }
+    };
+
+    match findApplicable(Nil, constraints) {
+        case Some((nextConstraints, subst)) => 
+            repeatUnificationHelper(
+                constraintEnv,
+                given,
+                nextConstraints,
+                Substitution.compose(currentSubst, subst)
+            )
+
+        case None => (constraints, currentSubst)
+    }
+}
+
+
+pub def unifyRepeat(
+    constraintEnv: ConstraintEnvironment,
+    given: List[Constraint],
+    constraints: List[EqualityConstraint]
+): (List[EqualityConstraint], Substitution) = 
+    repeatUnificationHelper(
+        constraintEnv, 
+        given, 
+        constraints, 
+        Substitution.empty()
+    )
+
