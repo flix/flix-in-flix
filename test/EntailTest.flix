@@ -1,0 +1,207 @@
+def enMkEquality(left: Type, right: Type): EqualityConstraint =
+    EqualityConstraint.EqualityConstraint(left, right)
+
+
+def enMkGivenEquality(left: Type, right: Type): Constraint =
+    Constraint.Equality(enMkEquality(left, right))
+
+
+def enMkClassConstraint(name: String, ty: Type): ClassConstraint =
+    ClassConstraint.ClassConstraint(Id.Id(name), ty)
+
+
+def enMkGivenClass(name: String, ty: Type): Constraint =
+    Constraint.Class(enMkClassConstraint(name, ty))
+
+
+def enMkInstance(
+    className: String,
+    classType: Type,
+    context: List[Constraint]
+): Instance =
+    Instance.Instance(Qualified.Qualified(
+        enMkClassConstraint(className, classType),
+        context
+    ))
+
+
+def enEmptyConstraintEnv(): ConstraintEnvironment =
+    ConstraintEnvironment.ConstraintEnvironment(Map.empty(), Map.empty())
+
+
+// `x ~ Int32 -> Some([], { x -> Int32 })`
+@Test
+def entailOneStepDelegatesEqualityGoalsToUnification(): Unit \ Assert = {
+    let x = Type.mkTypeVar("x", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+
+    Assert.assertEq(
+        expected = Some((Nil, Substitution.singleton(x, int32))),
+        entailOneStep(
+            enEmptyConstraintEnv(),
+            Nil,
+            Constraint.Equality(enMkEquality(Type.Variable(x), int32))
+        )
+    )
+}
+
+
+// given: { Elem a = a }
+// `Elem Int32 ~ Int32 -> None`
+@Test
+def entailOneStepDoesNotInstantiateEqualityGiven(): Unit \ Assert = {
+    let a = Type.mkTypeVar("a", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+
+    Assert.assertEq(
+        expected = None,
+        entailOneStep(
+            enEmptyConstraintEnv(),
+            enMkGivenEquality(
+                Type.AssociatedMember(genericAssoc),
+                Type.Variable(a)
+            ) :: Nil,
+            Constraint.Equality(enMkEquality(
+                Type.AssociatedMember(specificAssoc),
+                int32
+            ))
+        )
+    )
+}
+
+
+// constraintEnv: { Elem a = a }
+// `Elem Int32 ~ Int32 -> Some([Int32 ~ Int32], {})`
+@Test
+def entailOneStepInstantiatesEqualityFromConstraintEnvironment(): Unit \ Assert = {
+    let a = Type.mkTypeVar("a", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+
+    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+        Map.singleton(
+            Id.Id("Elem"),
+            enMkEquality(
+                Type.AssociatedMember(genericAssoc),
+                Type.Variable(a)
+            ) :: Nil
+        ),
+        Map.empty()
+    );
+
+    Assert.assertEq(
+        expected = Some((
+            Constraint.Equality(enMkEquality(int32, int32)) :: Nil,
+            Substitution.empty()
+        )),
+        entailOneStep(
+            constraintEnv,
+            Nil,
+            Constraint.Equality(enMkEquality(
+                Type.AssociatedMember(specificAssoc),
+                int32
+            ))
+        )
+    )
+}
+
+
+// given: { Ord Int32 }, classEnv: { Ord : Eq }
+// `Eq Int32 -> Some([])`
+@Test
+def entailOneStepDischargesClassGoalByGivenSuperclass(): Unit \ Assert = {
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+
+    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+        Map.empty(),
+        Map.singleton(
+            Id.Id("Ord"),
+            Class.Class(Id.Id("Eq") :: Nil, Nil)
+        )
+    );
+
+    Assert.assertEq(
+        expected = Some((Nil, Substitution.empty())),
+        entailOneStep(
+            constraintEnv,
+            enMkGivenClass("Ord", int32) :: Nil,
+            Constraint.Class(enMkClassConstraint("Eq", int32))
+        )
+    )
+}
+
+
+// constraintEnv: { Elem a = a }
+// `Show (Elem Int32) -> Some([Show Int32])`
+@Test
+def entailOneStepReducesClassGoalTypeBeforeOtherEntailmentRules(): Unit \ Assert = {
+    let a = Type.mkTypeVar("a", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+
+    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+        Map.singleton(
+            Id.Id("Elem"),
+            enMkEquality(
+                Type.AssociatedMember(genericAssoc),
+                Type.Variable(a)
+            ) :: Nil
+        ),
+        Map.empty()
+    );
+
+    Assert.assertEq(
+        expected = Some((
+            Constraint.Class(enMkClassConstraint("Show", int32)) :: Nil,
+            Substitution.empty()
+        )),
+        entailOneStep(
+            constraintEnv,
+            Nil,
+            Constraint.Class(enMkClassConstraint(
+                "Show",
+                Type.AssociatedMember(specificAssoc)
+            ))
+        )
+    )
+}
+
+
+// classEnv: { Eq instance Eq a if Show a }
+// `Eq Int32 -> Some([Show Int32])`
+@Test
+def entailOneStepInstantiatesMatchingInstanceContext(): Unit \ Assert = {
+    let a = Type.mkTypeVar("a", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+
+    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+        Map.empty(),
+        Map.singleton(
+            Id.Id("Eq"),
+            Class.Class(
+                Nil,
+                enMkInstance(
+                    "Eq",
+                    Type.Variable(a),
+                    enMkGivenClass("Show", Type.Variable(a)) :: Nil
+                ) :: Nil
+            )
+        )
+    );
+
+    Assert.assertEq(
+        expected = Some((
+            enMkGivenClass("Show", int32) :: Nil,
+            Substitution.empty()
+        )),
+        entailOneStep(
+            constraintEnv,
+            Nil,
+            Constraint.Class(enMkClassConstraint("Eq", int32))
+        )
+    )
+}
