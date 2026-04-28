@@ -65,26 +65,27 @@ pub enum Type with Eq, ToString, Hash, Order {
 }
 
 mod Type {
-    pub def mkTyvar(name: Id, k: Kind): Tyvar = Tyvar.Tyvar(name, k)
-    pub def mkTycon(name: Id, k: Kind): Tycon = Tycon.Tycon(name, k)
-    pub def mkTyassoc(name: Id, t: Type, k: Kind): Tyassoc
-        = Tyassoc.Tyassoc(name, t, k)
+    pub def unit(): Type = Type.Con(Tycon.Tycon("Unit", Kind.Star))
+    pub def int32(): Type = Type.Con(Tycon.Tycon("Int32", Kind.Star))
+    pub def char(): Type = Type.Con(Tycon.Tycon("Char", Kind.Star))
+    pub def bool(): Type = Type.Con(Tycon.Tycon("Bool", Kind.Star))
+    pub def list(): Type 
+        = Type.Con(Tycon.Tycon("List", Kind.KFun(Kind.Star, Kind.Star)))
+    pub def arrow(): Type = Type.Con(Tycon.Tycon("->",  Kind.arrow()))
+    pub def mkAp(fn: Type, arg: Type): Type = Type.Ap(fn, arg)
+}
 
-    def efUnaryKind(): Kind = Kind.KFun(Kind.Eff, Kind.Eff)
-    def efBinaryKind(): Kind 
-        = Kind.KFun(Kind.Eff, Kind.KFun(Kind.Eff, Kind.Eff))
-    def ef1(sym: Id, t: Type): Type 
-        = Type.Ap(Type.Con(Type.mkTycon(sym, efUnaryKind())), t)
-    def ef2(sym: Id, l: Type, r: Type): Type 
-        = Type.Ap(Type.Ap(Type.Con(Type.mkTycon(sym, efBinaryKind())), l), r)
+mod Type {
+    pub def efUnion(): Type = Type.Con(Tycon.Tycon("+", Kind.efBinary()))
+    pub def efIntersect(): Type = Type.Con(Tycon.Tycon("&", Kind.efBinary()))
+    pub def efComplement(): Type = Type.Con(Tycon.Tycon("~", Kind.efUnary()))
 
-    pub def efUnion(l: Type, r: Type): Type = ef2("+", l, r)
-    pub def efIntersect(l: Type, r: Type): Type = ef2("&", l, r)
-    pub def efXor(l: Type, r: Type): Type = ef2("^", l, r)
-    pub def efCompl(t: Type): Type = ef1("~", t)
+    pub def efEmpty(): Type = Type.Con(Tycon.Tycon("{}", Kind.Eff))
+    pub def efConstant(name: Id): Type = Type.Con(Tycon.Tycon(name, Kind.Eff))
 
-    pub def efEmpty(): Type = Type.Con(Type.mkTycon("{}", Kind.Eff))
-    pub def efSingleton(name: Id): Type = Type.Con(Type.mkTycon(name, Kind.Eff))
+    pub def io(): Type = efConstant("IO")
+    pub def random(): Type = efConstant("Random")
+    pub def http(): Type = efConstant("Http")
 }
 
 instance Kinded[Type] {
