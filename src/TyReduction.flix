@@ -6,22 +6,20 @@ def reduceInnerAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc):
 
 def reduceAssocGiven(giv: List[Constr], am: Tyassoc): Option[Type] 
     = List.findMap(
-        eq -> {
-            let lhs = EqConstr.left(eq);
-            if (lhs == Type.Assoc(am)) Some(EqConstr.right(eq)) else None
-        }, 
-        List.filterMap(c -> Constr.asEq(c), giv)
+        c -> match Constr.asEq(c) {
+            case Some(eq) if EqConstr.left(eq) == Type.Assoc(am) 
+                => Some(EqConstr.right(eq))
+            case _ => None
+        },
+        giv
     )
 
 def reduceAssocEnv(env: ConstrEnv, am: Tyassoc): Option[Type] 
     = List.findMap(
-        eq -> {
-            let lhs = EqConstr.left(eq);
-            Option.map(
-                sub -> Substable.apply(sub, EqConstr.right(eq)),
-                Result.toOption(matchTy(lhs, Type.Assoc(am)))
-            )
-        }, 
+        eq -> Option.map(
+            sub -> Substable.apply(sub, EqConstr.right(eq)),
+            Result.toOption(matchTy(EqConstr.left(eq), Type.Assoc(am)))
+        ),
         ConstrEnv.lookupTyassoc(Tyassoc.id(am), env)
     )
 

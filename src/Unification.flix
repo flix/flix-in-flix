@@ -95,18 +95,12 @@ def unifyRepeatHelper(
     eqs: List[EqConstr],
     curSub: Subst
 ): (List[EqConstr], Subst) = {
-    def findStep(
-        done: List[EqConstr],
-        rest: List[EqConstr]
-    ): Option[(List[EqConstr], Subst)] = match rest {
-        case Nil => None
+    def findStep(done: List[EqConstr], rest: List[EqConstr]): 
+        Option[(List[EqConstr], Subst)] = match rest {
+            case Nil => None
 
-        case head :: tail => {
-            match unifyOneStep(
-                env, 
-                giv,
-                EqConstr.left(head), 
-                EqConstr.right(head)
+            case head :: tail => match unifyOneStep(
+                env, giv, EqConstr.left(head), EqConstr.right(head)
             ) {
                 case Ok((newEqs, sub)) => {
                     let nextEqs = List.map(
@@ -119,7 +113,6 @@ def unifyRepeatHelper(
 
                 case Err(_) => findStep(head :: done, tail)
             }
-        }
     };
 
     match findStep(Nil, eqs) {

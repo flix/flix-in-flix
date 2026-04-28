@@ -55,25 +55,22 @@ mod Constr {
     }
 }
 
-pub enum Qualified[a](a, List[Constr]) with Eq, ToString, Hash, Order
+pub enum Qual[a](a, List[Constr]) with Eq, ToString, Hash, Order
 
-mod Qualified {
-    pub def head(qua: Qualified[q]): q = match qua { 
-        case Qualified(q, _) => q
-    }
-    pub def context(qua: Qualified[q]): List[Constr] = match qua {
-        case Qualified(_, ctx) => ctx 
+mod Qual {
+    pub def head(qua: Qual[q]): q = match qua { case Qual(q, _) => q }
+    pub def context(qua: Qual[q]): List[Constr] = match qua {
+        case Qual(_, ctx) => ctx 
     }
 }
 
-pub enum Scheme[a](Qualified[a]) with Eq, ToString, Hash, Order
+pub enum Scheme[a](Qual[a]) with Eq, ToString, Hash, Order
 
 mod Scheme {
     pub def head(sch: Scheme[a]): a = match sch {
-        case Scheme(qua) => Qualified.head(qua)
+        case Scheme(qua) => Qual.head(qua)
     }
-
     pub def context(sch: Scheme[a]): List[Constr] = match sch {
-        case Scheme(qua) => Qualified.context(qua)
+        case Scheme(qua) => Qual.context(qua)
     }
 }

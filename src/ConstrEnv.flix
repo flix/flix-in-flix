@@ -1,12 +1,12 @@
-pub enum Inst(Qualified[ClassConstr])
+pub enum Inst(Qual[ClassConstr])
 
 mod Inst {
     pub def head(inst: Inst): ClassConstr = match inst {
-        case Inst(qua) => Qualified.head(qua)
+        case Inst(qua) => Qual.head(qua)
     }
 
     pub def context(inst: Inst): List[Constr] = match inst {
-        case Inst(qua) => Qualified.context(qua)
+        case Inst(qua) => Qual.context(qua)
     }
 }
 
