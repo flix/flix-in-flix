@@ -29,9 +29,9 @@ def freeTypeVariablesOfSetFormula(): Unit \ Assert = {
     let y = TypeVariable.TypeVariable(Id.Id("y"), Kind.EffectStar);
     let setFormula = SetFormula.Binary(
         BinarySetFormula.BinarySetFormula(
-            SetFormula.TypeVariable(x),
+            SetFormula.Variable(x),
             SetBinaryOp.Union,
-            SetFormula.Complement(SetFormula.TypeVariable(y))
+            SetFormula.Complement(SetFormula.Variable(y))
         )
     );
     let ty = Type.SetFormula(setFormula);

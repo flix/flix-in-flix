@@ -152,6 +152,13 @@ pub enum BinarySetFormula(SetFormula, SetBinaryOp, SetFormula)
     with Eq, ToString, Hash, Order
 
 
+instance FreeTypeVariable[BinarySetFormula] {
+    pub def freeTypeVariables(a: BinarySetFormula): List[TypeVariable] = 
+        (a |> BinarySetFormula.left |> FreeTypeVariable.freeTypeVariables) :::
+        (a |> BinarySetFormula.right |> FreeTypeVariable.freeTypeVariables)
+}
+
+
 instance Substitutable[BinarySetFormula] {
     pub def apply(substitution: Substitution, a: BinarySetFormula): BinarySetFormula = 
         match a {
@@ -192,7 +199,7 @@ pub enum SetFormula with Eq, ToString, Hash, Order {
     case Singleton(EffectLabel),
     case Binary(BinarySetFormula)
     case Complement(SetFormula)
-    case TypeVariable(TypeVariable)
+    case Variable(TypeVariable)
     case Gen(Gen)
     case AssociatedMember(AssociatedMember)
     case Empty
@@ -210,7 +217,7 @@ instance Substitutable[SetFormula] {
             case SetFormula.Complement(setFormula) => 
                 SetFormula.Complement(setFormula |> Substitutable.apply(substitution))
 
-            case SetFormula.TypeVariable(typeVariable) => 
+            case SetFormula.Variable(typeVariable) => 
                 substitution 
                     |> Substitution.get(typeVariable)
                     |> Option.map(Type.unwrapSetFormula)
@@ -225,7 +232,6 @@ instance Substitutable[SetFormula] {
                 SetFormula.Empty
         }
 }
-
 
 
 instance Kinded[SetFormula] {
@@ -245,7 +251,7 @@ instance FreeTypeVariable[SetFormula] {
             case SetFormula.Complement(setFormula) =>
                 setFormula |> FreeTypeVariable.freeTypeVariables
 
-            case SetFormula.TypeVariable(typeVariable) =>
+            case SetFormula.Variable(typeVariable) =>
                 typeVariable |> FreeTypeVariable.freeTypeVariables
 
             case SetFormula.Gen(_) => Nil

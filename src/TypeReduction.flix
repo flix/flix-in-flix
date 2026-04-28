@@ -55,7 +55,7 @@ def reduceSetFormulaOneStep(
     match setFormula {
         case SetFormula.Singleton(_) => None,
 
-        case SetFormula.TypeVariable(_) => None,
+        case SetFormula.Variable(_) => None,
 
         case SetFormula.Gen(_) => None,
 
