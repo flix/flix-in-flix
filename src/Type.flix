@@ -185,13 +185,7 @@ mod BinarySetFormula {
 }
 
 
-pub enum EffectKind with Eq, ToString, Hash, Order {
-    case Regular,
-    case Region
-}
-
-
-pub enum EffectLabel(Id, EffectKind) with Eq, ToString, Hash, Order
+pub enum EffectLabel(Id) with Eq, ToString, Hash, Order
 
 
 pub enum SetFormula with Eq, ToString, Hash, Order {

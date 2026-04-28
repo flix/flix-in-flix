@@ -213,12 +213,9 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
     let arg = Type.mkTypeVar("x", Kind.TypeStar);
     let readAssoc = Type.mkAssoc("ReadEff", Type.Variable(arg), Kind.EffectStar);
     let writeAssoc = Type.mkAssoc("WriteEff", Type.Variable(arg), Kind.EffectStar);
-    let read = SetFormula.Singleton(
-        EffectLabel.EffectLabel(Id.Id("Read"), EffectKind.Regular)
-    );
-    let write = SetFormula.Singleton(
-        EffectLabel.EffectLabel(Id.Id("Write"), EffectKind.Regular)
-    );
+
+    let read = SetFormula.Singleton(EffectLabel.EffectLabel(Id.Id("Read")));
+    let write = SetFormula.Singleton(EffectLabel.EffectLabel(Id.Id("Write")));
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
@@ -266,7 +263,7 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
 def reduceTypeOneStepReducesAssociatedMemberInsideSetFormula(): Unit \ Assert = {
     let assocId = Id.Id("Assoc");
     let arg = TypeVariable.TypeVariable(Id.Id("x"), Kind.TypeStar);
-    let io = EffectLabel.EffectLabel(Id.Id("IO"), EffectKind.Regular);
+    let io = EffectLabel.EffectLabel(Id.Id("IO"));
     let assoc = AssociatedMember.AssociatedMember(
         assocId,
         Type.Variable(arg),

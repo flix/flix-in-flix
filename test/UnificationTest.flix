@@ -295,7 +295,7 @@ def unifyOneStepAssociatedMemberRejectsKindMismatchAfterReduction(): Unit \ Asse
     let x = Type.mkTypeVar("x", Kind.TypeStar);
     let readAssoc = Type.mkAssoc("ReadEff", Type.Variable(x), Kind.EffectStar);
     let read = Type.SetFormula(SetFormula.Singleton(
-        EffectLabel.EffectLabel(Id.Id("Read"), EffectKind.Regular)
+        EffectLabel.EffectLabel(Id.Id("Read"))
     ));
     let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
 
