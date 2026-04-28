@@ -9,17 +9,17 @@ pub def matchTypes(
     right: Type
 ): Result[MatchError, Substitution] = match (left, right) {
     case ( 
-        Type.Ap(leftApp),
-        Type.Ap(rightApp)
+        Type.Ap(leftFunc, leftArg),
+        Type.Ap(rightFunc, rightArg)
     ) => {
         forM (
             funcSubst <- matchTypes(
-                leftApp |> TypeApplication.function,
-                rightApp |> TypeApplication.function
+                leftFunc,
+                rightFunc
             );
             argSubst <- matchTypes(
-                leftApp |> TypeApplication.argument,
-                rightApp |> TypeApplication.argument
+                leftArg,
+                rightArg
             );
             mergedSubst <- Substitution.merge(funcSubst, argSubst)
                 |> Option.map(Ok)
@@ -81,15 +81,9 @@ def unifyOneStepWithoutEq(
 ): Result[UnificationError, (List[EqualityConstraint], Substitution)] =
     match (left, right) {
         case (
-            Type.Ap(leftApp),
-            Type.Ap(rightApp)
+            Type.Ap(leftFunc, leftArg),
+            Type.Ap(rightFunc, rightArg)
         ) => {
-            let leftFunc = leftApp |> TypeApplication.function;
-            let leftArg = leftApp |> TypeApplication.argument;
-
-            let rightFunc = rightApp |> TypeApplication.function;
-            let rightArg = rightApp |> TypeApplication.argument;
-
             Ok((
                 EqualityConstraint.EqualityConstraint(leftFunc, rightFunc)
                 :: EqualityConstraint.EqualityConstraint(leftArg, rightArg)
@@ -214,4 +208,3 @@ pub def unifyRepeat(
         constraints, 
         Substitution.empty()
     )
-

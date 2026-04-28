@@ -77,55 +77,6 @@ instance FreeTypeVariable[Tyassoc] {
 }
 
 
-pub enum TypeApplication(Type, Type) with Eq, ToString, Hash, Order
-
-
-mod TypeApplication {
-    pub def function(typeapplication: TypeApplication): Type 
-        = match typeapplication {
-            case TypeApplication(function, _) => function
-        }
-
-    
-    pub def argument(typeapplication: TypeApplication): Type
-        = match typeapplication {
-            case TypeApplication(_, argument) => argument
-        }
-}
-
-instance Substitutable[TypeApplication] {
-    pub def apply(substitution: Substitution, a: TypeApplication): TypeApplication = 
-        match a {
-            case TypeApplication.TypeApplication(function, argument) => 
-                TypeApplication.TypeApplication(
-                    function |> Substitutable.apply(substitution),
-                    argument |> Substitutable.apply(substitution)
-                )
-        }
-}
-
-
-instance Kinded[TypeApplication] {
-    pub def kind(a: TypeApplication): Kind = {
-        let functionKind = a |> TypeApplication.function |> Kinded.kind;
-
-        match functionKind {
-            case Kind.KFun(_, result) => result
-            case _ => bug!(
-                "Expected a function kind, but found: ${functionKind}"
-            )
-        }
-    }
-}
-
-
-instance FreeTypeVariable[TypeApplication] {
-    pub def freeTypeVariables(a: TypeApplication): List[Tyvar] =
-        (a |> TypeApplication.function |> FreeTypeVariable.freeTypeVariables) :::
-        (a |> TypeApplication.argument |> FreeTypeVariable.freeTypeVariables)
-}
-
-
 pub enum Gen(Int32, Kind) with Eq, ToString, Hash, Order
 
 
@@ -268,7 +219,7 @@ pub enum Type with Eq, ToString, Hash, Order {
     case Var(Tyvar)
     case Con(Tycon)
     case Assoc(Tyassoc)
-    case Ap(TypeApplication)
+    case Ap(Type, Type)
     case SetFormula(SetFormula)
     case Gen(Gen)
 } 
@@ -305,8 +256,16 @@ instance Kinded[Type] {
         case Type.Assoc(associatedMember) =>
             associatedMember |> Kinded.kind
 
-        case Type.Ap(application) =>
-            application |> Kinded.kind
+        case Type.Ap(function, _) => {
+            let functionKind = function |> Kinded.kind;
+
+            match functionKind {
+                case Kind.KFun(_, result) => result
+                case _ => bug!(
+                    "Expected a function kind, but found: ${functionKind}"
+                )
+            }
+        }
 
         case Type.Gen(gen) => 
             gen |> Kinded.kind
@@ -324,8 +283,9 @@ instance Substitutable[Type] {
                 |> Substitution.get(variable)
                 |> Option.getWithDefault(a)
 
-        case Type.Ap(typeApplication) => Type.Ap(
-            typeApplication |> Substitutable.apply(substitution)
+        case Type.Ap(function, argument) => Type.Ap(
+            function |> Substitutable.apply(substitution),
+            argument |> Substitutable.apply(substitution)
         )
 
         case Type.SetFormula(setFormula) =>
@@ -351,8 +311,9 @@ instance FreeTypeVariable[Type] {
         case Type.Assoc(associatedMember) =>
             associatedMember |> FreeTypeVariable.freeTypeVariables
 
-        case Type.Ap(application) =>
-            application |> FreeTypeVariable.freeTypeVariables
+        case Type.Ap(function, argument) =>
+            (function |> FreeTypeVariable.freeTypeVariables) :::
+            (argument |> FreeTypeVariable.freeTypeVariables)
 
         case Type.SetFormula(setFormula) =>
             setFormula |> FreeTypeVariable.freeTypeVariables

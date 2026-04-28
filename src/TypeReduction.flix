@@ -147,26 +147,20 @@ def reduceTypeOneStep(
         case Type.Assoc(assoc) => 
             reduceTyassocOneStep(constraintEnv, given, assoc)
 
-        case Type.Ap(app) => {
-            let reducedFn = app 
-                |> TypeApplication.function
+        case Type.Ap(function, argument) => {
+            let reducedFn = function
                 |> reduceTypeOneStep(constraintEnv, given)
                 |> Option.map(redFn -> Type.Ap(
-                    TypeApplication.TypeApplication(
-                        redFn,
-                        app |> TypeApplication.argument
-                    )
+                    redFn,
+                    argument
                 ));
 
             if (reducedFn |> Option.isEmpty)
-                app
-                    |> TypeApplication.argument
+                argument
                     |> reduceTypeOneStep(constraintEnv, given)
                     |> Option.map(redArg -> Type.Ap(
-                        TypeApplication.TypeApplication(
-                            app |> TypeApplication.function,
-                            redArg
-                        )
+                        function,
+                        redArg
                     ))
             else
                 reducedFn

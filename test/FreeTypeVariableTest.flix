@@ -12,12 +12,7 @@ def freeTypeVariablesOfVariable(): Unit \ Assert = {
 def freeTypeVariablesOfTypeApplication(): Unit \ Assert = {
     let x = Tyvar.Tyvar(Id.Id("x"), Kind.Star);
     let y = Tyvar.Tyvar(Id.Id("y"), Kind.Star);
-    let ty = Type.Ap(
-        TypeApplication.TypeApplication(
-            Type.Var(x),
-            Type.Var(y)
-        )
-    );
+    let ty = Type.Ap(Type.Var(x), Type.Var(y));
 
     Assert.assertEq(expected = x :: y :: Nil, ty |> FreeTypeVariable.freeTypeVariables)
 }

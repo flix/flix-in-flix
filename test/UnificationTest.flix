@@ -46,12 +46,8 @@ def matchTypesApplicationMergesSubstitutions(): Unit \ Assert = {
     let unary = Type.Con(Type.mkTycon("Unary", tToT));
     let int32 = Type.Con(Type.mkTycon("Int32", t));
 
-    let left = Type.Ap(
-        TypeApplication.TypeApplication(Type.Var(f), Type.Var(x))
-    );
-    let right = Type.Ap(
-        TypeApplication.TypeApplication(unary, int32)
-    );
+    let left = Type.Ap(Type.Var(f), Type.Var(x));
+    let right = Type.Ap(unary, int32);
 
     match matchTypes(left, right) {
         case Ok(subst) => {
@@ -79,20 +75,14 @@ def matchTypesApplicationRejectsInconsistentSubstitution(): Unit \ Assert = {
     let int32 = Type.Con(Type.mkTycon("Int32", t));
     let bool = Type.Con(Type.mkTycon("Bool", t));
 
-    let left = Type.Ap(TypeApplication.TypeApplication(
-        Type.Ap(TypeApplication.TypeApplication(
-            pair,
-            Type.Var(x)
-        )),
+    let left = Type.Ap(
+        Type.Ap(pair, Type.Var(x)),
         Type.Var(x)
-    ));
-    let right = Type.Ap(TypeApplication.TypeApplication(
-        Type.Ap(TypeApplication.TypeApplication(
-            pair,
-            int32
-        )),
+    );
+    let right = Type.Ap(
+        Type.Ap(pair, int32),
         bool
-    ));
+    );
 
     Assert.assertEq(
         expected = Err(MatchError.DoesNotMatch),
@@ -135,14 +125,8 @@ def unifyOneStepApplicationCreatesEqualityConstraints(): Unit \ Assert = {
     let x = Type.mkTyvar("x", t);
     let int32 = Type.Con(Type.mkTycon("Int32", t));
 
-    let left = Type.Ap(TypeApplication.TypeApplication(
-        unary,
-        Type.Var(x)
-    ));
-    let right = Type.Ap(TypeApplication.TypeApplication(
-        unary,
-        int32
-    ));
+    let left = Type.Ap(unary, Type.Var(x));
+    let right = Type.Ap(unary, int32);
 
     Assert.assertEq(
         expected = Ok((
@@ -181,10 +165,7 @@ def unifyOneStepVariableRejectsOccursCheckFailure(): Unit \ Assert = {
     let tToT = Kind.KFun(t, t);
     let x = Type.mkTyvar("x", t);
     let unary = Type.Con(Type.mkTycon("Unary", tToT));
-    let unaryX = Type.Ap(TypeApplication.TypeApplication(
-        unary,
-        Type.Var(x)
-    ));
+    let unaryX = Type.Ap(unary, Type.Var(x));
 
     Assert.assertEq(
         expected = Err(UnificationError.OccursCheckFailed),
@@ -407,14 +388,8 @@ def unifyRepeatApplicationFullyUnifies(): Unit \ Assert = {
     let int32 = Type.Con(Type.mkTycon("Int32", t));
 
     let constraints = unMkEquality(
-        Type.Ap(TypeApplication.TypeApplication(
-            unary,
-            Type.Var(x)
-        )),
-        Type.Ap(TypeApplication.TypeApplication(
-            unary,
-            int32
-        ))
+        Type.Ap(unary, Type.Var(x)),
+        Type.Ap(unary, int32)
     ) :: Nil;
 
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);

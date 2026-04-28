@@ -175,16 +175,10 @@ def reduceTypeOneStepApplicationReducesFunctionBeforeArgument(): Unit \ Assert =
         Map.empty()
     );
 
-    let ty = Type.Ap(TypeApplication.TypeApplication(
-        Type.Assoc(funcAssoc),
-        Type.Assoc(argAssoc)
-    ));
+    let ty = Type.Ap(Type.Assoc(funcAssoc), Type.Assoc(argAssoc));
 
     Assert.assertEq(
-        expected = Some(Type.Ap(TypeApplication.TypeApplication(
-            unary,
-            Type.Assoc(argAssoc)
-        ))),
+        expected = Some(Type.Ap(unary, Type.Assoc(argAssoc))),
         ty |> reduceTypeOneStep(constraintEnv, Nil)
     )
 }
@@ -214,16 +208,10 @@ def reduceTypeOneStepApplicationReducesArgumentWhenFunctionIsStable(): Unit \ As
         Map.empty()
     );
 
-    let ty = Type.Ap(TypeApplication.TypeApplication(
-        unary,
-        Type.Assoc(argAssoc)
-    ));
+    let ty = Type.Ap(unary, Type.Assoc(argAssoc));
 
     Assert.assertEq(
-        expected = Some(Type.Ap(TypeApplication.TypeApplication(
-            unary,
-            int32
-        ))),
+        expected = Some(Type.Ap(unary, int32)),
         ty |> reduceTypeOneStep(constraintEnv, Nil)
     )
 }
