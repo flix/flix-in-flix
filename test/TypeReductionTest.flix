@@ -83,7 +83,7 @@ def reduceTypeOneStepInstantiatesConstraintEnvironmentEquality(): Unit \ Assert 
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
-            Id.Id("Elem"),
+            "Elem",
             trMkEquality(
                 Type.Assoc(genericAssoc),
                 Type.Var(a)
@@ -120,11 +120,11 @@ def reduceTypeOneStepReducesTyassocArgumentBeforeOuterLookup(): Unit \ Assert = 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
             Map.singleton(
-                Id.Id("Inner"),
+                "Inner",
                 trMkEquality(Type.Assoc(inner), int32) :: Nil
             ),
             Map.singleton(
-                Id.Id("Outer"),
+                "Outer",
                 trMkEquality(Type.Assoc(outerAfterArgReduction), bool) :: Nil
             )
         ),
@@ -161,11 +161,11 @@ def reduceTypeOneStepApplicationReducesFunctionBeforeArgument(): Unit \ Assert =
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
             Map.singleton(
-                Id.Id("UnaryCtor"),
+                "UnaryCtor",
                 trMkEquality(Type.Assoc(funcAssoc), unary) :: Nil
             ),
             Map.singleton(
-                Id.Id("Elem"),
+                "Elem",
                 trMkEquality(
                     Type.Assoc(argAssoc),
                     Type.Con(Type.mkTycon("Int32", Kind.Star))
@@ -202,7 +202,7 @@ def reduceTypeOneStepApplicationReducesArgumentWhenFunctionIsStable(): Unit \ As
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
-            Id.Id("Elem"),
+            "Elem",
             trMkEquality(Type.Assoc(argAssoc), int32) :: Nil
         ),
         Map.empty()
@@ -229,14 +229,14 @@ def reduceTypeOneStepReducesChainedTyassocsOneRuleAtATime(): Unit \ Assert = {
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
             Map.singleton(
-                Id.Id("AssocA"),
+                "AssocA",
                 trMkEquality(
                     Type.Assoc(assocA),
                     Type.Assoc(assocB)
                 ) :: Nil
             ),
             Map.singleton(
-                Id.Id("AssocB"),
+                "AssocB",
                 trMkEquality(Type.Assoc(assocB), int32) :: Nil
             )
         ),
@@ -251,64 +251,58 @@ def reduceTypeOneStepReducesChainedTyassocsOneRuleAtATime(): Unit \ Assert = {
 
 
 // constraintEnv: { ReadEff x = Read, WriteEff x = Write }
-// `(ReadEff x + ~WriteEff x) -> Some(Read + ~WriteEff x)`
+// `Union (ReadEff x) (Compl (WriteEff x)) -> Some(Union Read (Compl (WriteEff x)))`
 @Test
 def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
     let arg = Type.mkTyvar("x", Kind.Star);
     let readAssoc = Type.mkTyassoc("ReadEff", Type.Var(arg), Kind.Eff);
     let writeAssoc = Type.mkTyassoc("WriteEff", Type.Var(arg), Kind.Eff);
 
-    let read = SetFormula.Singleton(EffectLabel.EffectLabel(Id.Id("Read")));
-    let write = SetFormula.Singleton(EffectLabel.EffectLabel(Id.Id("Write")));
+    let read = Type.efSingleton("Read");
+    let write = Type.efSingleton("Write");
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
             Map.singleton(
-                Id.Id("ReadEff"),
+                "ReadEff",
                 trMkEquality(
                     Type.Assoc(readAssoc),
-                    Type.SetFormula(read)
+                    read
                 ) :: Nil
             ),
             Map.singleton(
-                Id.Id("WriteEff"),
+                "WriteEff",
                 trMkEquality(
                     Type.Assoc(writeAssoc),
-                    Type.SetFormula(write)
+                    write
                 ) :: Nil
             )
         ),
         Map.empty()
     );
 
-    let ty = Type.SetFormula(SetFormula.Binary(
-        BinarySetFormula.BinarySetFormula(
-            SetFormula.Tyassoc(readAssoc),
-            SetBinaryOp.Union,
-            SetFormula.Complement(SetFormula.Tyassoc(writeAssoc))
-        )
-    ));
+    let ty = Type.efUnion(
+        Type.Assoc(readAssoc),
+        Type.efCompl(Type.Assoc(writeAssoc))
+    );
 
     Assert.assertEq(
-        expected = Some(Type.SetFormula(SetFormula.Binary(
-            BinarySetFormula.BinarySetFormula(
-                read,
-                SetBinaryOp.Union,
-                SetFormula.Complement(SetFormula.Tyassoc(writeAssoc))
-            )
-        ))),
+        expected = Some(Type.efUnion(
+            read,
+            Type.efCompl(Type.Assoc(writeAssoc))
+        )),
         ty |> reduceTypeOneStep(constraintEnv, Nil)
     )
 }
 
 
 // constraintEnv: { Assoc x = IO }
-// `~Assoc x -> Some(~IO)`
+// `Compl (Assoc x) -> Some(Compl IO)`
 @Test
 def reduceTypeOneStepReducesTyassocInsideSetFormula(): Unit \ Assert = {
-    let assocId = Id.Id("Assoc");
-    let arg = Tyvar.Tyvar(Id.Id("x"), Kind.Star);
-    let io = EffectLabel.EffectLabel(Id.Id("IO"));
+    let assocId = "Assoc";
+    let arg = Tyvar.Tyvar("x", Kind.Star);
+    let io = Type.efSingleton("IO");
     let assoc = Tyassoc.Tyassoc(
         assocId,
         Type.Var(arg),
@@ -320,20 +314,16 @@ def reduceTypeOneStepReducesTyassocInsideSetFormula(): Unit \ Assert = {
             assocId,
             EqualityConstraint.EqualityConstraint(
                 Type.Assoc(assoc),
-                Type.SetFormula(SetFormula.Singleton(io))
+                io
             ) :: Nil
         ),
         Map.empty()
     );
 
-    let ty = Type.SetFormula(
-        SetFormula.Complement(SetFormula.Tyassoc(assoc))
-    );
+    let ty = Type.efCompl(Type.Assoc(assoc));
 
     Assert.assertEq(
-        expected = Some(Type.SetFormula(
-            SetFormula.Complement(SetFormula.Singleton(io))
-        )),
+        expected = Some(Type.efCompl(io)),
         ty |> reduceTypeOneStep(constraintEnv, Nil)
     )
 }

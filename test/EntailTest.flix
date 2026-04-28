@@ -6,16 +6,16 @@ def enMkGivenEquality(left: Type, right: Type): Constraint =
     Constraint.Equality(enMkEquality(left, right))
 
 
-def enMkClassConstraint(name: String, ty: Type): ClassConstraint =
-    ClassConstraint.ClassConstraint(Id.Id(name), ty)
+def enMkClassConstraint(name: Id, ty: Type): ClassConstraint =
+    ClassConstraint.ClassConstraint(name, ty)
 
 
-def enMkGivenClass(name: String, ty: Type): Constraint =
+def enMkGivenClass(name: Id, ty: Type): Constraint =
     Constraint.Class(enMkClassConstraint(name, ty))
 
 
 def enMkInstance(
-    className: String,
+    className: Id,
     classType: Type,
     context: List[Constraint]
 ): Instance =
@@ -83,7 +83,7 @@ def entailOneStepInstantiatesEqualityFromConstraintEnvironment(): Unit \ Assert 
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
-            Id.Id("Elem"),
+            "Elem",
             enMkEquality(
                 Type.Assoc(genericAssoc),
                 Type.Var(a)
@@ -118,8 +118,8 @@ def entailOneStepDischargesClassGoalByGivenSuperclass(): Unit \ Assert = {
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.empty(),
         Map.singleton(
-            Id.Id("Ord"),
-            Class.Class(Id.Id("Eq") :: Nil, Nil)
+            "Ord",
+            Class.Class("Eq" :: Nil, Nil)
         )
     );
 
@@ -145,7 +145,7 @@ def entailOneStepReducesClassGoalTypeBeforeOtherEntailmentRules(): Unit \ Assert
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
-            Id.Id("Elem"),
+            "Elem",
             enMkEquality(
                 Type.Assoc(genericAssoc),
                 Type.Var(a)
@@ -181,7 +181,7 @@ def entailOneStepInstantiatesMatchingInstanceContext(): Unit \ Assert = {
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.empty(),
         Map.singleton(
-            Id.Id("Eq"),
+            "Eq",
             Class.Class(
                 Nil,
                 enMkInstance(
@@ -241,14 +241,14 @@ def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
-            Id.Id("Elem"),
+            "Elem",
             enMkEquality(
                 Type.Assoc(genericAssoc),
                 Type.Var(a)
             ) :: Nil
         ),
         Map.singleton(
-            Id.Id("Eq"),
+            "Eq",
             Class.Class(
                 Nil,
                 enMkInstance(

@@ -1,1 +1,1 @@
-pub enum Id(String) with Eq, ToString, Hash, Order 
+pub type alias Id = String

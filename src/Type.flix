@@ -92,156 +92,77 @@ instance Kinded[Gen] {
 }
 
 
-pub enum SetBinaryOp with Eq, ToString, Hash, Order {
-    case Union,
-    case Intersection,
-    case Xor
-}
-
-
-pub enum BinarySetFormula(SetFormula, SetBinaryOp, SetFormula) 
-    with Eq, ToString, Hash, Order
-
-
-instance FreeTypeVariable[BinarySetFormula] {
-    pub def freeTypeVariables(a: BinarySetFormula): List[Tyvar] = 
-        (a |> BinarySetFormula.left |> FreeTypeVariable.freeTypeVariables) :::
-        (a |> BinarySetFormula.right |> FreeTypeVariable.freeTypeVariables)
-}
-
-
-instance Substitutable[BinarySetFormula] {
-    pub def apply(substitution: Substitution, a: BinarySetFormula): BinarySetFormula = 
-        match a {
-            case BinarySetFormula.BinarySetFormula(left, op, right) => 
-                BinarySetFormula.BinarySetFormula(
-                    left |> Substitutable.apply(substitution),
-                    op,
-                    right |> Substitutable.apply(substitution)
-                )
-        }
-}
-
-
-mod BinarySetFormula {
-    pub def left(binarySetFormula: BinarySetFormula): SetFormula = 
-        match binarySetFormula {
-            case BinarySetFormula(l, _, _) => l
-        }
-
-    
-    pub def op(binarySetFormula: BinarySetFormula): SetBinaryOp =
-        match binarySetFormula {
-            case BinarySetFormula(_, op, _) => op
-        }
-
-
-    pub def right(binarySetFormula: BinarySetFormula): SetFormula =
-        match binarySetFormula {    
-            case BinarySetFormula(_, _, r) => r
-        }
-}
-
-
-pub enum EffectLabel(Id) with Eq, ToString, Hash, Order
-
-
-pub enum SetFormula with Eq, ToString, Hash, Order {
-    case Singleton(EffectLabel),
-    case Binary(BinarySetFormula)
-    case Complement(SetFormula)
-    case Variable(Tyvar)
-    case Gen(Gen)
-    case Tyassoc(Tyassoc)
-    case Empty
-}
-
-
-instance Substitutable[SetFormula] {
-    pub def apply(substitution: Substitution, a: SetFormula): SetFormula  
-        = match a {
-            case SetFormula.Singleton(_) => a
-
-            case SetFormula.Binary(binarySetFormula) => 
-                SetFormula.Binary(binarySetFormula |> Substitutable.apply(substitution))
-
-            case SetFormula.Complement(setFormula) => 
-                SetFormula.Complement(setFormula |> Substitutable.apply(substitution))
-
-            case SetFormula.Variable(typeVariable) => 
-                substitution 
-                    |> Substitution.get(typeVariable)
-                    |> Option.map(Type.unwrapSetFormula)
-                    |> Option.getWithDefault(a)
-
-            case SetFormula.Gen(_) => a
-
-            case SetFormula.Tyassoc(associatedMember) =>
-                SetFormula.Tyassoc(associatedMember)
-
-            case SetFormula.Empty =>
-                SetFormula.Empty
-        }
-}
-
-
-instance Kinded[SetFormula] {
-    pub def kind(_a: SetFormula): Kind = Kind.Eff
-}
-
-
-instance FreeTypeVariable[SetFormula] {
-    pub def freeTypeVariables(a: SetFormula): List[Tyvar] =
-        match a {
-            case SetFormula.Singleton(_) => Nil
-
-            case SetFormula.Binary(binarySetFormula) =>
-                (binarySetFormula |> BinarySetFormula.left |> FreeTypeVariable.freeTypeVariables) :::
-                (binarySetFormula |> BinarySetFormula.right |> FreeTypeVariable.freeTypeVariables)
-
-            case SetFormula.Complement(setFormula) =>
-                setFormula |> FreeTypeVariable.freeTypeVariables
-
-            case SetFormula.Variable(typeVariable) =>
-                typeVariable |> FreeTypeVariable.freeTypeVariables
-
-            case SetFormula.Gen(_) => Nil
-
-            case SetFormula.Tyassoc(associatedMember) =>
-                associatedMember |> FreeTypeVariable.freeTypeVariables
-
-            case SetFormula.Empty => Nil
-        }
-}
-
-
 pub enum Type with Eq, ToString, Hash, Order {
     case Var(Tyvar)
     case Con(Tycon)
     case Assoc(Tyassoc)
     case Ap(Type, Type)
-    case SetFormula(SetFormula)
     case Gen(Gen)
 } 
 
 
 mod Type {
-    pub def mkTyvar(name: String, kind: Kind): Tyvar =
-        Tyvar.Tyvar(Id.Id(name), kind)
+    pub def mkTyvar(name: Id, kind: Kind): Tyvar =
+        Tyvar.Tyvar(name, kind)
 
 
-    pub def mkTycon(name: String, kind: Kind): Tycon =
-        Tycon.Tycon(Id.Id(name), kind)
+    pub def mkTycon(name: Id, kind: Kind): Tycon =
+        Tycon.Tycon(name, kind)
 
 
-    pub def mkTyassoc(name: String, ty: Type, kind: Kind): Tyassoc =
-        Tyassoc.Tyassoc(Id.Id(name), ty, kind)
+    pub def mkTyassoc(name: Id, ty: Type, kind: Kind): Tyassoc =
+        Tyassoc.Tyassoc(name, ty, kind)
 
 
-    pub def unwrapSetFormula(ty: Type): SetFormula = match ty {
-        case Type.SetFormula(setFormula) => setFormula
-        case _ => bug!("Expected a SetFormula type, but found: ${ty}")
-    }
+    def efUnaryKind(): Kind = Kind.KFun(Kind.Eff, Kind.Eff)
+
+
+    def efBinaryKind(): Kind = Kind.KFun(
+        Kind.Eff,
+        Kind.KFun(Kind.Eff, Kind.Eff)
+    )
+
+
+    pub def efUnion(left: Type, right: Type): Type =
+        Type.Ap(
+            Type.Ap(
+                Type.Con(Type.mkTycon("+", efBinaryKind())),
+                left
+            ),
+            right
+        )
+
+
+    pub def efIntersect(left: Type, right: Type): Type =
+        Type.Ap(
+            Type.Ap(
+                Type.Con(Type.mkTycon("&", efBinaryKind())),
+                left
+            ),
+            right
+        )
+
+
+    pub def efXor(left: Type, right: Type): Type =
+        Type.Ap(
+            Type.Ap(
+                Type.Con(Type.mkTycon("^", efBinaryKind())),
+                left
+            ),
+            right
+        )
+
+
+    pub def efCompl(ty: Type): Type =
+        Type.Ap(Type.Con(Type.mkTycon("~", efUnaryKind())), ty)
+
+
+    pub def efEmpty(): Type =
+        Type.Con(Type.mkTycon("{}", Kind.Eff))
+
+
+    pub def efSingleton(name: Id): Type =
+        Type.Con(Type.mkTycon(name, Kind.Eff))
 }
 
 
@@ -269,9 +190,6 @@ instance Kinded[Type] {
 
         case Type.Gen(gen) => 
             gen |> Kinded.kind
-
-        case Type.SetFormula(setFormula) =>
-            setFormula |> Kinded.kind
     }
 }
 
@@ -287,9 +205,6 @@ instance Substitutable[Type] {
             function |> Substitutable.apply(substitution),
             argument |> Substitutable.apply(substitution)
         )
-
-        case Type.SetFormula(setFormula) =>
-            Type.SetFormula(setFormula |> Substitutable.apply(substitution))
 
         case Type.Gen(_) => a
 
@@ -314,9 +229,6 @@ instance FreeTypeVariable[Type] {
         case Type.Ap(function, argument) =>
             (function |> FreeTypeVariable.freeTypeVariables) :::
             (argument |> FreeTypeVariable.freeTypeVariables)
-
-        case Type.SetFormula(setFormula) =>
-            setFormula |> FreeTypeVariable.freeTypeVariables
 
         case Type.Gen(_) =>
             Nil

@@ -27,7 +27,7 @@ def matchTypesVariableCreatesSubstitution(): Unit \ Assert = {
 @Test
 def matchTypesVariableRejectsKindMismatch(): Unit \ Assert = {
     let x = Type.mkTyvar("x", Kind.Star);
-    let emptySet = Type.SetFormula(SetFormula.Empty);
+    let emptySet = Type.efEmpty();
 
     Assert.assertEq(
         expected = Err(MatchError.KindMismatch),
@@ -94,7 +94,7 @@ def matchTypesApplicationRejectsInconsistentSubstitution(): Unit \ Assert = {
 // `Assoc x ~ Assoc Int32 -> { x -> Int32 }`
 @Test
 def matchTypesTyassocMatchesUnderlyingArgument(): Unit \ Assert = {
-    let assocId = Id.Id("Assoc");
+    let assocId = "Assoc";
     let x = Type.mkTyvar("x", Kind.Star);
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
@@ -280,7 +280,7 @@ def unifyOneStepTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Asser
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
-            Id.Id("Elem"),
+            "Elem",
             unMkEquality(
                 Type.Assoc(genericAssoc),
                 Type.Var(a)
@@ -334,14 +334,12 @@ def unifyOneStepTyassocProducesResidualEquality(): Unit \ Assert = {
 def unifyOneStepTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
     let x = Type.mkTyvar("x", Kind.Star);
     let readAssoc = Type.mkTyassoc("ReadEff", Type.Var(x), Kind.Eff);
-    let read = Type.SetFormula(SetFormula.Singleton(
-        EffectLabel.EffectLabel(Id.Id("Read"))
-    ));
+    let read = Type.efSingleton("Read");
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
-            Id.Id("ReadEff"),
+            "ReadEff",
             unMkEquality(Type.Assoc(readAssoc), read) :: Nil
         ), 
         Map.empty()
@@ -450,14 +448,14 @@ def unifyRepeatFullyReducesChainedTyassocs(): Unit \ Assert = {
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
             Map.singleton(
-                Id.Id("AssocA"),
+                "AssocA",
                 unMkEquality(
                     Type.Assoc(assocA),
                     Type.Assoc(assocB)
                 ) :: Nil
             ),
             Map.singleton(
-                Id.Id("AssocB"),
+                "AssocB",
                 unMkEquality(Type.Assoc(assocB), int32) :: Nil
             )
         ),

@@ -77,63 +77,6 @@ def reduceTyassocOneStep(
 }
 
 
-def reduceSetFormulaOneStep(
-    constraintEnv: ConstraintEnvironment,
-    given: List[Constraint],
-    setFormula: SetFormula
-): Option[SetFormula] = {
-    match setFormula {
-        case SetFormula.Singleton(_) => None,
-
-        case SetFormula.Variable(_) => None,
-
-        case SetFormula.Gen(_) => None,
-
-        case SetFormula.Empty => None,
-
-        case SetFormula.Binary(binarySetFormula) => {
-            let reducedLeft = binarySetFormula 
-                |> BinarySetFormula.left
-                |> reduceSetFormulaOneStep(constraintEnv, given)
-                |> Option.map(s -> SetFormula.Binary(
-                    BinarySetFormula.BinarySetFormula(
-                        s,
-                        binarySetFormula |> BinarySetFormula.op,
-                        binarySetFormula |> BinarySetFormula.right
-                    )
-                ));
-
-            if (reducedLeft |> Option.isEmpty)
-                binarySetFormula 
-                    |> BinarySetFormula.right
-                    |> reduceSetFormulaOneStep(constraintEnv, given)
-                    |> Option.map(s -> SetFormula.Binary(
-                        BinarySetFormula.BinarySetFormula(
-                            binarySetFormula |> BinarySetFormula.left,
-                            binarySetFormula |> BinarySetFormula.op,
-                            s
-                        )
-                    ))
-            else reducedLeft
-        }
-
-        case SetFormula.Complement(inner) => 
-            inner |> reduceSetFormulaOneStep(constraintEnv, given)
-                |> Option.map(s -> SetFormula.Complement(s))
-
-        case SetFormula.Tyassoc(assoc) => 
-            reduceTyassocOneStep(constraintEnv, given, assoc)
-                |> Option.map(ty -> match ty {
-                    case Type.SetFormula(sf) => sf,
-                    case Type.Assoc(s) => 
-                        SetFormula.Tyassoc(s),
-
-                    case _ => bug!("Expected a set formula")
-                })
-    }
-}
-
-
 def reduceTypeOneStep(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
@@ -161,13 +104,9 @@ def reduceTypeOneStep(
                     |> Option.map(redArg -> Type.Ap(
                         function,
                         redArg
-                    ))
+                ))
             else
                 reducedFn
         }
-
-        case Type.SetFormula(setFormula) => 
-            reduceSetFormulaOneStep(constraintEnv, given, setFormula)
-                |> Option.map(Type.SetFormula)  
     }
 }

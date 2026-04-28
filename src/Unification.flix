@@ -42,9 +42,6 @@ pub def matchTypes(
     case (Type.Con(leftCon), Type.Con(rightCon)) 
         if leftCon == rightCon => Ok(Substitution.empty())
 
-    // TODO: one-way boolean unification for set formulas
-    case (Type.SetFormula(leftSet), Type.SetFormula(rightSet)) => ???
-
     case (Type.Assoc(leftAM), Type.Assoc(rightAM)) 
         if leftAM |> Tyassoc.id == rightAM |> Tyassoc.id => {
             matchTypes(
@@ -105,9 +102,6 @@ def unifyOneStepWithoutEq(
         case (_, Type.Assoc(rightAM)) => 
             bindAM(constraintEnv, given, rightAM, left)
             |> Result.map(x -> (x, Substitution.empty()))
-
-        // TODO: Boolean unification for set formulas
-        case (Type.SetFormula(leftSet), Type.SetFormula(rightSet)) => ???
 
         case _ => Err(UnificationError.NoApplicableRule)
     }
