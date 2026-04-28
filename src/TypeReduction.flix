@@ -46,7 +46,7 @@ def reduceTyassocFromEnv(
                 |> Result.toOption
                 |> Option.map(s -> c 
                     |> EqualityConstraint.right 
-                    |> Substitutable.apply(s))
+                    |> Substable.apply(s))
         })
 }
 

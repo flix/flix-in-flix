@@ -2,12 +2,12 @@ pub def entailOneStep(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
     goal: Constraint
-): Option[(List[Constraint], Substitution)] = {
+): Option[(List[Constraint], Subst)] = {
     match goal {
         case Constraint.Class(clsConstraint) => 
             entailClassConstraintOneStep(constraintEnv, given, clsConstraint)
                 |> Option.map((newConstraints) -> 
-                    (newConstraints, Substitution.empty())
+                    (newConstraints, Subst.empty())
                 ),
         
         // delegate to the unification procedure
@@ -32,12 +32,12 @@ def repeatEntailmentHelper(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
     constraints: List[Constraint],
-    currentSubst: Substitution
-): (List[Constraint], Substitution) = {
+    currentSubst: Subst
+): (List[Constraint], Subst) = {
     def findApplicable(
         processed: List[Constraint],
         pending: List[Constraint]
-    ): Option[(List[Constraint], Substitution)] = match pending {
+    ): Option[(List[Constraint], Subst)] = match pending {
         case Nil => None
 
         case head :: tail => {
@@ -45,7 +45,7 @@ def repeatEntailmentHelper(
                 case Some((newConstraints, subst)) => {
                     let nextConstraints =
                         (processed ++ tail)
-                            |> List.map(c -> c |> Substitutable.apply(subst))
+                            |> List.map(c -> c |> Substable.apply(subst))
                         ++ newConstraints;
 
                     Some((nextConstraints, subst))
@@ -62,7 +62,7 @@ def repeatEntailmentHelper(
                 constraintEnv,
                 given,
                 nextConstraints,
-                Substitution.compose(subst, currentSubst)
+                Subst.compose(subst, currentSubst)
             )
 
         case None => (constraints, currentSubst)
@@ -74,12 +74,12 @@ pub def entailRepeat(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
     constraints: List[Constraint]
-): (List[Constraint], Substitution) =
+): (List[Constraint], Subst) =
     repeatEntailmentHelper(
         constraintEnv,
         given,
         constraints,
-        Substitution.empty()
+        Subst.empty()
     )
 
 
@@ -93,7 +93,7 @@ def tryInstance(
         |> Result.toOption
         |> Option.map(s -> {
             inst |> Instance.context
-                |> Substitutable.apply(s)
+                |> Substable.apply(s)
         })
 }
 

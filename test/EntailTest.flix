@@ -36,7 +36,7 @@ def entailOneStepDelegatesEqualityGoalsToUnification(): Unit \ Assert = {
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     Assert.assertEq(
-        expected = Some((Nil, Substitution.singleton(x, int32))),
+        expected = Some((Nil, Subst.singleton(x, int32))),
         entailOneStep(
             enEmptyConstraintEnv(),
             Nil,
@@ -95,7 +95,7 @@ def entailOneStepInstantiatesEqualityFromConstraintEnvironment(): Unit \ Assert 
     Assert.assertEq(
         expected = Some((
             Constraint.Equality(enMkEquality(int32, int32)) :: Nil,
-            Substitution.empty()
+            Subst.empty()
         )),
         entailOneStep(
             constraintEnv,
@@ -124,7 +124,7 @@ def entailOneStepDischargesClassGoalByGivenSuperclass(): Unit \ Assert = {
     );
 
     Assert.assertEq(
-        expected = Some((Nil, Substitution.empty())),
+        expected = Some((Nil, Subst.empty())),
         entailOneStep(
             constraintEnv,
             enMkGivenClass("Ord", int32) :: Nil,
@@ -157,7 +157,7 @@ def entailOneStepReducesClassGoalTypeBeforeOtherEntailmentRules(): Unit \ Assert
     Assert.assertEq(
         expected = Some((
             Constraint.Class(enMkClassConstraint("Show", int32)) :: Nil,
-            Substitution.empty()
+            Subst.empty()
         )),
         entailOneStep(
             constraintEnv,
@@ -196,7 +196,7 @@ def entailOneStepInstantiatesMatchingInstanceContext(): Unit \ Assert = {
     Assert.assertEq(
         expected = Some((
             enMkGivenClass("Show", int32) :: Nil,
-            Substitution.empty()
+            Subst.empty()
         )),
         entailOneStep(
             constraintEnv,
@@ -226,7 +226,7 @@ def entailRepeatAppliesEqualitySubstitutionToRemainingGoals(): Unit \ Assert = {
     );
 
     Assert.assertEq(expected = Nil, remaining);
-    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(x))
+    Assert.assertEq(expected = Some(int32), subst |> Subst.get(x))
 }
 
 
@@ -270,5 +270,5 @@ def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
     );
 
     Assert.assertEq(expected = Nil, remaining);
-    Assert.assertEq(expected = Substitution.empty(), subst)
+    Assert.assertEq(expected = Subst.empty(), subst)
 }

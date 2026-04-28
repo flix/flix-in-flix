@@ -17,7 +17,7 @@ def matchTypesVariableCreatesSubstitution(): Unit \ Assert = {
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     Assert.assertEq(
-        expected = Ok(Substitution.singleton(x, int32)),
+        expected = Ok(Subst.singleton(x, int32)),
         matchTypes(Type.Var(x), int32)
     )
 }
@@ -51,8 +51,8 @@ def matchTypesApplicationMergesSubstitutions(): Unit \ Assert = {
 
     match matchTypes(left, right) {
         case Ok(subst) => {
-            Assert.assertEq(expected = Some(unary), subst |> Substitution.get(f));
-            Assert.assertEq(expected = Some(int32), subst |> Substitution.get(x))
+            Assert.assertEq(expected = Some(unary), subst |> Subst.get(f));
+            Assert.assertEq(expected = Some(int32), subst |> Subst.get(x))
         }
 
         case Err(err) => bug!("expected successful match, found: ${err}")
@@ -110,7 +110,7 @@ def matchTypesTyassocMatchesUnderlyingArgument(): Unit \ Assert = {
     ));
 
     Assert.assertEq(
-        expected = Ok(Substitution.singleton(x, int32)),
+        expected = Ok(Subst.singleton(x, int32)),
         matchTypes(left, right)
     )
 }
@@ -133,7 +133,7 @@ def unifyOneStepApplicationCreatesEqualityConstraints(): Unit \ Assert = {
             unMkEquality(unary, unary)
             :: unMkEquality(Type.Var(x), int32)
             :: Nil,
-            Substitution.empty()
+            Subst.empty()
         )),
         unifyOneStep(unEmptyConstraintEnv(), Nil, left, right)
     )
@@ -147,7 +147,7 @@ def unifyOneStepVariableCreatesSubstitution(): Unit \ Assert = {
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     Assert.assertEq(
-        expected = Ok((Nil, Substitution.singleton(x, int32))),
+        expected = Ok((Nil, Subst.singleton(x, int32))),
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,
@@ -203,7 +203,7 @@ def unifyOneStepIdenticalTypesShortCircuits(): Unit \ Assert = {
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     Assert.assertEq(
-        expected = Ok((Nil, Substitution.empty())),
+        expected = Ok((Nil, Subst.empty())),
         unifyOneStep(unEmptyConstraintEnv(), Nil, int32, int32)
     )
 }
@@ -233,7 +233,7 @@ def unifyOneStepTyassocUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
     Assert.assertEq(
         expected = Ok((
             unMkEquality(bool, bool) :: Nil,
-            Substitution.empty()
+            Subst.empty()
         )),
         unifyOneStep(
             unEmptyConstraintEnv(),
@@ -292,7 +292,7 @@ def unifyOneStepTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Asser
     Assert.assertEq(
         expected = Ok((
             unMkEquality(int32, int32) :: Nil,
-            Substitution.empty()
+            Subst.empty()
         )),
         unifyOneStep(
             constraintEnv,
@@ -316,7 +316,7 @@ def unifyOneStepTyassocProducesResidualEquality(): Unit \ Assert = {
     Assert.assertEq(
         expected = Ok((
             unMkEquality(bool, int32) :: Nil,
-            Substitution.empty()
+            Subst.empty()
         )),
         unifyOneStep(
             unEmptyConstraintEnv(),
@@ -393,7 +393,7 @@ def unifyRepeatApplicationFullyUnifies(): Unit \ Assert = {
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
 
     Assert.assertEq(expected = Nil, remaining);
-    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(x))
+    Assert.assertEq(expected = Some(int32), subst |> Subst.get(x))
 }
 
 
@@ -411,7 +411,7 @@ def unifyRepeatPreservesUnsolvedConstraints(): Unit \ Assert = {
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
 
     Assert.assertEq(expected = unMkEquality(int32, bool) :: Nil, remaining);
-    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(x))
+    Assert.assertEq(expected = Some(int32), subst |> Subst.get(x))
 }
 
 
@@ -432,7 +432,7 @@ def unifyRepeatConsumesResidualEqualityFromTyassocReduction(): Unit \ Assert = {
     );
 
     Assert.assertEq(expected = Nil, remaining);
-    Assert.assertEq(expected = Substitution.empty(), subst)
+    Assert.assertEq(expected = Subst.empty(), subst)
 }
 
 
@@ -467,7 +467,7 @@ def unifyRepeatFullyReducesChainedTyassocs(): Unit \ Assert = {
     let (remaining, subst) = unifyRepeat(constraintEnv, Nil, constraints);
 
     Assert.assertEq(expected = Nil, remaining);
-    Assert.assertEq(expected = Substitution.empty(), subst)
+    Assert.assertEq(expected = Subst.empty(), subst)
 }
 
 
@@ -485,8 +485,8 @@ def unifyRepeatComposesSubstitutionsAcrossSteps(): Unit \ Assert = {
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
 
     Assert.assertEq(expected = Nil, remaining);
-    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(x));
-    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(y))
+    Assert.assertEq(expected = Some(int32), subst |> Subst.get(x));
+    Assert.assertEq(expected = Some(int32), subst |> Subst.get(y))
 }
 
 
@@ -504,6 +504,6 @@ def unifyRepeatComposesSubstitutionsAcrossStepsInReverseOrder(): Unit \ Assert =
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
 
     Assert.assertEq(expected = Nil, remaining);
-    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(x));
-    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(y))
+    Assert.assertEq(expected = Some(int32), subst |> Subst.get(x));
+    Assert.assertEq(expected = Some(int32), subst |> Subst.get(y))
 }

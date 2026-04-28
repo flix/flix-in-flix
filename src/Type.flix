@@ -53,13 +53,13 @@ mod Tyassoc {
 }
 
 
-instance Substitutable[Tyassoc] {
-    pub def apply(substitution: Substitution, a: Tyassoc): Tyassoc = 
+instance Substable[Tyassoc] {
+    pub def apply(substitution: Subst, a: Tyassoc): Tyassoc = 
         match a {
             case Tyassoc.Tyassoc(id, ty, kind) => 
                 Tyassoc.Tyassoc(
                     id,
-                    Substitutable.apply(substitution, ty),
+                    Substable.apply(substitution, ty),
                     kind
                 )
         }
@@ -194,17 +194,17 @@ instance Kinded[Type] {
 }
 
 
-instance Substitutable[Type] {
-    pub def apply(substitution: Substitution, a: Type): Type = match a {
+instance Substable[Type] {
+    pub def apply(substitution: Subst, a: Type): Type = match a {
         case Type.Var(variable) => 
             Option.getWithDefault(
                 a,
-                Substitution.get(variable, substitution)
+                Subst.get(variable, substitution)
             )
 
         case Type.Ap(function, argument) => Type.Ap(
-            Substitutable.apply(substitution, function),
-            Substitutable.apply(substitution, argument)
+            Substable.apply(substitution, function),
+            Substable.apply(substitution, argument)
         )
 
         case Type.Gen(_) => a

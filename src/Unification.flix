@@ -7,7 +7,7 @@ pub enum MatchError with Eq, ToString, Hash, Order {
 pub def matchTypes(
     left: Type, 
     right: Type
-): Result[MatchError, Substitution] = match (left, right) {
+): Result[MatchError, Subst] = match (left, right) {
     case ( 
         Type.Ap(leftFunc, leftArg),
         Type.Ap(rightFunc, rightArg)
@@ -21,7 +21,7 @@ pub def matchTypes(
                 leftArg,
                 rightArg
             );
-            mergedSubst <- Substitution.merge(funcSubst, argSubst)
+            mergedSubst <- Subst.merge(funcSubst, argSubst)
                 |> Option.map(Ok)
                 |> Option.getWithDefault(
                     Err(MatchError.DoesNotMatch)
@@ -36,11 +36,11 @@ pub def matchTypes(
         if (varKind != rightKind) 
             Err(MatchError.KindMismatch)
         else
-            Ok(Substitution.singleton(leftVar, right))
+            Ok(Subst.singleton(leftVar, right))
     }
 
     case (Type.Con(leftCon), Type.Con(rightCon)) 
-        if leftCon == rightCon => Ok(Substitution.empty())
+        if leftCon == rightCon => Ok(Subst.empty())
 
     case (Type.Assoc(leftAM), Type.Assoc(rightAM)) 
         if leftAM |> Tyassoc.id == rightAM |> Tyassoc.id => {
@@ -65,8 +65,8 @@ pub def unifyOneStep(
     given: List[Constraint],
     left: Type,
     right: Type
-): Result[UnificationError, (List[EqualityConstraint], Substitution)] =
-    if (left == right) Ok((Nil, Substitution.empty()))
+): Result[UnificationError, (List[EqualityConstraint], Subst)] =
+    if (left == right) Ok((Nil, Subst.empty()))
     else unifyOneStepWithoutEq(constraintEnv, given, left, right)
 
 
@@ -75,7 +75,7 @@ def unifyOneStepWithoutEq(
     given: List[Constraint],
     left: Type,
     right: Type
-): Result[UnificationError, (List[EqualityConstraint], Substitution)] =
+): Result[UnificationError, (List[EqualityConstraint], Subst)] =
     match (left, right) {
         case (
             Type.Ap(leftFunc, leftArg),
@@ -85,7 +85,7 @@ def unifyOneStepWithoutEq(
                 EqualityConstraint.EqualityConstraint(leftFunc, rightFunc)
                 :: EqualityConstraint.EqualityConstraint(leftArg, rightArg)
                 :: Nil,
-                Substitution.empty()
+                Subst.empty()
             ))
         }
 
@@ -97,11 +97,11 @@ def unifyOneStepWithoutEq(
 
         case (Type.Assoc(leftAM), _) => 
             bindAM(constraintEnv, given, leftAM, right)
-            |> Result.map(x -> (x, Substitution.empty()))
+            |> Result.map(x -> (x, Subst.empty()))
 
         case (_, Type.Assoc(rightAM)) => 
             bindAM(constraintEnv, given, rightAM, left)
-            |> Result.map(x -> (x, Substitution.empty()))
+            |> Result.map(x -> (x, Subst.empty()))
 
         case _ => Err(UnificationError.NoApplicableRule)
     }
@@ -127,9 +127,9 @@ def bindAM(
 def bindVar(
     var: Tyvar, 
     ty: Type
-): Result[UnificationError, Substitution] = {
+): Result[UnificationError, Subst] = {
     if (ty == Type.Var(var)) 
-        Ok(Substitution.empty())
+        Ok(Subst.empty())
     else if (ty 
         |> FreeVars.fvs 
         |> List.memberOf(var)
@@ -138,7 +138,7 @@ def bindVar(
     else if (var |> Kinded.kind != ty |> Kinded.kind) 
         Err(UnificationError.KindMismatch)
     else
-        Ok(Substitution.singleton(var, ty))
+        Ok(Subst.singleton(var, ty))
 }
 
 
@@ -146,12 +146,12 @@ def repeatUnificationHelper(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
     constraints: List[EqualityConstraint],
-    currentSubst: Substitution
-): (List[EqualityConstraint], Substitution) = {
+    currentSubst: Subst
+): (List[EqualityConstraint], Subst) = {
     def findApplicable(
         processed: List[EqualityConstraint],
         pending: List[EqualityConstraint]
-    ): Option[(List[EqualityConstraint], Substitution)] = match pending {
+    ): Option[(List[EqualityConstraint], Subst)] = match pending {
         case Nil => None
 
         case head :: tail => {
@@ -166,7 +166,7 @@ def repeatUnificationHelper(
                     // apply substitution to the remaining constraints
                     let nextConstraints = 
                         (processed ++ tail)
-                            |> List.map(c -> c |> Substitutable.apply(subst))
+                            |> List.map(c -> c |> Substable.apply(subst))
                         ++ unifyEqConstr;
 
                     Some((nextConstraints, subst))
@@ -183,7 +183,7 @@ def repeatUnificationHelper(
                 constraintEnv,
                 given,
                 nextConstraints,
-                Substitution.compose(subst, currentSubst)
+                Subst.compose(subst, currentSubst)
             )
 
         case None => (constraints, currentSubst)
@@ -195,10 +195,10 @@ pub def unifyRepeat(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
     constraints: List[EqualityConstraint]
-): (List[EqualityConstraint], Substitution) = 
+): (List[EqualityConstraint], Subst) = 
     repeatUnificationHelper(
         constraintEnv, 
         given, 
         constraints, 
-        Substitution.empty()
+        Subst.empty()
     )

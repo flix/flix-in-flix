@@ -13,9 +13,9 @@ mod ClassConstraint {
 }
 
 
-instance Substitutable[ClassConstraint] {
+instance Substable[ClassConstraint] {
     pub def apply(
-        substitution: Substitution, 
+        substitution: Subst, 
         a: ClassConstraint
     ): ClassConstraint =  {
         let id = a 
@@ -23,7 +23,7 @@ instance Substitutable[ClassConstraint] {
         
         let ty = a
             |> ClassConstraint.classType
-            |> Substitutable.apply(substitution);
+            |> Substable.apply(substitution);
 
         ClassConstraint.ClassConstraint(id, ty)
     }
@@ -33,18 +33,18 @@ instance Substitutable[ClassConstraint] {
 pub enum EqualityConstraint(Type, Type) with Eq, ToString, Hash, Order
 
 
-instance Substitutable[EqualityConstraint] {
+instance Substable[EqualityConstraint] {
     pub def apply(
-        substitution: Substitution, 
+        substitution: Subst, 
         a: EqualityConstraint
     ): EqualityConstraint =  {
         let left = a 
             |> EqualityConstraint.left 
-            |> Substitutable.apply(substitution);
+            |> Substable.apply(substitution);
         
         let right = a
             |> EqualityConstraint.right
-            |> Substitutable.apply(substitution);
+            |> Substable.apply(substitution);
 
         EqualityConstraint.EqualityConstraint(left, right)
     }
@@ -70,16 +70,16 @@ pub enum Constraint with Eq, ToString, Hash, Order {
 }
 
 
-instance Substitutable[Constraint] {
-    pub def apply(substitution: Substitution, a: Constraint): Constraint = 
+instance Substable[Constraint] {
+    pub def apply(substitution: Subst, a: Constraint): Constraint = 
         match a {
             case Constraint.Class(clsConstraint) => 
                 Constraint.Class(
-                    clsConstraint |> Substitutable.apply(substitution)
+                    clsConstraint |> Substable.apply(substitution)
                 ),
             case Constraint.Equality(eqConstraint) => 
                 Constraint.Equality(
-                    eqConstraint |> Substitutable.apply(substitution)
+                    eqConstraint |> Substable.apply(substitution)
                 )
         }
 }
