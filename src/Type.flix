@@ -13,8 +13,8 @@ instance Kinded[Tyvar] {
 }
 
 
-instance FreeTypeVariable[Tyvar] {
-    pub def freeTypeVariables(a: Tyvar): List[Tyvar] = a :: Nil
+instance FreeVars[Tyvar] {
+    pub def fvs(a: Tyvar): List[Tyvar] = a :: Nil
 }
 
 
@@ -71,9 +71,9 @@ instance Kinded[Tyassoc] {
 }
 
 
-instance FreeTypeVariable[Tyassoc] {
-    pub def freeTypeVariables(a: Tyassoc): List[Tyvar] =
-        a |> Tyassoc.ty |> FreeTypeVariable.freeTypeVariables
+instance FreeVars[Tyassoc] {
+    pub def fvs(a: Tyassoc): List[Tyvar] =
+        a |> Tyassoc.ty |> FreeVars.fvs
 }
 
 
@@ -215,20 +215,20 @@ instance Substitutable[Type] {
 }
 
 
-instance FreeTypeVariable[Type] {
-    pub def freeTypeVariables(a: Type): List[Tyvar] = match a {
+instance FreeVars[Type] {
+    pub def fvs(a: Type): List[Tyvar] = match a {
         case Type.Var(variable) =>
-            variable |> FreeTypeVariable.freeTypeVariables
+            variable |> FreeVars.fvs
 
         case Type.Con(_) =>
             Nil
 
         case Type.Assoc(associatedMember) =>
-            associatedMember |> FreeTypeVariable.freeTypeVariables
+            associatedMember |> FreeVars.fvs
 
         case Type.Ap(function, argument) =>
-            (function |> FreeTypeVariable.freeTypeVariables) :::
-            (argument |> FreeTypeVariable.freeTypeVariables)
+            (function |> FreeVars.fvs) :::
+            (argument |> FreeVars.fvs)
 
         case Type.Gen(_) =>
             Nil

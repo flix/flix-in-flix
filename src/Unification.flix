@@ -131,7 +131,7 @@ def bindVar(
     if (ty == Type.Var(var)) 
         Ok(Substitution.empty())
     else if (ty 
-        |> FreeTypeVariable.freeTypeVariables 
+        |> FreeVars.fvs 
         |> List.memberOf(var)
     )
         Err(UnificationError.OccursCheckFailed)
