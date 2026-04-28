@@ -13,6 +13,23 @@ mod ClassConstraint {
 }
 
 
+instance Substitutable[ClassConstraint] {
+    pub def apply(
+        substitution: Substitution, 
+        a: ClassConstraint
+    ): ClassConstraint =  {
+        let id = a 
+            |> ClassConstraint.classId;
+        
+        let ty = a
+            |> ClassConstraint.classType
+            |> Substitutable.apply(substitution);
+
+        ClassConstraint.ClassConstraint(id, ty)
+    }
+}
+
+
 pub enum EqualityConstraint(Type, Type) with Eq, ToString, Hash, Order
 
 
@@ -50,6 +67,21 @@ mod EqualityConstraint {
 pub enum Constraint with Eq, ToString, Hash, Order {
     case Class(ClassConstraint),
     case Equality(EqualityConstraint)
+}
+
+
+instance Substitutable[Constraint] {
+    pub def apply(substitution: Substitution, a: Constraint): Constraint = 
+        match a {
+            case Constraint.Class(clsConstraint) => 
+                Constraint.Class(
+                    clsConstraint |> Substitutable.apply(substitution)
+                ),
+            case Constraint.Equality(eqConstraint) => 
+                Constraint.Equality(
+                    eqConstraint |> Substitutable.apply(substitution)
+                )
+        }
 }
 
 
