@@ -80,6 +80,10 @@ mod Type {
     pub def efIntersect(): Type = Type.Con(Tycon.Tycon("&", Kind.efBinary()))
     pub def efComplement(): Type = Type.Con(Tycon.Tycon("~", Kind.efUnary()))
 
+    pub def efUnionAp(left: Type, right: Type): Type 
+        = Type.Ap(Type.Ap(efUnion(), left), right)
+    pub def efComplAp(ty: Type): Type = Type.Ap(efComplement(), ty)
+
     pub def efEmpty(): Type = Type.Con(Tycon.Tycon("{}", Kind.Eff))
     pub def efConstant(name: Id): Type = Type.Con(Tycon.Tycon(name, Kind.Eff))
 

@@ -13,8 +13,8 @@ def unEmptyConstraintEnv(): ConstrEnv =
 // `x ~ Int32 -> { x -> Int32 }`
 @Test
 def matchTypesVariableCreatesSubstitution(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Ok(Subst.singleton(x, int32)),
@@ -26,7 +26,7 @@ def matchTypesVariableCreatesSubstitution(): Unit \ Assert = {
 // `x : Type ~ {} -> KindMismatch`
 @Test
 def matchTypesVariableRejectsKindMismatch(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
+    let x = Tyvar.Tyvar("x", Kind.Star);
     let emptySet = Type.efEmpty();
 
     Assert.assertEq(
@@ -41,10 +41,10 @@ def matchTypesVariableRejectsKindMismatch(): Unit \ Assert = {
 def matchTypesApplicationMergesSubstitutions(): Unit \ Assert = {
     let t = Kind.Star;
     let tToT = Kind.KFun(t, t);
-    let f = Type.mkTyvar("f", tToT);
-    let x = Type.mkTyvar("x", t);
-    let unary = Type.Con(Type.mkTycon("Unary", tToT));
-    let int32 = Type.Con(Type.mkTycon("Int32", t));
+    let f = Tyvar.Tyvar("f", tToT);
+    let x = Tyvar.Tyvar("x", t);
+    let unary = Type.Con(Tycon.Tycon("Unary", tToT));
+    let int32 = Type.Con(Tycon.Tycon("Int32", t));
 
     let left = Type.Ap(Type.Var(f), Type.Var(x));
     let right = Type.Ap(unary, int32);
@@ -64,16 +64,16 @@ def matchTypesApplicationMergesSubstitutions(): Unit \ Assert = {
 @Test
 def matchTypesApplicationRejectsInconsistentSubstitution(): Unit \ Assert = {
     let t = Kind.Star;
-    let pair = Type.Con(Type.mkTycon(
+    let pair = Type.Con(Tycon.Tycon(
         "Pair",
         Kind.KFun(
             t,
             Kind.KFun(t, t)
         )
     ));
-    let x = Type.mkTyvar("x", t);
-    let int32 = Type.Con(Type.mkTycon("Int32", t));
-    let bool = Type.Con(Type.mkTycon("Bool", t));
+    let x = Tyvar.Tyvar("x", t);
+    let int32 = Type.Con(Tycon.Tycon("Int32", t));
+    let bool = Type.Con(Tycon.Tycon("Bool", t));
 
     let left = Type.Ap(
         Type.Ap(pair, Type.Var(x)),
@@ -95,8 +95,8 @@ def matchTypesApplicationRejectsInconsistentSubstitution(): Unit \ Assert = {
 @Test
 def matchTypesTyassocMatchesUnderlyingArgument(): Unit \ Assert = {
     let assocId = "Assoc";
-    let x = Type.mkTyvar("x", Kind.Star);
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     let left = Type.Assoc(Tyassoc.Tyassoc(
         assocId,
@@ -121,9 +121,9 @@ def matchTypesTyassocMatchesUnderlyingArgument(): Unit \ Assert = {
 def unifyOneStepApplicationCreatesEqualityConstraints(): Unit \ Assert = {
     let t = Kind.Star;
     let tToT = Kind.KFun(t, t);
-    let unary = Type.Con(Type.mkTycon("Unary", tToT));
-    let x = Type.mkTyvar("x", t);
-    let int32 = Type.Con(Type.mkTycon("Int32", t));
+    let unary = Type.Con(Tycon.Tycon("Unary", tToT));
+    let x = Tyvar.Tyvar("x", t);
+    let int32 = Type.Con(Tycon.Tycon("Int32", t));
 
     let left = Type.Ap(unary, Type.Var(x));
     let right = Type.Ap(unary, int32);
@@ -143,8 +143,8 @@ def unifyOneStepApplicationCreatesEqualityConstraints(): Unit \ Assert = {
 // `x ~ Int32 -> { x -> Int32 }`
 @Test
 def unifyOneStepVariableCreatesSubstitution(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Ok((Nil, Subst.singleton(x, int32))),
@@ -163,8 +163,8 @@ def unifyOneStepVariableCreatesSubstitution(): Unit \ Assert = {
 def unifyOneStepVariableRejectsOccursCheckFailure(): Unit \ Assert = {
     let t = Kind.Star;
     let tToT = Kind.KFun(t, t);
-    let x = Type.mkTyvar("x", t);
-    let unary = Type.Con(Type.mkTycon("Unary", tToT));
+    let x = Tyvar.Tyvar("x", t);
+    let unary = Type.Con(Tycon.Tycon("Unary", tToT));
     let unaryX = Type.Ap(unary, Type.Var(x));
 
     Assert.assertEq(
@@ -182,8 +182,8 @@ def unifyOneStepVariableRejectsOccursCheckFailure(): Unit \ Assert = {
 // `Int32 ~ eff -> KindMismatch`
 @Test
 def unifyOneStepRightVariableRejectsKindMismatch(): Unit \ Assert = {
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
-    let effectVar = Type.mkTyvar("eff", Kind.Eff);
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
+    let effectVar = Tyvar.Tyvar("eff", Kind.Eff);
 
     Assert.assertEq(
         expected = Err(UnificationError.KindMismatch),
@@ -200,7 +200,7 @@ def unifyOneStepRightVariableRejectsKindMismatch(): Unit \ Assert = {
 // `Int32 ~ Int32 -> no new constraints`
 @Test
 def unifyOneStepIdenticalTypesShortCircuits(): Unit \ Assert = {
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Ok((Nil, Subst.empty())),
@@ -212,8 +212,8 @@ def unifyOneStepIdenticalTypesShortCircuits(): Unit \ Assert = {
 // `Int32 ~ Bool -> NoApplicableRule`
 @Test
 def unifyOneStepDifferentConstructorsHaveNoApplicableRule(): Unit \ Assert = {
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
-    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
+    let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
 
     Assert.assertEq(
         expected = Err(UnificationError.NoApplicableRule),
@@ -226,9 +226,9 @@ def unifyOneStepDifferentConstructorsHaveNoApplicableRule(): Unit \ Assert = {
 // `Elem x ~ Bool -> { Bool ~ Bool }`
 @Test
 def unifyOneStepTyassocUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
-    let assoc = Type.mkTyassoc("Elem", Type.Var(x), Kind.Star);
-    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let assoc = Tyassoc.Tyassoc("Elem", Type.Var(x), Kind.Star);
+    let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
 
     Assert.assertEq(
         expected = Ok((
@@ -249,10 +249,10 @@ def unifyOneStepTyassocUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
 // `Elem Int32 ~ Int32 -> NoApplicableRule`
 @Test
 def unifyOneStepTyassocDoesNotInstantiateGivenEquality(): Unit \ Assert = {
-    let a = Type.mkTyvar("a", Kind.Star);
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
-    let genericAssoc = Type.mkTyassoc("Elem", Type.Var(a), Kind.Star);
-    let specificAssoc = Type.mkTyassoc("Elem", int32, Kind.Star);
+    let a = Tyvar.Tyvar("a", Kind.Star);
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
+    let genericAssoc = Tyassoc.Tyassoc("Elem", Type.Var(a), Kind.Star);
+    let specificAssoc = Tyassoc.Tyassoc("Elem", int32, Kind.Star);
 
     Assert.assertEq(
         expected = Err(UnificationError.NoApplicableRule),
@@ -273,10 +273,10 @@ def unifyOneStepTyassocDoesNotInstantiateGivenEquality(): Unit \ Assert = {
 // `Elem Int32 ~ Int32 -> { Int32 ~ Int32 }`
 @Test
 def unifyOneStepTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Assert = {
-    let a = Type.mkTyvar("a", Kind.Star);
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
-    let genericAssoc = Type.mkTyassoc("Elem", Type.Var(a), Kind.Star);
-    let specificAssoc = Type.mkTyassoc("Elem", int32, Kind.Star);
+    let a = Tyvar.Tyvar("a", Kind.Star);
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
+    let genericAssoc = Tyassoc.Tyassoc("Elem", Type.Var(a), Kind.Star);
+    let specificAssoc = Tyassoc.Tyassoc("Elem", int32, Kind.Star);
 
     let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
@@ -308,10 +308,10 @@ def unifyOneStepTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Asser
 // `Elem x ~ Int32 -> { Bool ~ Int32 }`
 @Test
 def unifyOneStepTyassocProducesResidualEquality(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
-    let assoc = Type.mkTyassoc("Elem", Type.Var(x), Kind.Star);
-    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let assoc = Tyassoc.Tyassoc("Elem", Type.Var(x), Kind.Star);
+    let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Ok((
@@ -332,10 +332,10 @@ def unifyOneStepTyassocProducesResidualEquality(): Unit \ Assert = {
 // `ReadEff x ~ Int32 -> KindMismatch`
 @Test
 def unifyOneStepTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
-    let readAssoc = Type.mkTyassoc("ReadEff", Type.Var(x), Kind.Eff);
-    let read = Type.efSingleton("Read");
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let readAssoc = Tyassoc.Tyassoc("ReadEff", Type.Var(x), Kind.Eff);
+    let read = Type.efConstant("Read");
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
@@ -360,9 +360,9 @@ def unifyOneStepTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
 // `Elem x ~ Int32 -> NoApplicableRule`
 @Test
 def unifyOneStepTyassocWithoutReductionHasNoApplicableRule(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
-    let assoc = Type.mkTyassoc("Elem", Type.Var(x), Kind.Star);
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let assoc = Tyassoc.Tyassoc("Elem", Type.Var(x), Kind.Star);
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Err(UnificationError.NoApplicableRule),
@@ -381,9 +381,9 @@ def unifyOneStepTyassocWithoutReductionHasNoApplicableRule(): Unit \ Assert = {
 def unifyRepeatApplicationFullyUnifies(): Unit \ Assert = {
     let t = Kind.Star;
     let tToT = Kind.KFun(t, t);
-    let unary = Type.Con(Type.mkTycon("Unary", tToT));
-    let x = Type.mkTyvar("x", t);
-    let int32 = Type.Con(Type.mkTycon("Int32", t));
+    let unary = Type.Con(Tycon.Tycon("Unary", tToT));
+    let x = Tyvar.Tyvar("x", t);
+    let int32 = Type.Con(Tycon.Tycon("Int32", t));
 
     let constraints = unMkEquality(
         Type.Ap(unary, Type.Var(x)),
@@ -400,9 +400,9 @@ def unifyRepeatApplicationFullyUnifies(): Unit \ Assert = {
 // `Int32 ~ Bool, x ~ Int32 -> [Int32 ~ Bool], { x -> Int32 }`
 @Test
 def unifyRepeatPreservesUnsolvedConstraints(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
-    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
+    let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
 
     let constraints = unMkEquality(int32, bool)
         :: unMkEquality(Type.Var(x), int32)
@@ -419,9 +419,9 @@ def unifyRepeatPreservesUnsolvedConstraints(): Unit \ Assert = {
 // `Elem x ~ Bool -> [], {}`
 @Test
 def unifyRepeatConsumesResidualEqualityFromTyassocReduction(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
-    let assoc = Type.mkTyassoc("Elem", Type.Var(x), Kind.Star);
-    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let assoc = Tyassoc.Tyassoc("Elem", Type.Var(x), Kind.Star);
+    let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
 
     let constraints = unMkEquality(Type.Assoc(assoc), bool) :: Nil;
 
@@ -440,10 +440,10 @@ def unifyRepeatConsumesResidualEqualityFromTyassocReduction(): Unit \ Assert = {
 // `AssocA x ~ Int32 -> [], {}`
 @Test
 def unifyRepeatFullyReducesChainedTyassocs(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
-    let assocA = Type.mkTyassoc("AssocA", Type.Var(x), Kind.Star);
-    let assocB = Type.mkTyassoc("AssocB", Type.Var(x), Kind.Star);
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let assocA = Tyassoc.Tyassoc("AssocA", Type.Var(x), Kind.Star);
+    let assocB = Tyassoc.Tyassoc("AssocB", Type.Var(x), Kind.Star);
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     let constraintEnv = ConstrEnv.ConstrEnv(
         Map.union(
@@ -474,9 +474,9 @@ def unifyRepeatFullyReducesChainedTyassocs(): Unit \ Assert = {
 // `x ~ Int32, y ~ x -> [], { x -> Int32, y -> Int32 }`
 @Test
 def unifyRepeatComposesSubstitutionsAcrossSteps(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
-    let y = Type.mkTyvar("y", Kind.Star);
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let y = Tyvar.Tyvar("y", Kind.Star);
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     let constraints = unMkEquality(Type.Var(x), int32)
         :: unMkEquality(Type.Var(y), Type.Var(x))
@@ -493,9 +493,9 @@ def unifyRepeatComposesSubstitutionsAcrossSteps(): Unit \ Assert = {
 // `y ~ x, x ~ Int32 -> [], { x -> Int32, y -> Int32 }`
 @Test
 def unifyRepeatComposesSubstitutionsAcrossStepsInReverseOrder(): Unit \ Assert = {
-    let x = Type.mkTyvar("x", Kind.Star);
-    let y = Type.mkTyvar("y", Kind.Star);
-    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let x = Tyvar.Tyvar("x", Kind.Star);
+    let y = Tyvar.Tyvar("y", Kind.Star);
+    let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     let constraints = unMkEquality(Type.Var(y), Type.Var(x))
         :: unMkEquality(Type.Var(x), int32)
