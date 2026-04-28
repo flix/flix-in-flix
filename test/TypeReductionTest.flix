@@ -50,6 +50,58 @@ def reduceTypeOneStepUsesGivenEqualityForAssociatedMember(): Unit \ Assert = {
 }
 
 
+// given: { Elem a = a }
+// `Elem Int32 -> None`
+@Test
+def reduceTypeOneStepGivenEqualityRequiresSyntacticLeftHandSideMatch(): Unit \ Assert = {
+    let a = Type.mkTypeVar("a", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+
+    Assert.assertEq(
+        expected = None,
+        Type.AssociatedMember(specificAssoc) |> reduceTypeOneStep(
+            trEmptyConstraintEnv(),
+            trMkGivenEquality(
+                Type.AssociatedMember(genericAssoc),
+                Type.Variable(a)
+            ) :: Nil
+        )
+    )
+}
+
+
+// constraintEnv: { Elem a = a }
+// `Elem Int32 -> Some(Int32)`
+@Test
+def reduceTypeOneStepInstantiatesConstraintEnvironmentEquality(): Unit \ Assert = {
+    let a = Type.mkTypeVar("a", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+
+    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+        Map.singleton(
+            Id.Id("Elem"),
+            trMkEquality(
+                Type.AssociatedMember(genericAssoc),
+                Type.Variable(a)
+            ) :: Nil
+        ),
+        Map.empty()
+    );
+
+    Assert.assertEq(
+        expected = Some(int32),
+        Type.AssociatedMember(specificAssoc) |> reduceTypeOneStep(
+            constraintEnv,
+            Nil
+        )
+    )
+}
+
+
 // constraintEnv: { Inner x = Int32, Outer Int32 = Bool }
 // `Outer (Inner x) -> Some(Outer Int32)`
 @Test

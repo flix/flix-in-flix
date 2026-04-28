@@ -264,6 +264,65 @@ def unifyOneStepAssociatedMemberUsesGivenReductionOneStepAtATime(): Unit \ Asser
 }
 
 
+// given: { Elem a = a }
+// `Elem Int32 ~ Int32 -> NoApplicableRule`
+@Test
+def unifyOneStepAssociatedMemberDoesNotInstantiateGivenEquality(): Unit \ Assert = {
+    let a = Type.mkTypeVar("a", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+
+    Assert.assertEq(
+        expected = Err(UnificationError.NoApplicableRule),
+        unifyOneStep(
+            unEmptyConstraintEnv(),
+            unMkGivenEquality(
+                Type.AssociatedMember(genericAssoc),
+                Type.Variable(a)
+            ) :: Nil,
+            Type.AssociatedMember(specificAssoc),
+            int32
+        )
+    )
+}
+
+
+// constraintEnv: { Elem a = a }
+// `Elem Int32 ~ Int32 -> { Int32 ~ Int32 }`
+@Test
+def unifyOneStepAssociatedMemberInstantiatesConstraintEnvironmentEquality(): Unit \ Assert = {
+    let a = Type.mkTypeVar("a", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+
+    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+        Map.singleton(
+            Id.Id("Elem"),
+            unMkEquality(
+                Type.AssociatedMember(genericAssoc),
+                Type.Variable(a)
+            ) :: Nil
+        ),
+        Map.empty()
+    );
+
+    Assert.assertEq(
+        expected = Ok((
+            unMkEquality(int32, int32) :: Nil,
+            Substitution.empty()
+        )),
+        unifyOneStep(
+            constraintEnv,
+            Nil,
+            Type.AssociatedMember(specificAssoc),
+            int32
+        )
+    )
+}
+
+
 // given: { Elem x = Bool }
 // `Elem x ~ Int32 -> { Bool ~ Int32 }`
 @Test
