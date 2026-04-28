@@ -61,7 +61,5 @@ mod Substitution {
         } else {
             None
         }
-        
-
     }
 }
