@@ -1,13 +1,13 @@
-pub enum Instance(Qualified[ClassConstraint])
+pub enum Instance(Qualified[ClassConstr])
 
 
 mod Instance {
-    pub def head(inst: Instance): ClassConstraint = match inst {
+    pub def head(inst: Instance): ClassConstr = match inst {
         case Instance(qualified) => qualified |> Qualified.head
     }
 
 
-    pub def context(inst: Instance): List[Constraint] = match inst {
+    pub def context(inst: Instance): List[Constr] = match inst {
         case Instance(qualified) => qualified |> Qualified.context
     }
 }
@@ -30,7 +30,7 @@ mod Class {
 
 pub enum ConstraintEnvironment(
     // Map from associated member id to the equality constraints
-    Map[Id, List[EqualityConstraint]],
+    Map[Id, List[EqConstr]],
     Map[Id, Class]
 )
 
@@ -38,7 +38,7 @@ pub enum ConstraintEnvironment(
 mod ConstraintEnvironment {
     def associatedMemberEqualities(
         constraintEnv: ConstraintEnvironment 
-    ): Map[Id, List[EqualityConstraint]] = match constraintEnv {
+    ): Map[Id, List[EqConstr]] = match constraintEnv {
         case ConstraintEnvironment(map, _) => map
     }
 
@@ -61,7 +61,7 @@ mod ConstraintEnvironment {
     pub def lookupTyassocEquality(
         id: Id,
         constraintEnv: ConstraintEnvironment
-    ): List[EqualityConstraint] = {
+    ): List[EqConstr] = {
         let map = constraintEnv 
             |> ConstraintEnvironment.associatedMemberEqualities;
 

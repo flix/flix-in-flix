@@ -1,6 +1,6 @@
 def reduceInnerTyassocOneStep(
     constraintEnv: ConstraintEnvironment,
-    given: List[Constraint],
+    given: List[Constr],
     assoc: Tyassoc
 ): Option[Type] = {
     assoc 
@@ -17,15 +17,15 @@ def reduceInnerTyassocOneStep(
 
 
 def reduceTyassocFromGiven(
-    given: List[Constraint],
+    given: List[Constr],
     assoc: Tyassoc
 ): Option[Type] = {
     given
-        |> List.filterMap(c -> c |> Constraint.asEqualityConstraint)
+        |> List.filterMap(c -> c |> Constr.asEq)
         |> List.findMap(c -> {
-            let leftAM = c |> EqualityConstraint.left;
+            let leftAM = c |> EqConstr.left;
             if (leftAM == Type.Assoc(assoc)) {
-                Some(c |> EqualityConstraint.right)
+                Some(c |> EqConstr.right)
             } else None
         })
 }
@@ -40,12 +40,12 @@ def reduceTyassocFromEnv(
             assoc |> Tyassoc.id
         )
         |> List.findMap(c -> {
-            let leftAM = c |> EqualityConstraint.left;
+            let leftAM = c |> EqConstr.left;
 
             matchTypes(leftAM, Type.Assoc(assoc))
                 |> Result.toOption
                 |> Option.map(s -> c 
-                    |> EqualityConstraint.right 
+                    |> EqConstr.right 
                     |> Substable.apply(s))
         })
 }
@@ -53,7 +53,7 @@ def reduceTyassocFromEnv(
 
 def reduceTyassocOneStep(
     constraintEnv: ConstraintEnvironment,
-    given: List[Constraint],
+    given: List[Constr],
     assoc: Tyassoc
 ): Option[Type] = {
     let reducedInner = reduceInnerTyassocOneStep(
@@ -79,7 +79,7 @@ def reduceTyassocOneStep(
 
 def reduceTypeOneStep(
     constraintEnv: ConstraintEnvironment,
-    given: List[Constraint],
+    given: List[Constr],
     ty: Type
 ): Option[Type] = { 
     match ty {

@@ -62,28 +62,28 @@ pub enum UnificationError with Eq, ToString, Hash, Order {
 
 pub def unifyOneStep(
     constraintEnv: ConstraintEnvironment,
-    given: List[Constraint],
+    given: List[Constr],
     left: Type,
     right: Type
-): Result[UnificationError, (List[EqualityConstraint], Subst)] =
+): Result[UnificationError, (List[EqConstr], Subst)] =
     if (left == right) Ok((Nil, Subst.empty()))
     else unifyOneStepWithoutEq(constraintEnv, given, left, right)
 
 
 def unifyOneStepWithoutEq(
     constraintEnv: ConstraintEnvironment,
-    given: List[Constraint],
+    given: List[Constr],
     left: Type,
     right: Type
-): Result[UnificationError, (List[EqualityConstraint], Subst)] =
+): Result[UnificationError, (List[EqConstr], Subst)] =
     match (left, right) {
         case (
             Type.Ap(leftFunc, leftArg),
             Type.Ap(rightFunc, rightArg)
         ) => {
             Ok((
-                EqualityConstraint.EqualityConstraint(leftFunc, rightFunc)
-                :: EqualityConstraint.EqualityConstraint(leftArg, rightArg)
+                EqConstr.EqConstr(leftFunc, rightFunc)
+                :: EqConstr.EqConstr(leftArg, rightArg)
                 :: Nil,
                 Subst.empty()
             ))
@@ -109,10 +109,10 @@ def unifyOneStepWithoutEq(
 
 def bindAM(
     constraintEnv: ConstraintEnvironment,
-    given: List[Constraint],
+    given: List[Constr],
     am: Tyassoc, 
     ty: Type
-): Result[UnificationError, List[EqualityConstraint]] = {
+): Result[UnificationError, List[EqConstr]] = {
     forM (
         reducedAm <- reduceTypeOneStep(constraintEnv, given, Type.Assoc(am)) 
             |> Option.toOk(UnificationError.NoApplicableRule);
@@ -120,7 +120,7 @@ def bindAM(
         _ <- if (reducedAm |> Kinded.kind != ty |> Kinded.kind) 
                 Err(UnificationError.KindMismatch)
             else Ok(())
-    )  yield EqualityConstraint.EqualityConstraint(reducedAm, ty) :: Nil
+    )  yield EqConstr.EqConstr(reducedAm, ty) :: Nil
 }
 
 
@@ -144,14 +144,14 @@ def bindVar(
 
 def repeatUnificationHelper(
     constraintEnv: ConstraintEnvironment,
-    given: List[Constraint],
-    constraints: List[EqualityConstraint],
+    given: List[Constr],
+    constraints: List[EqConstr],
     currentSubst: Subst
-): (List[EqualityConstraint], Subst) = {
+): (List[EqConstr], Subst) = {
     def findApplicable(
-        processed: List[EqualityConstraint],
-        pending: List[EqualityConstraint]
-    ): Option[(List[EqualityConstraint], Subst)] = match pending {
+        processed: List[EqConstr],
+        pending: List[EqConstr]
+    ): Option[(List[EqConstr], Subst)] = match pending {
         case Nil => None
 
         case head :: tail => {
@@ -159,8 +159,8 @@ def repeatUnificationHelper(
             match unifyOneStep(
                 constraintEnv,
                 given, 
-                head |> EqualityConstraint.left, 
-                head |> EqualityConstraint.right
+                head |> EqConstr.left, 
+                head |> EqConstr.right
             ) {
                 case Ok((unifyEqConstr, subst)) => {
                     // apply substitution to the remaining constraints
@@ -193,9 +193,9 @@ def repeatUnificationHelper(
 
 pub def unifyRepeat(
     constraintEnv: ConstraintEnvironment,
-    given: List[Constraint],
-    constraints: List[EqualityConstraint]
-): (List[EqualityConstraint], Subst) = 
+    given: List[Constr],
+    constraints: List[EqConstr]
+): (List[EqConstr], Subst) = 
     repeatUnificationHelper(
         constraintEnv, 
         given, 

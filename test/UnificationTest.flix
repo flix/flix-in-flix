@@ -1,9 +1,9 @@
-def unMkEquality(left: Type, right: Type): EqualityConstraint =
-    EqualityConstraint.EqualityConstraint(left, right)
+def unMkEquality(left: Type, right: Type): EqConstr =
+    EqConstr.EqConstr(left, right)
 
 
-def unMkGivenEquality(left: Type, right: Type): Constraint =
-    Constraint.Equality(unMkEquality(left, right))
+def unMkGivenEquality(left: Type, right: Type): Constr =
+    Constr.Eq(unMkEquality(left, right))
 
 
 def unEmptyConstraintEnv(): ConstraintEnvironment =

@@ -1,9 +1,9 @@
-def trMkEquality(left: Type, right: Type): EqualityConstraint =
-    EqualityConstraint.EqualityConstraint(left, right)
+def trMkEquality(left: Type, right: Type): EqConstr =
+    EqConstr.EqConstr(left, right)
 
 
-def trMkGivenEquality(left: Type, right: Type): Constraint =
-    Constraint.Equality(trMkEquality(left, right))
+def trMkGivenEquality(left: Type, right: Type): Constr =
+    Constr.Eq(trMkEquality(left, right))
 
 
 def trEmptyConstraintEnv(): ConstraintEnvironment =
@@ -312,7 +312,7 @@ def reduceTypeOneStepReducesTyassocInsideSetFormula(): Unit \ Assert = {
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
             assocId,
-            EqualityConstraint.EqualityConstraint(
+            EqConstr.EqConstr(
                 Type.Assoc(assoc),
                 io
             ) :: Nil
