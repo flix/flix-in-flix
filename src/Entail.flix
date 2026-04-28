@@ -65,29 +65,29 @@ pub def entailRepeat(
 
 def tryInst(inst: Inst, clsTy: Type): Option[List[Constr]] = Option.map(
     sub -> Substable.apply(sub, Inst.context(inst)),
-    Result.toOption(matchTy(ClassConstr.classType(Inst.head(inst)), clsTy))
+    Result.toOption(matchTy(ClassConstr.ty(Inst.head(inst)), clsTy))
 )
 
 
 def reduceClass(env: ConstrEnv, giv: List[Constr], cls: ClassConstr): 
     Option[ClassConstr] = Option.map(
-        ty -> ClassConstr.ClassConstr(ClassConstr.classId(cls), ty),
-        reduceTyOne(env, giv, ClassConstr.classType(cls))
+        ty -> ClassConstr.ClassConstr(ClassConstr.id(cls), ty),
+        reduceTyOne(env, giv, ClassConstr.ty(cls))
     )
 
 
 def entailClassOne(env: ConstrEnv, giv: List[Constr], goal: ClassConstr): 
     Option[List[Constr]] = {
-        let goalId = ClassConstr.classId(goal);
-        let goalTy = ClassConstr.classType(goal);
+        let goalId = ClassConstr.id(goal);
+        let goalTy = ClassConstr.ty(goal);
 
         let bySuper = List.exists(
             gc -> match gc {
                 case Constr.Class(cls) =>
-                    if (ClassConstr.classType(cls) != goalTy) false
+                    if (ClassConstr.ty(cls) != goalTy) false
                     else Set.memberOf(
                         goalId, 
-                        ConstrEnv.parentClasses(ClassConstr.classId(cls), env)
+                        ConstrEnv.parentClasses(ClassConstr.id(cls), env)
                     )
 
                 case Constr.Eq(_) => false

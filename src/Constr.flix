@@ -1,18 +1,18 @@
 pub enum ClassConstr(Id, Type) with Eq, ToString, Hash, Order
 
 mod ClassConstr {
-    pub def classId(con: ClassConstr): Id = match con { 
+    pub def id(con: ClassConstr): Id = match con { 
         case ClassConstr(id, _) => id 
     }
-    pub def classType(con: ClassConstr): Type = match con { 
+    pub def ty(con: ClassConstr): Type = match con { 
         case ClassConstr(_, ty) => ty 
     }
 }
 
 instance Substable[ClassConstr] {
     pub def apply(subst: Subst, con: ClassConstr): ClassConstr = {
-        let id = ClassConstr.classId(con);
-        let ty = Substable.apply(subst, ClassConstr.classType(con));
+        let id = ClassConstr.id(con);
+        let ty = Substable.apply(subst, ClassConstr.ty(con));
         ClassConstr.ClassConstr(id, ty)
     }
 }

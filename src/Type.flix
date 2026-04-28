@@ -25,7 +25,6 @@ instance Kinded[Tycon] {
 pub enum Tyassoc(Id, Type, Kind) with Eq, ToString, Hash, Order
 
 mod Tyassoc {
-    pub def kind(a: Tyassoc): Kind = match a { case Tyassoc(_, _, k) => k }
     pub def ty(a: Tyassoc): Type = match a { case Tyassoc(_, t, _) => t }
     pub def id(a: Tyassoc): Id = match a { case Tyassoc(id, _, _) => id }
 }
@@ -38,7 +37,9 @@ instance Substable[Tyassoc] {
 }
 
 instance Kinded[Tyassoc] {
-    pub def kind(a: Tyassoc): Kind = Tyassoc.kind(a)
+    pub def kind(a: Tyassoc): Kind = match a {
+        case Tyassoc.Tyassoc(_, _, k) => k
+    }
 }
 
 instance FreeVars[Tyassoc] {
