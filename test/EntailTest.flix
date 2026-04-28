@@ -32,8 +32,8 @@ def enEmptyConstraintEnv(): ConstraintEnvironment =
 // `x ~ Int32 -> Some([], { x -> Int32 })`
 @Test
 def entailOneStepDelegatesEqualityGoalsToUnification(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.TypeStar);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let x = Type.mkTypeVar("x", Kind.Star);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Some((Nil, Substitution.singleton(x, int32))),
@@ -50,10 +50,10 @@ def entailOneStepDelegatesEqualityGoalsToUnification(): Unit \ Assert = {
 // `Elem Int32 ~ Int32 -> None`
 @Test
 def entailOneStepDoesNotInstantiateEqualityGiven(): Unit \ Assert = {
-    let a = Type.mkTypeVar("a", Kind.TypeStar);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
-    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
-    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+    let a = Type.mkTypeVar("a", Kind.Star);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.Star);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.Star);
 
     Assert.assertEq(
         expected = None,
@@ -76,10 +76,10 @@ def entailOneStepDoesNotInstantiateEqualityGiven(): Unit \ Assert = {
 // `Elem Int32 ~ Int32 -> Some([Int32 ~ Int32], {})`
 @Test
 def entailOneStepInstantiatesEqualityFromConstraintEnvironment(): Unit \ Assert = {
-    let a = Type.mkTypeVar("a", Kind.TypeStar);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
-    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
-    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+    let a = Type.mkTypeVar("a", Kind.Star);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.Star);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.Star);
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
@@ -113,7 +113,7 @@ def entailOneStepInstantiatesEqualityFromConstraintEnvironment(): Unit \ Assert 
 // `Eq Int32 -> Some([])`
 @Test
 def entailOneStepDischargesClassGoalByGivenSuperclass(): Unit \ Assert = {
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.empty(),
@@ -138,10 +138,10 @@ def entailOneStepDischargesClassGoalByGivenSuperclass(): Unit \ Assert = {
 // `Show (Elem Int32) -> Some([Show Int32])`
 @Test
 def entailOneStepReducesClassGoalTypeBeforeOtherEntailmentRules(): Unit \ Assert = {
-    let a = Type.mkTypeVar("a", Kind.TypeStar);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
-    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
-    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+    let a = Type.mkTypeVar("a", Kind.Star);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.Star);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.Star);
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
@@ -175,8 +175,8 @@ def entailOneStepReducesClassGoalTypeBeforeOtherEntailmentRules(): Unit \ Assert
 // `Eq Int32 -> Some([Show Int32])`
 @Test
 def entailOneStepInstantiatesMatchingInstanceContext(): Unit \ Assert = {
-    let a = Type.mkTypeVar("a", Kind.TypeStar);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let a = Type.mkTypeVar("a", Kind.Star);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.empty(),
@@ -210,8 +210,8 @@ def entailOneStepInstantiatesMatchingInstanceContext(): Unit \ Assert = {
 // `x ~ Int32, Show x` with given `{ Show Int32 } -> [], { x -> Int32 }`
 @Test
 def entailRepeatAppliesEqualitySubstitutionToRemainingGoals(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.TypeStar);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let x = Type.mkTypeVar("x", Kind.Star);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
 
     let constraints = Constraint.Equality(
         enMkEquality(Type.Variable(x), int32)
@@ -234,10 +234,10 @@ def entailRepeatAppliesEqualitySubstitutionToRemainingGoals(): Unit \ Assert = {
 // `Eq (Elem Int32) -> [], {}`
 @Test
 def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
-    let a = Type.mkTypeVar("a", Kind.TypeStar);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
-    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
-    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+    let a = Type.mkTypeVar("a", Kind.Star);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.Star);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.Star);
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(

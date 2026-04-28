@@ -1,7 +1,7 @@
 // `x -> [x]`
 @Test
 def freeTypeVariablesOfVariable(): Unit \ Assert = {
-    let x = TypeVariable.TypeVariable(Id.Id("x"), Kind.TypeStar);
+    let x = TypeVariable.TypeVariable(Id.Id("x"), Kind.Star);
     let ty = Type.Variable(x);
 
     Assert.assertEq(expected = x :: Nil, ty |> FreeTypeVariable.freeTypeVariables)
@@ -10,8 +10,8 @@ def freeTypeVariablesOfVariable(): Unit \ Assert = {
 // `x y -> [x, y]`
 @Test
 def freeTypeVariablesOfTypeApplication(): Unit \ Assert = {
-    let x = TypeVariable.TypeVariable(Id.Id("x"), Kind.TypeStar);
-    let y = TypeVariable.TypeVariable(Id.Id("y"), Kind.TypeStar);
+    let x = TypeVariable.TypeVariable(Id.Id("x"), Kind.Star);
+    let y = TypeVariable.TypeVariable(Id.Id("y"), Kind.Star);
     let ty = Type.Application(
         TypeApplication.TypeApplication(
             Type.Variable(x),
@@ -25,8 +25,8 @@ def freeTypeVariablesOfTypeApplication(): Unit \ Assert = {
 // `(x + ~y) -> [x, y]`
 @Test
 def freeTypeVariablesOfSetFormula(): Unit \ Assert = {
-    let x = TypeVariable.TypeVariable(Id.Id("x"), Kind.EffectStar);
-    let y = TypeVariable.TypeVariable(Id.Id("y"), Kind.EffectStar);
+    let x = TypeVariable.TypeVariable(Id.Id("x"), Kind.Eff);
+    let y = TypeVariable.TypeVariable(Id.Id("y"), Kind.Eff);
     let setFormula = SetFormula.Binary(
         BinarySetFormula.BinarySetFormula(
             SetFormula.Variable(x),

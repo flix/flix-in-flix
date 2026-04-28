@@ -110,7 +110,7 @@ instance Kinded[TypeApplication] {
         let functionKind = a |> TypeApplication.function |> Kinded.kind;
 
         match functionKind {
-            case Kind.Function(kind) => kind |> FunctionKind.result
+            case Kind.KFun(_, result) => result
             case _ => bug!(
                 "Expected a function kind, but found: ${functionKind}"
             )
@@ -235,7 +235,7 @@ instance Substitutable[SetFormula] {
 
 
 instance Kinded[SetFormula] {
-    pub def kind(_a: SetFormula): Kind = Kind.EffectStar
+    pub def kind(_a: SetFormula): Kind = Kind.Eff
 }
 
 

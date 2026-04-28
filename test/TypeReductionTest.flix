@@ -13,9 +13,9 @@ def trEmptyConstraintEnv(): ConstraintEnvironment =
 // `x, Int32, Gen(0) -> None`
 @Test
 def reduceTypeOneStepLeavesSimpleTypesUnchanged(): Unit \ Assert = {
-    let tyVar = Type.mkTypeVar("x", Kind.TypeStar);
-    let tyCon = Type.mkTypeCon("Int32", Kind.TypeStar);
-    let gen = Gen.Gen(0, Kind.TypeStar);
+    let tyVar = Type.mkTypeVar("x", Kind.Star);
+    let tyCon = Type.mkTypeCon("Int32", Kind.Star);
+    let gen = Gen.Gen(0, Kind.Star);
 
     Assert.assertEq(
         expected = None,
@@ -36,9 +36,9 @@ def reduceTypeOneStepLeavesSimpleTypesUnchanged(): Unit \ Assert = {
 // `Elem x -> Some(Bool)`
 @Test
 def reduceTypeOneStepUsesGivenEqualityForAssociatedMember(): Unit \ Assert = {
-    let arg = Type.mkTypeVar("x", Kind.TypeStar);
-    let assoc = Type.mkAssoc("Elem", Type.Variable(arg), Kind.TypeStar);
-    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.TypeStar));
+    let arg = Type.mkTypeVar("x", Kind.Star);
+    let assoc = Type.mkAssoc("Elem", Type.Variable(arg), Kind.Star);
+    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.Star));
 
     Assert.assertEq(
         expected = Some(bool),
@@ -54,10 +54,10 @@ def reduceTypeOneStepUsesGivenEqualityForAssociatedMember(): Unit \ Assert = {
 // `Elem Int32 -> None`
 @Test
 def reduceTypeOneStepGivenEqualityRequiresSyntacticLeftHandSideMatch(): Unit \ Assert = {
-    let a = Type.mkTypeVar("a", Kind.TypeStar);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
-    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
-    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+    let a = Type.mkTypeVar("a", Kind.Star);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.Star);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.Star);
 
     Assert.assertEq(
         expected = None,
@@ -76,10 +76,10 @@ def reduceTypeOneStepGivenEqualityRequiresSyntacticLeftHandSideMatch(): Unit \ A
 // `Elem Int32 -> Some(Int32)`
 @Test
 def reduceTypeOneStepInstantiatesConstraintEnvironmentEquality(): Unit \ Assert = {
-    let a = Type.mkTypeVar("a", Kind.TypeStar);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
-    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
-    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+    let a = Type.mkTypeVar("a", Kind.Star);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.Star);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.Star);
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
@@ -106,16 +106,16 @@ def reduceTypeOneStepInstantiatesConstraintEnvironmentEquality(): Unit \ Assert 
 // `Outer (Inner x) -> Some(Outer Int32)`
 @Test
 def reduceTypeOneStepReducesAssociatedMemberArgumentBeforeOuterLookup(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.TypeStar);
-    let inner = Type.mkAssoc("Inner", Type.Variable(x), Kind.TypeStar);
+    let x = Type.mkTypeVar("x", Kind.Star);
+    let inner = Type.mkAssoc("Inner", Type.Variable(x), Kind.Star);
     let outer = Type.mkAssoc(
         "Outer",
         Type.AssociatedMember(inner),
-        Kind.TypeStar
+        Kind.Star
     );
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
-    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.TypeStar));
-    let outerAfterArgReduction = Type.mkAssoc("Outer", int32, Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.Star));
+    let outerAfterArgReduction = Type.mkAssoc("Outer", int32, Kind.Star);
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
@@ -142,19 +142,19 @@ def reduceTypeOneStepReducesAssociatedMemberArgumentBeforeOuterLookup(): Unit \ 
 // `(UnaryCtor Phantom) (Elem Phantom) -> Some(Unary (Elem Phantom))`
 @Test
 def reduceTypeOneStepApplicationReducesFunctionBeforeArgument(): Unit \ Assert = {
-    let unaryKind = Kind.Function(FunctionKind.FunctionKind(
-        Kind.TypeStar,
-        Kind.TypeStar
-    ));
+    let unaryKind = Kind.KFun(
+        Kind.Star,
+        Kind.Star
+    );
     let funcAssoc = Type.mkAssoc(
         "UnaryCtor",
-        Type.Constructor(Type.mkTypeCon("Phantom", Kind.TypeStar)),
+        Type.Constructor(Type.mkTypeCon("Phantom", Kind.Star)),
         unaryKind
     );
     let argAssoc = Type.mkAssoc(
         "Elem",
-        Type.Constructor(Type.mkTypeCon("Phantom", Kind.TypeStar)),
-        Kind.TypeStar
+        Type.Constructor(Type.mkTypeCon("Phantom", Kind.Star)),
+        Kind.Star
     );
     let unary = Type.Constructor(Type.mkTypeCon("Unary", unaryKind));
 
@@ -168,7 +168,7 @@ def reduceTypeOneStepApplicationReducesFunctionBeforeArgument(): Unit \ Assert =
                 Id.Id("Elem"),
                 trMkEquality(
                     Type.AssociatedMember(argAssoc),
-                    Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar))
+                    Type.Constructor(Type.mkTypeCon("Int32", Kind.Star))
                 ) :: Nil
             )
         ),
@@ -194,17 +194,17 @@ def reduceTypeOneStepApplicationReducesFunctionBeforeArgument(): Unit \ Assert =
 // `Unary (Elem Phantom) -> Some(Unary Int32)`
 @Test
 def reduceTypeOneStepApplicationReducesArgumentWhenFunctionIsStable(): Unit \ Assert = {
-    let unaryKind = Kind.Function(FunctionKind.FunctionKind(
-        Kind.TypeStar,
-        Kind.TypeStar
-    ));
+    let unaryKind = Kind.KFun(
+        Kind.Star,
+        Kind.Star
+    );
     let unary = Type.Constructor(Type.mkTypeCon("Unary", unaryKind));
     let argAssoc = Type.mkAssoc(
         "Elem",
-        Type.Constructor(Type.mkTypeCon("Phantom", Kind.TypeStar)),
-        Kind.TypeStar
+        Type.Constructor(Type.mkTypeCon("Phantom", Kind.Star)),
+        Kind.Star
     );
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
@@ -233,10 +233,10 @@ def reduceTypeOneStepApplicationReducesArgumentWhenFunctionIsStable(): Unit \ As
 // `AssocA x -> Some(AssocB x)`
 @Test
 def reduceTypeOneStepReducesChainedAssociatedMembersOneRuleAtATime(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.TypeStar);
-    let assocA = Type.mkAssoc("AssocA", Type.Variable(x), Kind.TypeStar);
-    let assocB = Type.mkAssoc("AssocB", Type.Variable(x), Kind.TypeStar);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let x = Type.mkTypeVar("x", Kind.Star);
+    let assocA = Type.mkAssoc("AssocA", Type.Variable(x), Kind.Star);
+    let assocB = Type.mkAssoc("AssocB", Type.Variable(x), Kind.Star);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
@@ -266,9 +266,9 @@ def reduceTypeOneStepReducesChainedAssociatedMembersOneRuleAtATime(): Unit \ Ass
 // `(ReadEff x + ~WriteEff x) -> Some(Read + ~WriteEff x)`
 @Test
 def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
-    let arg = Type.mkTypeVar("x", Kind.TypeStar);
-    let readAssoc = Type.mkAssoc("ReadEff", Type.Variable(arg), Kind.EffectStar);
-    let writeAssoc = Type.mkAssoc("WriteEff", Type.Variable(arg), Kind.EffectStar);
+    let arg = Type.mkTypeVar("x", Kind.Star);
+    let readAssoc = Type.mkAssoc("ReadEff", Type.Variable(arg), Kind.Eff);
+    let writeAssoc = Type.mkAssoc("WriteEff", Type.Variable(arg), Kind.Eff);
 
     let read = SetFormula.Singleton(EffectLabel.EffectLabel(Id.Id("Read")));
     let write = SetFormula.Singleton(EffectLabel.EffectLabel(Id.Id("Write")));
@@ -319,12 +319,12 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
 @Test
 def reduceTypeOneStepReducesAssociatedMemberInsideSetFormula(): Unit \ Assert = {
     let assocId = Id.Id("Assoc");
-    let arg = TypeVariable.TypeVariable(Id.Id("x"), Kind.TypeStar);
+    let arg = TypeVariable.TypeVariable(Id.Id("x"), Kind.Star);
     let io = EffectLabel.EffectLabel(Id.Id("IO"));
     let assoc = AssociatedMember.AssociatedMember(
         assocId,
         Type.Variable(arg),
-        Kind.EffectStar
+        Kind.Eff
     );
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
