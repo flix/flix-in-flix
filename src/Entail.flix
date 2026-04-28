@@ -1,167 +1,110 @@
-pub def entailOneStep(
-    constraintEnv: ConstrEnv,
-    given: List[Constr],
-    goal: Constr
-): Option[(List[Constr], Subst)] = {
-    match goal {
-        case Constr.Class(clsConstraint) => 
-            entailClassConstraintOneStep(constraintEnv, given, clsConstraint)
-                |> Option.map((newConstraints) -> 
-                    (newConstraints, Subst.empty())
-                ),
-        
-        // delegate to the unification procedure
-        case Constr.Eq(eqConstraint) => {
-            unifyOneStep(
-                constraintEnv,
-                given, 
-                eqConstraint |> EqConstr.left,
-                eqConstraint |> EqConstr.right
-            ) 
-                |> Result.toOption
-                |> Option.map(res -> (
-                    res |> fst |> List.map(Constr.Eq),
-                    res |> snd
-                ))
-        }
+pub def entailOneStep(env: ConstrEnv, giv: List[Constr], goal: Constr): 
+    Option[(List[Constr], Subst)] = match goal {
+        case Constr.Class(cls) =>
+            Option.map(cs -> (cs, Subst.empty()), entailClassOne(env, giv, cls))
+
+        case Constr.Eq(eq) => Option.map(
+            res -> (List.map(Constr.Eq, fst(res)), snd(res)),
+            Result.toOption(unifyOneStep(
+                env, 
+                giv, 
+                EqConstr.left(eq), 
+                EqConstr.right(eq)
+            ))
+        )
     }
-}
 
 
-def repeatEntailmentHelper(
-    constraintEnv: ConstrEnv,
-    given: List[Constr],
-    constraints: List[Constr],
-    currentSubst: Subst
+def entailRepeatHelper(
+    env: ConstrEnv,
+    giv: List[Constr],
+    cs: List[Constr],
+    curSub: Subst
 ): (List[Constr], Subst) = {
-    def findApplicable(
-        processed: List[Constr],
-        pending: List[Constr]
-    ): Option[(List[Constr], Subst)] = match pending {
+    def findStep(
+        done: List[Constr],
+        rest: List[Constr]
+    ): Option[(List[Constr], Subst)] = match rest {
         case Nil => None
 
         case head :: tail => {
-            match entailOneStep(constraintEnv, given, head) {
-                case Some((newConstraints, subst)) => {
-                    let nextConstraints =
-                        (processed ++ tail)
-                            |> List.map(c -> c |> Substable.apply(subst))
-                        ++ newConstraints;
+            match entailOneStep(env, giv, head) {
+                case Some((newCs, sub)) => {
+                    let nextCs = List.map(
+                        c -> Substable.apply(sub, c), 
+                        done ++ tail
+                    );
 
-                    Some((nextConstraints, subst))
+                    Some((nextCs ++ newCs, sub))
                 }
 
-                case None => findApplicable(head :: processed, tail)
+                case None => findStep(head :: done, tail)
             }
         }
     };
 
-    match findApplicable(Nil, constraints) {
-        case Some((nextConstraints, subst)) =>
-            repeatEntailmentHelper(
-                constraintEnv,
-                given,
-                nextConstraints,
-                Subst.compose(subst, currentSubst)
-            )
-
-        case None => (constraints, currentSubst)
+    match findStep(Nil, cs) {
+        case Some((nextCs, sub)) => entailRepeatHelper(
+            env, 
+            giv, 
+            nextCs, 
+            Subst.compose(sub, curSub)
+        )
+        case None => (cs, curSub)
     }
 }
 
 
 pub def entailRepeat(
-    constraintEnv: ConstrEnv,
-    given: List[Constr],
-    constraints: List[Constr]
+    env: ConstrEnv,
+    giv: List[Constr],
+    cs: List[Constr]
 ): (List[Constr], Subst) =
-    repeatEntailmentHelper(
-        constraintEnv,
-        given,
-        constraints,
-        Subst.empty()
+    entailRepeatHelper(env, giv, cs, Subst.empty())
+
+
+def tryInst(inst: Inst, clsTy: Type): Option[List[Constr]] = Option.map(
+    sub -> Substable.apply(sub, Inst.context(inst)),
+    Result.toOption(matchTy(ClassConstr.classType(Inst.head(inst)), clsTy))
+)
+
+
+def reduceClass(env: ConstrEnv, giv: List[Constr], cls: ClassConstr): 
+    Option[ClassConstr] = Option.map(
+        ty -> ClassConstr.ClassConstr(ClassConstr.classId(cls), ty),
+        reduceTyOne(env, giv, ClassConstr.classType(cls))
     )
 
 
-def tryInstance(
-    inst: Inst,
-    classType: Type
-): Option[List[Constr]] = {
-    let instHead = inst |> Inst.head |> ClassConstr.classType;
+def entailClassOne(env: ConstrEnv, giv: List[Constr], goal: ClassConstr): 
+    Option[List[Constr]] = {
+        let goalId = ClassConstr.classId(goal);
+        let goalTy = ClassConstr.classType(goal);
 
-    matchTy(instHead, classType)
-        |> Result.toOption
-        |> Option.map(s -> {
-            inst |> Inst.context
-                |> Substable.apply(s)
-        })
-}
+        let bySuper = List.exists(
+            gc -> match gc {
+                case Constr.Class(cls) =>
+                    if (ClassConstr.classType(cls) != goalTy) false
+                    else Set.memberOf(
+                        goalId, 
+                        ConstrEnv.parentClasses(ClassConstr.classId(cls), env)
+                    )
 
+                case Constr.Eq(_) => false
+            }, 
+            giv
+        );
 
-def reduceClassConstraint(
-    constraintEnv: ConstrEnv,
-    givens: List[Constr],
-    classConstraint: ClassConstr
-): Option[ClassConstr] = {
-    classConstraint
-        |> ClassConstr.classType
-        |> reduceTyOne(constraintEnv, givens)
-        |> Option.map(ty -> ClassConstr.ClassConstr(
-            classConstraint |> ClassConstr.classId,
-            ty
-        ))
-}
-
-
-def entailClassConstraintOneStep(
-    constraintEnv: ConstrEnv,
-    given: List[Constr],
-    goal: ClassConstr
-): Option[List[Constr]] = {
-    let bySuper = given |> List.exists(x -> {
-        match x {
-            case Constr.Class(givenClsConstraint) => {
-                let givenClassType = givenClsConstraint 
-                    |> ClassConstr.classType;
-                
-                let goalClassType = goal 
-                    |> ClassConstr.classType;
-        
-                // doesn't have the same type, so can't be used to 
-                // entail
-                if (givenClassType != goalClassType) false
-                else {        
-                    constraintEnv 
-                        |> ConstrEnv.parentClasses(
-                            givenClsConstraint |> ClassConstr.classId
-                        )
-                        |> Set.memberOf(goal |> ClassConstr.classId)
-                }
-            }
-
-            case Constr.Eq(_) => false
-        }
-    });
-
-    if (bySuper) Some(Nil)
-    else {
-        match goal |> reduceClassConstraint(constraintEnv, given) {
-            case Some(reduced) => Some(Constr.Class(reduced) :: Nil)
-            case None => {
-                forM (        
-                    classDecl <- constraintEnv 
-                        |> ConstrEnv.lookupClass(
-                            goal |> ClassConstr.classId
-                        );
-
-                    chain <- classDecl       
-                        |> Class.insts
-                        |> List.findMap(s -> tryInstance(
-                            s, 
-                            goal |> ClassConstr.classType
-                        ))     
+        if (bySuper) Some(Nil) else {
+            match reduceClass(env, giv, goal) {
+                case Some(redCls) => Some(Constr.Class(redCls) :: Nil)
+                case None => forM (
+                    clsDecl <- ConstrEnv.lookupClass(goalId, env);
+                    chain <- List.findMap(
+                        inst -> tryInst(inst, goalTy), 
+                        Class.insts(clsDecl)
+                    )
                 ) yield chain
             }
-        }
-    }  
-}
+        }  
+    }
