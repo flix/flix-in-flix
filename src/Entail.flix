@@ -28,6 +28,61 @@ pub def entailOneStep(
 }
 
 
+def repeatEntailmentHelper(
+    constraintEnv: ConstraintEnvironment,
+    given: List[Constraint],
+    constraints: List[Constraint],
+    currentSubst: Substitution
+): (List[Constraint], Substitution) = {
+    def findApplicable(
+        processed: List[Constraint],
+        pending: List[Constraint]
+    ): Option[(List[Constraint], Substitution)] = match pending {
+        case Nil => None
+
+        case head :: tail => {
+            match entailOneStep(constraintEnv, given, head) {
+                case Some((newConstraints, subst)) => {
+                    let nextConstraints =
+                        (processed ++ tail)
+                            |> List.map(c -> c |> Substitutable.apply(subst))
+                        ++ newConstraints;
+
+                    Some((nextConstraints, subst))
+                }
+
+                case None => findApplicable(head :: processed, tail)
+            }
+        }
+    };
+
+    match findApplicable(Nil, constraints) {
+        case Some((nextConstraints, subst)) =>
+            repeatEntailmentHelper(
+                constraintEnv,
+                given,
+                nextConstraints,
+                Substitution.compose(subst, currentSubst)
+            )
+
+        case None => (constraints, currentSubst)
+    }
+}
+
+
+pub def entailRepeat(
+    constraintEnv: ConstraintEnvironment,
+    given: List[Constraint],
+    constraints: List[Constraint]
+): (List[Constraint], Substitution) =
+    repeatEntailmentHelper(
+        constraintEnv,
+        given,
+        constraints,
+        Substitution.empty()
+    )
+
+
 def tryInstance(
     inst: Instance,
     classType: Type
