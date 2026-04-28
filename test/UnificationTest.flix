@@ -373,6 +373,7 @@ def unifyRepeatPreservesUnsolvedConstraints(): Unit \ Assert = {
     let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.TypeStar));
 
     let constraints = unMkEquality(int32, bool)
+        :: unMkEquality(Type.Variable(x), int32)
         :: Nil;
 
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
