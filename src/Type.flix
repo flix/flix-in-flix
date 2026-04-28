@@ -9,7 +9,7 @@ mod Tyvar {
 
 
 instance Kinded[Tyvar] {
-    pub def kind(a: Tyvar): Kind = a |> Tyvar.kind
+    pub def kind(a: Tyvar): Kind = Tyvar.kind(a)
 }
 
 
@@ -29,7 +29,7 @@ mod Tycon {
 
 
 instance Kinded[Tycon] {
-    pub def kind(a: Tycon): Kind = a |> Tycon.kind
+    pub def kind(a: Tycon): Kind = Tycon.kind(a)
 }
 
 
@@ -59,7 +59,7 @@ instance Substitutable[Tyassoc] {
             case Tyassoc.Tyassoc(id, ty, kind) => 
                 Tyassoc.Tyassoc(
                     id,
-                    ty |> Substitutable.apply(substitution),
+                    Substitutable.apply(substitution, ty),
                     kind
                 )
         }
@@ -67,13 +67,13 @@ instance Substitutable[Tyassoc] {
 
 
 instance Kinded[Tyassoc] {
-    pub def kind(a: Tyassoc): Kind = a |> Tyassoc.kind
+    pub def kind(a: Tyassoc): Kind = Tyassoc.kind(a)
 }
 
 
 instance FreeVars[Tyassoc] {
     pub def fvs(a: Tyassoc): List[Tyvar] =
-        a |> Tyassoc.ty |> FreeVars.fvs
+        FreeVars.fvs(Tyassoc.ty(a))
 }
 
 
@@ -88,7 +88,7 @@ mod Gen {
 
 
 instance Kinded[Gen] {
-    pub def kind(a: Gen): Kind = a |> Gen.kind
+    pub def kind(a: Gen): Kind = Gen.kind(a)
 }
 
 
@@ -169,16 +169,16 @@ mod Type {
 instance Kinded[Type] {
    pub def kind(a: Type): Kind = match a {
         case Type.Var(variable) => 
-            variable |> Kinded.kind
+            Kinded.kind(variable)
 
         case Type.Con(constructor) => 
-            constructor |> Kinded.kind
+            Kinded.kind(constructor)
 
         case Type.Assoc(associatedMember) =>
-            associatedMember |> Kinded.kind
+            Kinded.kind(associatedMember)
 
         case Type.Ap(function, _) => {
-            let functionKind = function |> Kinded.kind;
+            let functionKind = Kinded.kind(function);
 
             match functionKind {
                 case Kind.KFun(_, result) => result
@@ -189,7 +189,7 @@ instance Kinded[Type] {
         }
 
         case Type.Gen(gen) => 
-            gen |> Kinded.kind
+            Kinded.kind(gen)
     }
 }
 
@@ -197,13 +197,14 @@ instance Kinded[Type] {
 instance Substitutable[Type] {
     pub def apply(substitution: Substitution, a: Type): Type = match a {
         case Type.Var(variable) => 
-            substitution 
-                |> Substitution.get(variable)
-                |> Option.getWithDefault(a)
+            Option.getWithDefault(
+                a,
+                Substitution.get(variable, substitution)
+            )
 
         case Type.Ap(function, argument) => Type.Ap(
-            function |> Substitutable.apply(substitution),
-            argument |> Substitutable.apply(substitution)
+            Substitutable.apply(substitution, function),
+            Substitutable.apply(substitution, argument)
         )
 
         case Type.Gen(_) => a
@@ -218,17 +219,17 @@ instance Substitutable[Type] {
 instance FreeVars[Type] {
     pub def fvs(a: Type): List[Tyvar] = match a {
         case Type.Var(variable) =>
-            variable |> FreeVars.fvs
+            FreeVars.fvs(variable)
 
         case Type.Con(_) =>
             Nil
 
         case Type.Assoc(associatedMember) =>
-            associatedMember |> FreeVars.fvs
+            FreeVars.fvs(associatedMember)
 
         case Type.Ap(function, argument) =>
-            (function |> FreeVars.fvs) :::
-            (argument |> FreeVars.fvs)
+            FreeVars.fvs(function) :::
+            FreeVars.fvs(argument)
 
         case Type.Gen(_) =>
             Nil
