@@ -30,16 +30,24 @@ mod Class {
 
 pub enum ConstraintEnvironment(
     // Map from associated member id to the equality constraints
-    Map[Id, List[EqualityConstraint]]
+    Map[Id, List[EqualityConstraint]],
+    Map[Id, Class]
 )
 
 
 mod ConstraintEnvironment {
+    use ConstraintEnvironment.getSuperClassesOfClass
     def associatedMemberEqualities(
         constraintEnv: ConstraintEnvironment 
     ): Map[Id, List[EqualityConstraint]] = match constraintEnv {
-        case ConstraintEnvironment(map) => map
+        case ConstraintEnvironment(map, _) => map
     }
+
+
+    def classMap(constraintEnv: ConstraintEnvironment): Map[Id, Class] = match constraintEnv {
+        case ConstraintEnvironment(_, classMap) => classMap
+    }
+
 
     pub def lookupAssociatedMemberEquality(
         id: Id,
@@ -49,5 +57,50 @@ mod ConstraintEnvironment {
             |> ConstraintEnvironment.associatedMemberEqualities;
 
         map |> Map.get(id) |> Option.getWithDefault(Nil)
+    }
+
+
+    pub def getSuperClassesOfClass(
+        id: Id,
+        constraintEnv: ConstraintEnvironment
+    ): List[Id] = {
+        let classMap = constraintEnv |> classMap;
+
+        classMap
+            |> Map.get(id)
+            |> Option.map(cls -> cls |> Class.superClasses)
+            |> Option.getWithDefault(Nil)
+    }
+
+
+    pub def getSuperClassFact(clsEnv: ConstraintEnvironment): 
+        #{ StrictSuper(Id, Id) | r } = {
+        let classMap = clsEnv |> classMap;
+
+        inject classMap
+            |> Map.keysOf
+            |> Set.flatMap(x -> {
+                clsEnv 
+                    |> getSuperClassesOfClass(x) 
+                    |> List.map(y -> (y, x))
+                    |> List.toSet
+            }) into StrictSuper/2
+    }
+
+
+    pub def getTransitiveParentClasses(
+        id: Id,
+        constraintEnv: ConstraintEnvironment
+    ): Set[Id] = {
+        let superClassFact = constraintEnv |> getSuperClassFact;
+
+        let rules: #{ Super(Id, Id), StrictSuper(Id, Id) } = #{
+            Super(x, y) :- StrictSuper(x, y).
+            Super(x, y) :- StrictSuper(x, z), Super(z, y).
+        };
+
+        query superClassFact, rules, #{ Super(id, id). } 
+            select x from Super(x, id)
+            |> Vector.toSet
     }
 }

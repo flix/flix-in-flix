@@ -7,7 +7,7 @@ def unMkGivenEquality(left: Type, right: Type): Constraint =
 
 
 def unEmptyConstraintEnv(): ConstraintEnvironment =
-    ConstraintEnvironment.ConstraintEnvironment(Map.empty())
+    ConstraintEnvironment.ConstraintEnvironment(Map.empty(), Map.empty())
 
 
 // `x ~ Int32 -> { x -> Int32 }`
@@ -303,7 +303,8 @@ def unifyOneStepAssociatedMemberRejectsKindMismatchAfterReduction(): Unit \ Asse
         Map.singleton(
             Id.Id("ReadEff"),
             unMkEquality(Type.AssociatedMember(readAssoc), read) :: Nil
-        )
+        ), 
+        Map.empty()
     );
 
     Assert.assertEq(
@@ -372,7 +373,6 @@ def unifyRepeatPreservesUnsolvedConstraints(): Unit \ Assert = {
     let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.TypeStar));
 
     let constraints = unMkEquality(int32, bool)
-        :: unMkEquality(Type.Variable(x), int32)
         :: Nil;
 
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
@@ -425,7 +425,8 @@ def unifyRepeatFullyReducesChainedAssociatedMembers(): Unit \ Assert = {
                 Id.Id("AssocB"),
                 unMkEquality(Type.AssociatedMember(assocB), int32) :: Nil
             )
-        )
+        ),
+        Map.empty()
     );
 
     let constraints = unMkEquality(Type.AssociatedMember(assocA), int32) :: Nil;

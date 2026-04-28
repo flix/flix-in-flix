@@ -1,6 +1,18 @@
 pub enum ClassConstraint(Id, Type) with Eq, ToString, Hash, Order
 
 
+mod ClassConstraint {
+    pub def classId(constraint: ClassConstraint): Id = match constraint {
+        case ClassConstraint(id, _) => id
+    }
+
+
+    pub def classType(constraint: ClassConstraint): Type = match constraint {
+        case ClassConstraint(_, ty) => ty
+    }
+}
+
+
 pub enum EqualityConstraint(Type, Type) with Eq, ToString, Hash, Order
 
 

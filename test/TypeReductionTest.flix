@@ -7,7 +7,7 @@ def trMkGivenEquality(left: Type, right: Type): Constraint =
 
 
 def trEmptyConstraintEnv(): ConstraintEnvironment =
-    ConstraintEnvironment.ConstraintEnvironment(Map.empty())
+    ConstraintEnvironment.ConstraintEnvironment(Map.empty(), Map.empty())
 
 
 // `x, Int32, Gen(0) -> None`
@@ -75,7 +75,8 @@ def reduceTypeOneStepReducesAssociatedMemberArgumentBeforeOuterLookup(): Unit \ 
                 Id.Id("Outer"),
                 trMkEquality(Type.AssociatedMember(outerAfterArgReduction), bool) :: Nil
             )
-        )
+        ),
+        Map.empty()
     );
 
     Assert.assertEq(
@@ -118,7 +119,8 @@ def reduceTypeOneStepApplicationReducesFunctionBeforeArgument(): Unit \ Assert =
                     Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar))
                 ) :: Nil
             )
-        )
+        ),
+        Map.empty()
     );
 
     let ty = Type.Application(TypeApplication.TypeApplication(
@@ -156,7 +158,8 @@ def reduceTypeOneStepApplicationReducesArgumentWhenFunctionIsStable(): Unit \ As
         Map.singleton(
             Id.Id("Elem"),
             trMkEquality(Type.AssociatedMember(argAssoc), int32) :: Nil
-        )
+        ),
+        Map.empty()
     );
 
     let ty = Type.Application(TypeApplication.TypeApplication(
@@ -196,7 +199,8 @@ def reduceTypeOneStepReducesChainedAssociatedMembersOneRuleAtATime(): Unit \ Ass
                 Id.Id("AssocB"),
                 trMkEquality(Type.AssociatedMember(assocB), int32) :: Nil
             )
-        )
+        ),
+        Map.empty()
     );
 
     Assert.assertEq(
@@ -233,7 +237,8 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
                     Type.SetFormula(write)
                 ) :: Nil
             )
-        )
+        ),
+        Map.empty()
     );
 
     let ty = Type.SetFormula(SetFormula.Binary(
@@ -277,7 +282,8 @@ def reduceTypeOneStepReducesAssociatedMemberInsideSetFormula(): Unit \ Assert = 
                 Type.AssociatedMember(assoc),
                 Type.SetFormula(SetFormula.Singleton(io))
             ) :: Nil
-        )
+        ),
+        Map.empty()
     );
 
     let ty = Type.SetFormula(
