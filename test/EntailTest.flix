@@ -18,15 +18,15 @@ def enMkInstance(
     className: Id,
     classType: Type,
     context: List[Constr]
-): Instance =
-    Instance.Instance(Qualified.Qualified(
+): Inst =
+    Inst.Inst(Qualified.Qualified(
         enMkClassConstraint(className, classType),
         context
     ))
 
 
-def enEmptyConstraintEnv(): ConstraintEnvironment =
-    ConstraintEnvironment.ConstraintEnvironment(Map.empty(), Map.empty())
+def enEmptyConstraintEnv(): ConstrEnv =
+    ConstrEnv.ConstrEnv(Map.empty(), Map.empty())
 
 
 // `x ~ Int32 -> Some([], { x -> Int32 })`
@@ -81,7 +81,7 @@ def entailOneStepInstantiatesEqualityFromConstraintEnvironment(): Unit \ Assert 
     let genericAssoc = Type.mkTyassoc("Elem", Type.Var(a), Kind.Star);
     let specificAssoc = Type.mkTyassoc("Elem", int32, Kind.Star);
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
             "Elem",
             enMkEquality(
@@ -115,7 +115,7 @@ def entailOneStepInstantiatesEqualityFromConstraintEnvironment(): Unit \ Assert 
 def entailOneStepDischargesClassGoalByGivenSuperclass(): Unit \ Assert = {
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.empty(),
         Map.singleton(
             "Ord",
@@ -143,7 +143,7 @@ def entailOneStepReducesClassGoalTypeBeforeOtherEntailmentRules(): Unit \ Assert
     let genericAssoc = Type.mkTyassoc("Elem", Type.Var(a), Kind.Star);
     let specificAssoc = Type.mkTyassoc("Elem", int32, Kind.Star);
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
             "Elem",
             enMkEquality(
@@ -178,7 +178,7 @@ def entailOneStepInstantiatesMatchingInstanceContext(): Unit \ Assert = {
     let a = Type.mkTyvar("a", Kind.Star);
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.empty(),
         Map.singleton(
             "Eq",
@@ -239,7 +239,7 @@ def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
     let genericAssoc = Type.mkTyassoc("Elem", Type.Var(a), Kind.Star);
     let specificAssoc = Type.mkTyassoc("Elem", int32, Kind.Star);
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
             "Elem",
             enMkEquality(

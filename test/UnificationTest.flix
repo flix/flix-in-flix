@@ -6,8 +6,8 @@ def unMkGivenEquality(left: Type, right: Type): Constr =
     Constr.Eq(unMkEquality(left, right))
 
 
-def unEmptyConstraintEnv(): ConstraintEnvironment =
-    ConstraintEnvironment.ConstraintEnvironment(Map.empty(), Map.empty())
+def unEmptyConstraintEnv(): ConstrEnv =
+    ConstrEnv.ConstrEnv(Map.empty(), Map.empty())
 
 
 // `x ~ Int32 -> { x -> Int32 }`
@@ -278,7 +278,7 @@ def unifyOneStepTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Asser
     let genericAssoc = Type.mkTyassoc("Elem", Type.Var(a), Kind.Star);
     let specificAssoc = Type.mkTyassoc("Elem", int32, Kind.Star);
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
             "Elem",
             unMkEquality(
@@ -337,7 +337,7 @@ def unifyOneStepTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
     let read = Type.efSingleton("Read");
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
             "ReadEff",
             unMkEquality(Type.Assoc(readAssoc), read) :: Nil
@@ -445,7 +445,7 @@ def unifyRepeatFullyReducesChainedTyassocs(): Unit \ Assert = {
     let assocB = Type.mkTyassoc("AssocB", Type.Var(x), Kind.Star);
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.union(
             Map.singleton(
                 "AssocA",

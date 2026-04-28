@@ -1,5 +1,5 @@
 def reduceInnerTyassocOneStep(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     assoc: Tyassoc
 ): Option[Type] = {
@@ -32,11 +32,11 @@ def reduceTyassocFromGiven(
 
 
 def reduceTyassocFromEnv(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     assoc: Tyassoc
 ): Option[Type] = {
     constraintEnv
-        |> ConstraintEnvironment.lookupTyassocEquality(
+        |> ConstrEnv.lookupTyassoc(
             assoc |> Tyassoc.id
         )
         |> List.findMap(c -> {
@@ -52,7 +52,7 @@ def reduceTyassocFromEnv(
 
 
 def reduceTyassocOneStep(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     assoc: Tyassoc
 ): Option[Type] = {
@@ -78,7 +78,7 @@ def reduceTyassocOneStep(
 
 
 def reduceTypeOneStep(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     ty: Type
 ): Option[Type] = { 

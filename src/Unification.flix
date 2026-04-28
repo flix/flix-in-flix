@@ -61,7 +61,7 @@ pub enum UnificationError with Eq, ToString, Hash, Order {
 
 
 pub def unifyOneStep(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     left: Type,
     right: Type
@@ -71,7 +71,7 @@ pub def unifyOneStep(
 
 
 def unifyOneStepWithoutEq(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     left: Type,
     right: Type
@@ -108,7 +108,7 @@ def unifyOneStepWithoutEq(
 
 
 def bindAM(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     am: Tyassoc, 
     ty: Type
@@ -143,7 +143,7 @@ def bindVar(
 
 
 def repeatUnificationHelper(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     constraints: List[EqConstr],
     currentSubst: Subst
@@ -192,7 +192,7 @@ def repeatUnificationHelper(
 
 
 pub def unifyRepeat(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     constraints: List[EqConstr]
 ): (List[EqConstr], Subst) = 

@@ -1,5 +1,5 @@
 pub def entailOneStep(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     goal: Constr
 ): Option[(List[Constr], Subst)] = {
@@ -29,7 +29,7 @@ pub def entailOneStep(
 
 
 def repeatEntailmentHelper(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     constraints: List[Constr],
     currentSubst: Subst
@@ -71,7 +71,7 @@ def repeatEntailmentHelper(
 
 
 pub def entailRepeat(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     constraints: List[Constr]
 ): (List[Constr], Subst) =
@@ -84,22 +84,22 @@ pub def entailRepeat(
 
 
 def tryInstance(
-    inst: Instance,
+    inst: Inst,
     classType: Type
 ): Option[List[Constr]] = {
-    let instHead = inst |> Instance.head |> ClassConstr.classType;
+    let instHead = inst |> Inst.head |> ClassConstr.classType;
 
     matchTypes(instHead, classType)
         |> Result.toOption
         |> Option.map(s -> {
-            inst |> Instance.context
+            inst |> Inst.context
                 |> Substable.apply(s)
         })
 }
 
 
 def reduceClassConstraint(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     givens: List[Constr],
     classConstraint: ClassConstr
 ): Option[ClassConstr] = {
@@ -114,7 +114,7 @@ def reduceClassConstraint(
 
 
 def entailClassConstraintOneStep(
-    constraintEnv: ConstraintEnvironment,
+    constraintEnv: ConstrEnv,
     given: List[Constr],
     goal: ClassConstr
 ): Option[List[Constr]] = {
@@ -132,7 +132,7 @@ def entailClassConstraintOneStep(
                 if (givenClassType != goalClassType) false
                 else {        
                     constraintEnv 
-                        |> ConstraintEnvironment.getTransitiveParentClasses(
+                        |> ConstrEnv.parentClasses(
                             givenClsConstraint |> ClassConstr.classId
                         )
                         |> Set.memberOf(goal |> ClassConstr.classId)
@@ -150,12 +150,12 @@ def entailClassConstraintOneStep(
             case None => {
                 forM (        
                     classDecl <- constraintEnv 
-                        |> ConstraintEnvironment.lookupClass(
+                        |> ConstrEnv.lookupClass(
                             goal |> ClassConstr.classId
                         );
 
                     chain <- classDecl       
-                        |> Class.instances
+                        |> Class.insts
                         |> List.findMap(s -> tryInstance(
                             s, 
                             goal |> ClassConstr.classType

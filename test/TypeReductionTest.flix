@@ -6,8 +6,8 @@ def trMkGivenEquality(left: Type, right: Type): Constr =
     Constr.Eq(trMkEquality(left, right))
 
 
-def trEmptyConstraintEnv(): ConstraintEnvironment =
-    ConstraintEnvironment.ConstraintEnvironment(Map.empty(), Map.empty())
+def trEmptyConstraintEnv(): ConstrEnv =
+    ConstrEnv.ConstrEnv(Map.empty(), Map.empty())
 
 
 // `x, Int32, Gen(0) -> None`
@@ -81,7 +81,7 @@ def reduceTypeOneStepInstantiatesConstraintEnvironmentEquality(): Unit \ Assert 
     let genericAssoc = Type.mkTyassoc("Elem", Type.Var(a), Kind.Star);
     let specificAssoc = Type.mkTyassoc("Elem", int32, Kind.Star);
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
             "Elem",
             trMkEquality(
@@ -117,7 +117,7 @@ def reduceTypeOneStepReducesTyassocArgumentBeforeOuterLookup(): Unit \ Assert = 
     let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
     let outerAfterArgReduction = Type.mkTyassoc("Outer", int32, Kind.Star);
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.union(
             Map.singleton(
                 "Inner",
@@ -158,7 +158,7 @@ def reduceTypeOneStepApplicationReducesFunctionBeforeArgument(): Unit \ Assert =
     );
     let unary = Type.Con(Type.mkTycon("Unary", unaryKind));
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.union(
             Map.singleton(
                 "UnaryCtor",
@@ -200,7 +200,7 @@ def reduceTypeOneStepApplicationReducesArgumentWhenFunctionIsStable(): Unit \ As
     );
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
             "Elem",
             trMkEquality(Type.Assoc(argAssoc), int32) :: Nil
@@ -226,7 +226,7 @@ def reduceTypeOneStepReducesChainedTyassocsOneRuleAtATime(): Unit \ Assert = {
     let assocB = Type.mkTyassoc("AssocB", Type.Var(x), Kind.Star);
     let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.union(
             Map.singleton(
                 "AssocA",
@@ -261,7 +261,7 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
     let read = Type.efSingleton("Read");
     let write = Type.efSingleton("Write");
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.union(
             Map.singleton(
                 "ReadEff",
@@ -309,7 +309,7 @@ def reduceTypeOneStepReducesTyassocInsideSetFormula(): Unit \ Assert = {
         Kind.Eff
     );
 
-    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+    let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
             assocId,
             EqConstr.EqConstr(
