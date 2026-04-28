@@ -205,3 +205,70 @@ def entailOneStepInstantiatesMatchingInstanceContext(): Unit \ Assert = {
         )
     )
 }
+
+
+// `x ~ Int32, Show x` with given `{ Show Int32 } -> [], { x -> Int32 }`
+@Test
+def entailRepeatAppliesEqualitySubstitutionToRemainingGoals(): Unit \ Assert = {
+    let x = Type.mkTypeVar("x", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+
+    let constraints = Constraint.Equality(
+        enMkEquality(Type.Variable(x), int32)
+    ) :: Constraint.Class(
+        enMkClassConstraint("Show", Type.Variable(x))
+    ) :: Nil;
+
+    let (remaining, subst) = entailRepeat(
+        enEmptyConstraintEnv(),
+        enMkGivenClass("Show", int32) :: Nil,
+        constraints
+    );
+
+    Assert.assertEq(expected = Nil, remaining);
+    Assert.assertEq(expected = Some(int32), subst |> Substitution.get(x))
+}
+
+
+// given: { Show Int32 }, classEnv: { Eq instance Eq a if Show a, Elem a = a }
+// `Eq (Elem Int32) -> [], {}`
+@Test
+def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
+    let a = Type.mkTypeVar("a", Kind.TypeStar);
+    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.TypeStar));
+    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.TypeStar);
+    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.TypeStar);
+
+    let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
+        Map.singleton(
+            Id.Id("Elem"),
+            enMkEquality(
+                Type.AssociatedMember(genericAssoc),
+                Type.Variable(a)
+            ) :: Nil
+        ),
+        Map.singleton(
+            Id.Id("Eq"),
+            Class.Class(
+                Nil,
+                enMkInstance(
+                    "Eq",
+                    Type.Variable(a),
+                    enMkGivenClass("Show", Type.Variable(a)) :: Nil
+                ) :: Nil
+            )
+        )
+    );
+
+    let (remaining, subst) = entailRepeat(
+        constraintEnv,
+        enMkGivenClass("Show", int32) :: Nil,
+        Constraint.Class(enMkClassConstraint(
+            "Eq",
+            Type.AssociatedMember(specificAssoc)
+        )) :: Nil
+    );
+
+    Assert.assertEq(expected = Nil, remaining);
+    Assert.assertEq(expected = Substitution.empty(), subst)
+}
