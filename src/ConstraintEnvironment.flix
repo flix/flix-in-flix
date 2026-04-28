@@ -36,7 +36,6 @@ pub enum ConstraintEnvironment(
 
 
 mod ConstraintEnvironment {
-    use ConstraintEnvironment.getSuperClassesOfClass
     def associatedMemberEqualities(
         constraintEnv: ConstraintEnvironment 
     ): Map[Id, List[EqualityConstraint]] = match constraintEnv {
@@ -46,6 +45,16 @@ mod ConstraintEnvironment {
 
     def classMap(constraintEnv: ConstraintEnvironment): Map[Id, Class] = match constraintEnv {
         case ConstraintEnvironment(_, classMap) => classMap
+    }
+
+
+    pub def lookupClass(
+        id: Id, 
+        constraintEnv: ConstraintEnvironment
+    ): Option[Class] = {
+        let map = constraintEnv |> classMap;
+
+        map |> Map.get(id)
     }
 
 
