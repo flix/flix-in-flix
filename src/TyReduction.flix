@@ -19,7 +19,7 @@ def reduceAssocEnv(env: ConstrEnv, am: Tyassoc): Option[Type]
             let lhs = EqConstr.left(eq);
             Option.map(
                 sub -> Substable.apply(sub, EqConstr.right(eq)),
-                Result.toOption(matchTypes(lhs, Type.Assoc(am)))
+                Result.toOption(matchTy(lhs, Type.Assoc(am)))
             )
         }, 
         ConstrEnv.lookupTyassoc(Tyassoc.id(am), env)

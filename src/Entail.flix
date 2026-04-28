@@ -89,7 +89,7 @@ def tryInstance(
 ): Option[List[Constr]] = {
     let instHead = inst |> Inst.head |> ClassConstr.classType;
 
-    matchTypes(instHead, classType)
+    matchTy(instHead, classType)
         |> Result.toOption
         |> Option.map(s -> {
             inst |> Inst.context
