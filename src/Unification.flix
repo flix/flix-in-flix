@@ -114,7 +114,7 @@ def bindAM(
     ty: Type
 ): Result[UnificationError, List[EqConstr]] = {
     forM (
-        reducedAm <- reduceTypeOneStep(constraintEnv, given, Type.Assoc(am)) 
+        reducedAm <- reduceTyOne(constraintEnv, given, Type.Assoc(am)) 
             |> Option.toOk(UnificationError.NoApplicableRule);
 
         _ <- if (reducedAm |> Kinded.kind != ty |> Kinded.kind) 

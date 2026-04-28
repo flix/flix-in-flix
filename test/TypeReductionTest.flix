@@ -19,15 +19,15 @@ def reduceTypeOneStepLeavesSimpleTypesUnchanged(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = None,
-        Type.Var(tyVar) |> reduceTypeOneStep(trEmptyConstraintEnv(), Nil)
+        Type.Var(tyVar) |> reduceTyOne(trEmptyConstraintEnv(), Nil)
     );
     Assert.assertEq(
         expected = None,
-        Type.Con(tyCon) |> reduceTypeOneStep(trEmptyConstraintEnv(), Nil)
+        Type.Con(tyCon) |> reduceTyOne(trEmptyConstraintEnv(), Nil)
     );
     Assert.assertEq(
         expected = None,
-        Type.Gen(gen) |> reduceTypeOneStep(trEmptyConstraintEnv(), Nil)
+        Type.Gen(gen) |> reduceTyOne(trEmptyConstraintEnv(), Nil)
     )
 }
 
@@ -42,7 +42,7 @@ def reduceTypeOneStepUsesGivenEqualityForTyassoc(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = Some(bool),
-        Type.Assoc(assoc) |> reduceTypeOneStep(
+        Type.Assoc(assoc) |> reduceTyOne(
             trEmptyConstraintEnv(),
             trMkGivenEquality(Type.Assoc(assoc), bool) :: Nil
         )
@@ -61,7 +61,7 @@ def reduceTypeOneStepGivenEqualityRequiresSyntacticLeftHandSideMatch(): Unit \ A
 
     Assert.assertEq(
         expected = None,
-        Type.Assoc(specificAssoc) |> reduceTypeOneStep(
+        Type.Assoc(specificAssoc) |> reduceTyOne(
             trEmptyConstraintEnv(),
             trMkGivenEquality(
                 Type.Assoc(genericAssoc),
@@ -94,7 +94,7 @@ def reduceTypeOneStepInstantiatesConstraintEnvironmentEquality(): Unit \ Assert 
 
     Assert.assertEq(
         expected = Some(int32),
-        Type.Assoc(specificAssoc) |> reduceTypeOneStep(
+        Type.Assoc(specificAssoc) |> reduceTyOne(
             constraintEnv,
             Nil
         )
@@ -133,7 +133,7 @@ def reduceTypeOneStepReducesTyassocArgumentBeforeOuterLookup(): Unit \ Assert = 
 
     Assert.assertEq(
         expected = Some(Type.Assoc(outerAfterArgReduction)),
-        Type.Assoc(outer) |> reduceTypeOneStep(constraintEnv, Nil)
+        Type.Assoc(outer) |> reduceTyOne(constraintEnv, Nil)
     )
 }
 
@@ -179,7 +179,7 @@ def reduceTypeOneStepApplicationReducesFunctionBeforeArgument(): Unit \ Assert =
 
     Assert.assertEq(
         expected = Some(Type.Ap(unary, Type.Assoc(argAssoc))),
-        ty |> reduceTypeOneStep(constraintEnv, Nil)
+        ty |> reduceTyOne(constraintEnv, Nil)
     )
 }
 
@@ -212,7 +212,7 @@ def reduceTypeOneStepApplicationReducesArgumentWhenFunctionIsStable(): Unit \ As
 
     Assert.assertEq(
         expected = Some(Type.Ap(unary, int32)),
-        ty |> reduceTypeOneStep(constraintEnv, Nil)
+        ty |> reduceTyOne(constraintEnv, Nil)
     )
 }
 
@@ -245,7 +245,7 @@ def reduceTypeOneStepReducesChainedTyassocsOneRuleAtATime(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = Some(Type.Assoc(assocB)),
-        Type.Assoc(assocA) |> reduceTypeOneStep(constraintEnv, Nil)
+        Type.Assoc(assocA) |> reduceTyOne(constraintEnv, Nil)
     )
 }
 
@@ -291,7 +291,7 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
             read,
             Type.efCompl(Type.Assoc(writeAssoc))
         )),
-        ty |> reduceTypeOneStep(constraintEnv, Nil)
+        ty |> reduceTyOne(constraintEnv, Nil)
     )
 }
 
@@ -324,6 +324,6 @@ def reduceTypeOneStepReducesTyassocInsideSetFormula(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = Some(Type.efCompl(io)),
-        ty |> reduceTypeOneStep(constraintEnv, Nil)
+        ty |> reduceTyOne(constraintEnv, Nil)
     )
 }

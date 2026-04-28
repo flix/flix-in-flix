@@ -105,7 +105,7 @@ def reduceClassConstraint(
 ): Option[ClassConstr] = {
     classConstraint
         |> ClassConstr.classType
-        |> reduceTypeOneStep(constraintEnv, givens)
+        |> reduceTyOne(constraintEnv, givens)
         |> Option.map(ty -> ClassConstr.ClassConstr(
             classConstraint |> ClassConstr.classId,
             ty
