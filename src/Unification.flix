@@ -9,8 +9,8 @@ pub def matchTypes(
     right: Type
 ): Result[MatchError, Substitution] = match (left, right) {
     case ( 
-        Type.Application(leftApp),
-        Type.Application(rightApp)
+        Type.Ap(leftApp),
+        Type.Ap(rightApp)
     ) => {
         forM (
             funcSubst <- matchTypes(
@@ -29,7 +29,7 @@ pub def matchTypes(
         ) yield mergedSubst
     }
 
-    case (Type.Variable(leftVar), _) => {
+    case (Type.Var(leftVar), _) => {
         let varKind = leftVar |> Kinded.kind;
         let rightKind = right |> Kinded.kind;
 
@@ -39,16 +39,16 @@ pub def matchTypes(
             Ok(Substitution.singleton(leftVar, right))
     }
 
-    case (Type.Constructor(leftCon), Type.Constructor(rightCon)) 
+    case (Type.Con(leftCon), Type.Con(rightCon)) 
         if leftCon == rightCon => Ok(Substitution.empty())
 
     // TODO: one-way boolean unification for set formulas
     case (Type.SetFormula(leftSet), Type.SetFormula(rightSet)) => ???
 
-    case (Type.AssociatedMember(leftAM), Type.AssociatedMember(rightAM)) 
-        if leftAM |> AssociatedMember.id == rightAM |> AssociatedMember.id => {
+    case (Type.Assoc(leftAM), Type.Assoc(rightAM)) 
+        if leftAM |> Tyassoc.id == rightAM |> Tyassoc.id => {
             matchTypes(
-                leftAM |> AssociatedMember.ty, rightAM |> AssociatedMember.ty
+                leftAM |> Tyassoc.ty, rightAM |> Tyassoc.ty
             )
         }
 
@@ -81,8 +81,8 @@ def unifyOneStepWithoutEq(
 ): Result[UnificationError, (List[EqualityConstraint], Substitution)] =
     match (left, right) {
         case (
-            Type.Application(leftApp),
-            Type.Application(rightApp)
+            Type.Ap(leftApp),
+            Type.Ap(rightApp)
         ) => {
             let leftFunc = leftApp |> TypeApplication.function;
             let leftArg = leftApp |> TypeApplication.argument;
@@ -98,17 +98,17 @@ def unifyOneStepWithoutEq(
             ))
         }
 
-        case (Type.Variable(leftVar),  _) => bindVar(leftVar, right)
+        case (Type.Var(leftVar),  _) => bindVar(leftVar, right)
             |> Result.map(x -> (Nil, x)),
 
-        case (_, Type.Variable(rightVar)) => bindVar(rightVar, left)
+        case (_, Type.Var(rightVar)) => bindVar(rightVar, left)
             |> Result.map(x -> (Nil, x)),
 
-        case (Type.AssociatedMember(leftAM), _) => 
+        case (Type.Assoc(leftAM), _) => 
             bindAM(constraintEnv, given, leftAM, right)
             |> Result.map(x -> (x, Substitution.empty()))
 
-        case (_, Type.AssociatedMember(rightAM)) => 
+        case (_, Type.Assoc(rightAM)) => 
             bindAM(constraintEnv, given, rightAM, left)
             |> Result.map(x -> (x, Substitution.empty()))
 
@@ -122,11 +122,11 @@ def unifyOneStepWithoutEq(
 def bindAM(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
-    am: AssociatedMember, 
+    am: Tyassoc, 
     ty: Type
 ): Result[UnificationError, List[EqualityConstraint]] = {
     forM (
-        reducedAm <- reduceTypeOneStep(constraintEnv, given, Type.AssociatedMember(am)) 
+        reducedAm <- reduceTypeOneStep(constraintEnv, given, Type.Assoc(am)) 
             |> Option.toOk(UnificationError.NoApplicableRule);
 
         _ <- if (reducedAm |> Kinded.kind != ty |> Kinded.kind) 
@@ -137,10 +137,10 @@ def bindAM(
 
 
 def bindVar(
-    var: TypeVariable, 
+    var: Tyvar, 
     ty: Type
 ): Result[UnificationError, Substitution] = {
-    if (ty == Type.Variable(var)) 
+    if (ty == Type.Var(var)) 
         Ok(Substitution.empty())
     else if (ty 
         |> FreeTypeVariable.freeTypeVariables 

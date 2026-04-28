@@ -1,48 +1,48 @@
-def reduceInnerAssociatedMemberOneStep(
+def reduceInnerTyassocOneStep(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
-    assoc: AssociatedMember
+    assoc: Tyassoc
 ): Option[Type] = {
     assoc 
-        |> AssociatedMember.ty 
+        |> Tyassoc.ty 
         |> reduceTypeOneStep(constraintEnv, given)
-        |> Option.map(ty -> Type.AssociatedMember(
-            AssociatedMember.AssociatedMember(
-                assoc |> AssociatedMember.id,
+        |> Option.map(ty -> Type.Assoc(
+            Tyassoc.Tyassoc(
+                assoc |> Tyassoc.id,
                 ty,
-                assoc |> AssociatedMember.kind
+                assoc |> Tyassoc.kind
             )
         ))
 }
 
 
-def reduceAssociatedMemberFromGiven(
+def reduceTyassocFromGiven(
     given: List[Constraint],
-    assoc: AssociatedMember
+    assoc: Tyassoc
 ): Option[Type] = {
     given
         |> List.filterMap(c -> c |> Constraint.asEqualityConstraint)
         |> List.findMap(c -> {
             let leftAM = c |> EqualityConstraint.left;
-            if (leftAM == Type.AssociatedMember(assoc)) {
+            if (leftAM == Type.Assoc(assoc)) {
                 Some(c |> EqualityConstraint.right)
             } else None
         })
 }
 
 
-def reduceAssociatedMemberFromEnv(
+def reduceTyassocFromEnv(
     constraintEnv: ConstraintEnvironment,
-    assoc: AssociatedMember
+    assoc: Tyassoc
 ): Option[Type] = {
     constraintEnv
-        |> ConstraintEnvironment.lookupAssociatedMemberEquality(
-            assoc |> AssociatedMember.id
+        |> ConstraintEnvironment.lookupTyassocEquality(
+            assoc |> Tyassoc.id
         )
         |> List.findMap(c -> {
             let leftAM = c |> EqualityConstraint.left;
 
-            matchTypes(leftAM, Type.AssociatedMember(assoc))
+            matchTypes(leftAM, Type.Assoc(assoc))
                 |> Result.toOption
                 |> Option.map(s -> c 
                     |> EqualityConstraint.right 
@@ -51,12 +51,12 @@ def reduceAssociatedMemberFromEnv(
 }
 
 
-def reduceAssociatedMemberOneStep(
+def reduceTyassocOneStep(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
-    assoc: AssociatedMember
+    assoc: Tyassoc
 ): Option[Type] = {
-    let reducedInner = reduceInnerAssociatedMemberOneStep(
+    let reducedInner = reduceInnerTyassocOneStep(
         constraintEnv,
         given,
         assoc
@@ -66,12 +66,12 @@ def reduceAssociatedMemberOneStep(
     if (not (reducedInner |> Option.isEmpty)) {
         reducedInner
     } else {
-        let fromGiven = reduceAssociatedMemberFromGiven(given, assoc);
+        let fromGiven = reduceTyassocFromGiven(given, assoc);
 
         if (not (fromGiven |> Option.isEmpty)) {
             fromGiven
         } else {
-            reduceAssociatedMemberFromEnv(constraintEnv, assoc)
+            reduceTyassocFromEnv(constraintEnv, assoc)
         }
     }
 }
@@ -121,12 +121,12 @@ def reduceSetFormulaOneStep(
             inner |> reduceSetFormulaOneStep(constraintEnv, given)
                 |> Option.map(s -> SetFormula.Complement(s))
 
-        case SetFormula.AssociatedMember(assoc) => 
-            reduceAssociatedMemberOneStep(constraintEnv, given, assoc)
+        case SetFormula.Tyassoc(assoc) => 
+            reduceTyassocOneStep(constraintEnv, given, assoc)
                 |> Option.map(ty -> match ty {
                     case Type.SetFormula(sf) => sf,
-                    case Type.AssociatedMember(s) => 
-                        SetFormula.AssociatedMember(s),
+                    case Type.Assoc(s) => 
+                        SetFormula.Tyassoc(s),
 
                     case _ => bug!("Expected a set formula")
                 })
@@ -140,18 +140,18 @@ def reduceTypeOneStep(
     ty: Type
 ): Option[Type] = { 
     match ty {
-        case Type.Variable(_) => None,
-        case Type.Constructor(_) => None,
+        case Type.Var(_) => None,
+        case Type.Con(_) => None,
         case Type.Gen(_) => None
 
-        case Type.AssociatedMember(assoc) => 
-            reduceAssociatedMemberOneStep(constraintEnv, given, assoc)
+        case Type.Assoc(assoc) => 
+            reduceTyassocOneStep(constraintEnv, given, assoc)
 
-        case Type.Application(app) => {
+        case Type.Ap(app) => {
             let reducedFn = app 
                 |> TypeApplication.function
                 |> reduceTypeOneStep(constraintEnv, given)
-                |> Option.map(redFn -> Type.Application(
+                |> Option.map(redFn -> Type.Ap(
                     TypeApplication.TypeApplication(
                         redFn,
                         app |> TypeApplication.argument
@@ -162,7 +162,7 @@ def reduceTypeOneStep(
                 app
                     |> TypeApplication.argument
                     |> reduceTypeOneStep(constraintEnv, given)
-                    |> Option.map(redArg -> Type.Application(
+                    |> Option.map(redArg -> Type.Ap(
                         TypeApplication.TypeApplication(
                             app |> TypeApplication.function,
                             redArg

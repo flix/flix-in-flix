@@ -58,7 +58,7 @@ mod ConstraintEnvironment {
     }
 
 
-    pub def lookupAssociatedMemberEquality(
+    pub def lookupTyassocEquality(
         id: Id,
         constraintEnv: ConstraintEnvironment
     ): List[EqualityConstraint] = {

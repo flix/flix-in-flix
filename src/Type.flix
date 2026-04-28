@@ -1,63 +1,63 @@
-pub enum TypeVariable(Id, Kind) with Eq, ToString, Hash, Order
+pub enum Tyvar(Id, Kind) with Eq, ToString, Hash, Order
 
 
-mod TypeVariable {
-    pub def kind(typevariable: TypeVariable): Kind = match typevariable {
-        case TypeVariable(_, kind) => kind
+mod Tyvar {
+    pub def kind(typevariable: Tyvar): Kind = match typevariable {
+        case Tyvar(_, kind) => kind
     }
 }
 
 
-instance Kinded[TypeVariable] {
-    pub def kind(a: TypeVariable): Kind = a |> TypeVariable.kind
+instance Kinded[Tyvar] {
+    pub def kind(a: Tyvar): Kind = a |> Tyvar.kind
 }
 
 
-instance FreeTypeVariable[TypeVariable] {
-    pub def freeTypeVariables(a: TypeVariable): List[TypeVariable] = a :: Nil
+instance FreeTypeVariable[Tyvar] {
+    pub def freeTypeVariables(a: Tyvar): List[Tyvar] = a :: Nil
 }
 
 
-pub enum TypeConstructor(Id, Kind) with Eq, ToString, Hash, Order
+pub enum Tycon(Id, Kind) with Eq, ToString, Hash, Order
 
 
-mod TypeConstructor {
-    pub def kind(typeconstructor: TypeConstructor): Kind = match typeconstructor {
-        case TypeConstructor(_, kind) => kind
+mod Tycon {
+    pub def kind(typeconstructor: Tycon): Kind = match typeconstructor {
+        case Tycon(_, kind) => kind
     }
 }
 
 
-instance Kinded[TypeConstructor] {
-    pub def kind(a: TypeConstructor): Kind = a |> TypeConstructor.kind
+instance Kinded[Tycon] {
+    pub def kind(a: Tycon): Kind = a |> Tycon.kind
 }
 
 
-pub enum AssociatedMember(Id, Type, Kind) with Eq, ToString, Hash, Order
+pub enum Tyassoc(Id, Type, Kind) with Eq, ToString, Hash, Order
 
 
-mod AssociatedMember {
-    pub def kind(associatedMember: AssociatedMember): Kind = match associatedMember {
-        case AssociatedMember(_, _, kind) => kind
+mod Tyassoc {
+    pub def kind(associatedMember: Tyassoc): Kind = match associatedMember {
+        case Tyassoc(_, _, kind) => kind
     }
 
 
-    pub def ty(associatedMember: AssociatedMember): Type = match associatedMember {
-        case AssociatedMember(_, ty, _) => ty
+    pub def ty(associatedMember: Tyassoc): Type = match associatedMember {
+        case Tyassoc(_, ty, _) => ty
     }
 
 
-    pub def id(associatedMember: AssociatedMember): Id = match associatedMember {
-        case AssociatedMember(id, _, _) => id
+    pub def id(associatedMember: Tyassoc): Id = match associatedMember {
+        case Tyassoc(id, _, _) => id
     }
 }
 
 
-instance Substitutable[AssociatedMember] {
-    pub def apply(substitution: Substitution, a: AssociatedMember): AssociatedMember = 
+instance Substitutable[Tyassoc] {
+    pub def apply(substitution: Substitution, a: Tyassoc): Tyassoc = 
         match a {
-            case AssociatedMember.AssociatedMember(id, ty, kind) => 
-                AssociatedMember.AssociatedMember(
+            case Tyassoc.Tyassoc(id, ty, kind) => 
+                Tyassoc.Tyassoc(
                     id,
                     ty |> Substitutable.apply(substitution),
                     kind
@@ -66,14 +66,14 @@ instance Substitutable[AssociatedMember] {
 }
 
 
-instance Kinded[AssociatedMember] {
-    pub def kind(a: AssociatedMember): Kind = a |> AssociatedMember.kind
+instance Kinded[Tyassoc] {
+    pub def kind(a: Tyassoc): Kind = a |> Tyassoc.kind
 }
 
 
-instance FreeTypeVariable[AssociatedMember] {
-    pub def freeTypeVariables(a: AssociatedMember): List[TypeVariable] =
-        a |> AssociatedMember.ty |> FreeTypeVariable.freeTypeVariables
+instance FreeTypeVariable[Tyassoc] {
+    pub def freeTypeVariables(a: Tyassoc): List[Tyvar] =
+        a |> Tyassoc.ty |> FreeTypeVariable.freeTypeVariables
 }
 
 
@@ -120,7 +120,7 @@ instance Kinded[TypeApplication] {
 
 
 instance FreeTypeVariable[TypeApplication] {
-    pub def freeTypeVariables(a: TypeApplication): List[TypeVariable] =
+    pub def freeTypeVariables(a: TypeApplication): List[Tyvar] =
         (a |> TypeApplication.function |> FreeTypeVariable.freeTypeVariables) :::
         (a |> TypeApplication.argument |> FreeTypeVariable.freeTypeVariables)
 }
@@ -153,7 +153,7 @@ pub enum BinarySetFormula(SetFormula, SetBinaryOp, SetFormula)
 
 
 instance FreeTypeVariable[BinarySetFormula] {
-    pub def freeTypeVariables(a: BinarySetFormula): List[TypeVariable] = 
+    pub def freeTypeVariables(a: BinarySetFormula): List[Tyvar] = 
         (a |> BinarySetFormula.left |> FreeTypeVariable.freeTypeVariables) :::
         (a |> BinarySetFormula.right |> FreeTypeVariable.freeTypeVariables)
 }
@@ -199,9 +199,9 @@ pub enum SetFormula with Eq, ToString, Hash, Order {
     case Singleton(EffectLabel),
     case Binary(BinarySetFormula)
     case Complement(SetFormula)
-    case Variable(TypeVariable)
+    case Variable(Tyvar)
     case Gen(Gen)
-    case AssociatedMember(AssociatedMember)
+    case Tyassoc(Tyassoc)
     case Empty
 }
 
@@ -225,8 +225,8 @@ instance Substitutable[SetFormula] {
 
             case SetFormula.Gen(_) => a
 
-            case SetFormula.AssociatedMember(associatedMember) =>
-                SetFormula.AssociatedMember(associatedMember)
+            case SetFormula.Tyassoc(associatedMember) =>
+                SetFormula.Tyassoc(associatedMember)
 
             case SetFormula.Empty =>
                 SetFormula.Empty
@@ -240,7 +240,7 @@ instance Kinded[SetFormula] {
 
 
 instance FreeTypeVariable[SetFormula] {
-    pub def freeTypeVariables(a: SetFormula): List[TypeVariable] =
+    pub def freeTypeVariables(a: SetFormula): List[Tyvar] =
         match a {
             case SetFormula.Singleton(_) => Nil
 
@@ -256,7 +256,7 @@ instance FreeTypeVariable[SetFormula] {
 
             case SetFormula.Gen(_) => Nil
 
-            case SetFormula.AssociatedMember(associatedMember) =>
+            case SetFormula.Tyassoc(associatedMember) =>
                 associatedMember |> FreeTypeVariable.freeTypeVariables
 
             case SetFormula.Empty => Nil
@@ -265,26 +265,26 @@ instance FreeTypeVariable[SetFormula] {
 
 
 pub enum Type with Eq, ToString, Hash, Order {
-    case Variable(TypeVariable)
-    case Constructor(TypeConstructor)
-    case AssociatedMember(AssociatedMember)
-    case Application(TypeApplication)
+    case Var(Tyvar)
+    case Con(Tycon)
+    case Assoc(Tyassoc)
+    case Ap(TypeApplication)
     case SetFormula(SetFormula)
     case Gen(Gen)
 } 
 
 
 mod Type {
-    pub def mkTypeVar(name: String, kind: Kind): TypeVariable =
-        TypeVariable.TypeVariable(Id.Id(name), kind)
+    pub def mkTyvar(name: String, kind: Kind): Tyvar =
+        Tyvar.Tyvar(Id.Id(name), kind)
 
 
-    pub def mkTypeCon(name: String, kind: Kind): TypeConstructor =
-        TypeConstructor.TypeConstructor(Id.Id(name), kind)
+    pub def mkTycon(name: String, kind: Kind): Tycon =
+        Tycon.Tycon(Id.Id(name), kind)
 
 
-    pub def mkAssoc(name: String, ty: Type, kind: Kind): AssociatedMember =
-        AssociatedMember.AssociatedMember(Id.Id(name), ty, kind)
+    pub def mkTyassoc(name: String, ty: Type, kind: Kind): Tyassoc =
+        Tyassoc.Tyassoc(Id.Id(name), ty, kind)
 
 
     pub def unwrapSetFormula(ty: Type): SetFormula = match ty {
@@ -296,16 +296,16 @@ mod Type {
 
 instance Kinded[Type] {
    pub def kind(a: Type): Kind = match a {
-        case Type.Variable(variable) => 
+        case Type.Var(variable) => 
             variable |> Kinded.kind
 
-        case Type.Constructor(constructor) => 
+        case Type.Con(constructor) => 
             constructor |> Kinded.kind
 
-        case Type.AssociatedMember(associatedMember) =>
+        case Type.Assoc(associatedMember) =>
             associatedMember |> Kinded.kind
 
-        case Type.Application(application) =>
+        case Type.Ap(application) =>
             application |> Kinded.kind
 
         case Type.Gen(gen) => 
@@ -319,12 +319,12 @@ instance Kinded[Type] {
 
 instance Substitutable[Type] {
     pub def apply(substitution: Substitution, a: Type): Type = match a {
-        case Type.Variable(variable) => 
+        case Type.Var(variable) => 
             substitution 
                 |> Substitution.get(variable)
                 |> Option.getWithDefault(a)
 
-        case Type.Application(typeApplication) => Type.Application(
+        case Type.Ap(typeApplication) => Type.Ap(
             typeApplication |> Substitutable.apply(substitution)
         )
 
@@ -333,25 +333,25 @@ instance Substitutable[Type] {
 
         case Type.Gen(_) => a
 
-        case Type.Constructor(_) =>  a
+        case Type.Con(_) =>  a
 
-        case Type.AssociatedMember(_) => a
+        case Type.Assoc(_) => a
     }
 }
 
 
 instance FreeTypeVariable[Type] {
-    pub def freeTypeVariables(a: Type): List[TypeVariable] = match a {
-        case Type.Variable(variable) =>
+    pub def freeTypeVariables(a: Type): List[Tyvar] = match a {
+        case Type.Var(variable) =>
             variable |> FreeTypeVariable.freeTypeVariables
 
-        case Type.Constructor(_) =>
+        case Type.Con(_) =>
             Nil
 
-        case Type.AssociatedMember(associatedMember) =>
+        case Type.Assoc(associatedMember) =>
             associatedMember |> FreeTypeVariable.freeTypeVariables
 
-        case Type.Application(application) =>
+        case Type.Ap(application) =>
             application |> FreeTypeVariable.freeTypeVariables
 
         case Type.SetFormula(setFormula) =>

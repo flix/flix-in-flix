@@ -13,12 +13,12 @@ def unEmptyConstraintEnv(): ConstraintEnvironment =
 // `x ~ Int32 -> { x -> Int32 }`
 @Test
 def matchTypesVariableCreatesSubstitution(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let x = Type.mkTyvar("x", Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Ok(Substitution.singleton(x, int32)),
-        matchTypes(Type.Variable(x), int32)
+        matchTypes(Type.Var(x), int32)
     )
 }
 
@@ -26,12 +26,12 @@ def matchTypesVariableCreatesSubstitution(): Unit \ Assert = {
 // `x : Type ~ {} -> KindMismatch`
 @Test
 def matchTypesVariableRejectsKindMismatch(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
+    let x = Type.mkTyvar("x", Kind.Star);
     let emptySet = Type.SetFormula(SetFormula.Empty);
 
     Assert.assertEq(
         expected = Err(MatchError.KindMismatch),
-        matchTypes(Type.Variable(x), emptySet)
+        matchTypes(Type.Var(x), emptySet)
     )
 }
 
@@ -41,15 +41,15 @@ def matchTypesVariableRejectsKindMismatch(): Unit \ Assert = {
 def matchTypesApplicationMergesSubstitutions(): Unit \ Assert = {
     let t = Kind.Star;
     let tToT = Kind.KFun(t, t);
-    let f = Type.mkTypeVar("f", tToT);
-    let x = Type.mkTypeVar("x", t);
-    let unary = Type.Constructor(Type.mkTypeCon("Unary", tToT));
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", t));
+    let f = Type.mkTyvar("f", tToT);
+    let x = Type.mkTyvar("x", t);
+    let unary = Type.Con(Type.mkTycon("Unary", tToT));
+    let int32 = Type.Con(Type.mkTycon("Int32", t));
 
-    let left = Type.Application(
-        TypeApplication.TypeApplication(Type.Variable(f), Type.Variable(x))
+    let left = Type.Ap(
+        TypeApplication.TypeApplication(Type.Var(f), Type.Var(x))
     );
-    let right = Type.Application(
+    let right = Type.Ap(
         TypeApplication.TypeApplication(unary, int32)
     );
 
@@ -68,26 +68,26 @@ def matchTypesApplicationMergesSubstitutions(): Unit \ Assert = {
 @Test
 def matchTypesApplicationRejectsInconsistentSubstitution(): Unit \ Assert = {
     let t = Kind.Star;
-    let pair = Type.Constructor(Type.mkTypeCon(
+    let pair = Type.Con(Type.mkTycon(
         "Pair",
         Kind.KFun(
             t,
             Kind.KFun(t, t)
         )
     ));
-    let x = Type.mkTypeVar("x", t);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", t));
-    let bool = Type.Constructor(Type.mkTypeCon("Bool", t));
+    let x = Type.mkTyvar("x", t);
+    let int32 = Type.Con(Type.mkTycon("Int32", t));
+    let bool = Type.Con(Type.mkTycon("Bool", t));
 
-    let left = Type.Application(TypeApplication.TypeApplication(
-        Type.Application(TypeApplication.TypeApplication(
+    let left = Type.Ap(TypeApplication.TypeApplication(
+        Type.Ap(TypeApplication.TypeApplication(
             pair,
-            Type.Variable(x)
+            Type.Var(x)
         )),
-        Type.Variable(x)
+        Type.Var(x)
     ));
-    let right = Type.Application(TypeApplication.TypeApplication(
-        Type.Application(TypeApplication.TypeApplication(
+    let right = Type.Ap(TypeApplication.TypeApplication(
+        Type.Ap(TypeApplication.TypeApplication(
             pair,
             int32
         )),
@@ -103,17 +103,17 @@ def matchTypesApplicationRejectsInconsistentSubstitution(): Unit \ Assert = {
 
 // `Assoc x ~ Assoc Int32 -> { x -> Int32 }`
 @Test
-def matchTypesAssociatedMemberMatchesUnderlyingArgument(): Unit \ Assert = {
+def matchTypesTyassocMatchesUnderlyingArgument(): Unit \ Assert = {
     let assocId = Id.Id("Assoc");
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let x = Type.mkTyvar("x", Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
-    let left = Type.AssociatedMember(AssociatedMember.AssociatedMember(
+    let left = Type.Assoc(Tyassoc.Tyassoc(
         assocId,
-        Type.Variable(x),
+        Type.Var(x),
         Kind.Star
     ));
-    let right = Type.AssociatedMember(AssociatedMember.AssociatedMember(
+    let right = Type.Assoc(Tyassoc.Tyassoc(
         assocId,
         int32,
         Kind.Star
@@ -131,15 +131,15 @@ def matchTypesAssociatedMemberMatchesUnderlyingArgument(): Unit \ Assert = {
 def unifyOneStepApplicationCreatesEqualityConstraints(): Unit \ Assert = {
     let t = Kind.Star;
     let tToT = Kind.KFun(t, t);
-    let unary = Type.Constructor(Type.mkTypeCon("Unary", tToT));
-    let x = Type.mkTypeVar("x", t);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", t));
+    let unary = Type.Con(Type.mkTycon("Unary", tToT));
+    let x = Type.mkTyvar("x", t);
+    let int32 = Type.Con(Type.mkTycon("Int32", t));
 
-    let left = Type.Application(TypeApplication.TypeApplication(
+    let left = Type.Ap(TypeApplication.TypeApplication(
         unary,
-        Type.Variable(x)
+        Type.Var(x)
     ));
-    let right = Type.Application(TypeApplication.TypeApplication(
+    let right = Type.Ap(TypeApplication.TypeApplication(
         unary,
         int32
     ));
@@ -147,7 +147,7 @@ def unifyOneStepApplicationCreatesEqualityConstraints(): Unit \ Assert = {
     Assert.assertEq(
         expected = Ok((
             unMkEquality(unary, unary)
-            :: unMkEquality(Type.Variable(x), int32)
+            :: unMkEquality(Type.Var(x), int32)
             :: Nil,
             Substitution.empty()
         )),
@@ -159,15 +159,15 @@ def unifyOneStepApplicationCreatesEqualityConstraints(): Unit \ Assert = {
 // `x ~ Int32 -> { x -> Int32 }`
 @Test
 def unifyOneStepVariableCreatesSubstitution(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let x = Type.mkTyvar("x", Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Ok((Nil, Substitution.singleton(x, int32))),
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,
-            Type.Variable(x),
+            Type.Var(x),
             int32
         )
     )
@@ -179,11 +179,11 @@ def unifyOneStepVariableCreatesSubstitution(): Unit \ Assert = {
 def unifyOneStepVariableRejectsOccursCheckFailure(): Unit \ Assert = {
     let t = Kind.Star;
     let tToT = Kind.KFun(t, t);
-    let x = Type.mkTypeVar("x", t);
-    let unary = Type.Constructor(Type.mkTypeCon("Unary", tToT));
-    let unaryX = Type.Application(TypeApplication.TypeApplication(
+    let x = Type.mkTyvar("x", t);
+    let unary = Type.Con(Type.mkTycon("Unary", tToT));
+    let unaryX = Type.Ap(TypeApplication.TypeApplication(
         unary,
-        Type.Variable(x)
+        Type.Var(x)
     ));
 
     Assert.assertEq(
@@ -191,7 +191,7 @@ def unifyOneStepVariableRejectsOccursCheckFailure(): Unit \ Assert = {
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,
-            Type.Variable(x),
+            Type.Var(x),
             unaryX
         )
     )
@@ -201,8 +201,8 @@ def unifyOneStepVariableRejectsOccursCheckFailure(): Unit \ Assert = {
 // `Int32 ~ eff -> KindMismatch`
 @Test
 def unifyOneStepRightVariableRejectsKindMismatch(): Unit \ Assert = {
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
-    let effectVar = Type.mkTypeVar("eff", Kind.Eff);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let effectVar = Type.mkTyvar("eff", Kind.Eff);
 
     Assert.assertEq(
         expected = Err(UnificationError.KindMismatch),
@@ -210,7 +210,7 @@ def unifyOneStepRightVariableRejectsKindMismatch(): Unit \ Assert = {
             unEmptyConstraintEnv(),
             Nil,
             int32,
-            Type.Variable(effectVar)
+            Type.Var(effectVar)
         )
     )
 }
@@ -219,7 +219,7 @@ def unifyOneStepRightVariableRejectsKindMismatch(): Unit \ Assert = {
 // `Int32 ~ Int32 -> no new constraints`
 @Test
 def unifyOneStepIdenticalTypesShortCircuits(): Unit \ Assert = {
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Ok((Nil, Substitution.empty())),
@@ -231,8 +231,8 @@ def unifyOneStepIdenticalTypesShortCircuits(): Unit \ Assert = {
 // `Int32 ~ Bool -> NoApplicableRule`
 @Test
 def unifyOneStepDifferentConstructorsHaveNoApplicableRule(): Unit \ Assert = {
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
-    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.Star));
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
 
     Assert.assertEq(
         expected = Err(UnificationError.NoApplicableRule),
@@ -244,10 +244,10 @@ def unifyOneStepDifferentConstructorsHaveNoApplicableRule(): Unit \ Assert = {
 // given: { Elem x = Bool }
 // `Elem x ~ Bool -> { Bool ~ Bool }`
 @Test
-def unifyOneStepAssociatedMemberUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let assoc = Type.mkAssoc("Elem", Type.Variable(x), Kind.Star);
-    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.Star));
+def unifyOneStepTyassocUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
+    let x = Type.mkTyvar("x", Kind.Star);
+    let assoc = Type.mkTyassoc("Elem", Type.Var(x), Kind.Star);
+    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
 
     Assert.assertEq(
         expected = Ok((
@@ -256,8 +256,8 @@ def unifyOneStepAssociatedMemberUsesGivenReductionOneStepAtATime(): Unit \ Asser
         )),
         unifyOneStep(
             unEmptyConstraintEnv(),
-            unMkGivenEquality(Type.AssociatedMember(assoc), bool) :: Nil,
-            Type.AssociatedMember(assoc),
+            unMkGivenEquality(Type.Assoc(assoc), bool) :: Nil,
+            Type.Assoc(assoc),
             bool
         )
     )
@@ -267,21 +267,21 @@ def unifyOneStepAssociatedMemberUsesGivenReductionOneStepAtATime(): Unit \ Asser
 // given: { Elem a = a }
 // `Elem Int32 ~ Int32 -> NoApplicableRule`
 @Test
-def unifyOneStepAssociatedMemberDoesNotInstantiateGivenEquality(): Unit \ Assert = {
-    let a = Type.mkTypeVar("a", Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
-    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.Star);
-    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.Star);
+def unifyOneStepTyassocDoesNotInstantiateGivenEquality(): Unit \ Assert = {
+    let a = Type.mkTyvar("a", Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let genericAssoc = Type.mkTyassoc("Elem", Type.Var(a), Kind.Star);
+    let specificAssoc = Type.mkTyassoc("Elem", int32, Kind.Star);
 
     Assert.assertEq(
         expected = Err(UnificationError.NoApplicableRule),
         unifyOneStep(
             unEmptyConstraintEnv(),
             unMkGivenEquality(
-                Type.AssociatedMember(genericAssoc),
-                Type.Variable(a)
+                Type.Assoc(genericAssoc),
+                Type.Var(a)
             ) :: Nil,
-            Type.AssociatedMember(specificAssoc),
+            Type.Assoc(specificAssoc),
             int32
         )
     )
@@ -291,18 +291,18 @@ def unifyOneStepAssociatedMemberDoesNotInstantiateGivenEquality(): Unit \ Assert
 // constraintEnv: { Elem a = a }
 // `Elem Int32 ~ Int32 -> { Int32 ~ Int32 }`
 @Test
-def unifyOneStepAssociatedMemberInstantiatesConstraintEnvironmentEquality(): Unit \ Assert = {
-    let a = Type.mkTypeVar("a", Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
-    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.Star);
-    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.Star);
+def unifyOneStepTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Assert = {
+    let a = Type.mkTyvar("a", Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let genericAssoc = Type.mkTyassoc("Elem", Type.Var(a), Kind.Star);
+    let specificAssoc = Type.mkTyassoc("Elem", int32, Kind.Star);
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
             Id.Id("Elem"),
             unMkEquality(
-                Type.AssociatedMember(genericAssoc),
-                Type.Variable(a)
+                Type.Assoc(genericAssoc),
+                Type.Var(a)
             ) :: Nil
         ),
         Map.empty()
@@ -316,7 +316,7 @@ def unifyOneStepAssociatedMemberInstantiatesConstraintEnvironmentEquality(): Uni
         unifyOneStep(
             constraintEnv,
             Nil,
-            Type.AssociatedMember(specificAssoc),
+            Type.Assoc(specificAssoc),
             int32
         )
     )
@@ -326,11 +326,11 @@ def unifyOneStepAssociatedMemberInstantiatesConstraintEnvironmentEquality(): Uni
 // given: { Elem x = Bool }
 // `Elem x ~ Int32 -> { Bool ~ Int32 }`
 @Test
-def unifyOneStepAssociatedMemberProducesResidualEquality(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let assoc = Type.mkAssoc("Elem", Type.Variable(x), Kind.Star);
-    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.Star));
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+def unifyOneStepTyassocProducesResidualEquality(): Unit \ Assert = {
+    let x = Type.mkTyvar("x", Kind.Star);
+    let assoc = Type.mkTyassoc("Elem", Type.Var(x), Kind.Star);
+    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Ok((
@@ -339,8 +339,8 @@ def unifyOneStepAssociatedMemberProducesResidualEquality(): Unit \ Assert = {
         )),
         unifyOneStep(
             unEmptyConstraintEnv(),
-            unMkGivenEquality(Type.AssociatedMember(assoc), bool) :: Nil,
-            Type.AssociatedMember(assoc),
+            unMkGivenEquality(Type.Assoc(assoc), bool) :: Nil,
+            Type.Assoc(assoc),
             int32
         )
     )
@@ -350,18 +350,18 @@ def unifyOneStepAssociatedMemberProducesResidualEquality(): Unit \ Assert = {
 // constraintEnv: { ReadEff x = Read }
 // `ReadEff x ~ Int32 -> KindMismatch`
 @Test
-def unifyOneStepAssociatedMemberRejectsKindMismatchAfterReduction(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let readAssoc = Type.mkAssoc("ReadEff", Type.Variable(x), Kind.Eff);
+def unifyOneStepTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
+    let x = Type.mkTyvar("x", Kind.Star);
+    let readAssoc = Type.mkTyassoc("ReadEff", Type.Var(x), Kind.Eff);
     let read = Type.SetFormula(SetFormula.Singleton(
         EffectLabel.EffectLabel(Id.Id("Read"))
     ));
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
             Id.Id("ReadEff"),
-            unMkEquality(Type.AssociatedMember(readAssoc), read) :: Nil
+            unMkEquality(Type.Assoc(readAssoc), read) :: Nil
         ), 
         Map.empty()
     );
@@ -371,7 +371,7 @@ def unifyOneStepAssociatedMemberRejectsKindMismatchAfterReduction(): Unit \ Asse
         unifyOneStep(
             constraintEnv,
             Nil,
-            Type.AssociatedMember(readAssoc),
+            Type.Assoc(readAssoc),
             int32
         )
     )
@@ -380,17 +380,17 @@ def unifyOneStepAssociatedMemberRejectsKindMismatchAfterReduction(): Unit \ Asse
 
 // `Elem x ~ Int32 -> NoApplicableRule`
 @Test
-def unifyOneStepAssociatedMemberWithoutReductionHasNoApplicableRule(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let assoc = Type.mkAssoc("Elem", Type.Variable(x), Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+def unifyOneStepTyassocWithoutReductionHasNoApplicableRule(): Unit \ Assert = {
+    let x = Type.mkTyvar("x", Kind.Star);
+    let assoc = Type.mkTyassoc("Elem", Type.Var(x), Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Err(UnificationError.NoApplicableRule),
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,
-            Type.AssociatedMember(assoc),
+            Type.Assoc(assoc),
             int32
         )
     )
@@ -402,16 +402,16 @@ def unifyOneStepAssociatedMemberWithoutReductionHasNoApplicableRule(): Unit \ As
 def unifyRepeatApplicationFullyUnifies(): Unit \ Assert = {
     let t = Kind.Star;
     let tToT = Kind.KFun(t, t);
-    let unary = Type.Constructor(Type.mkTypeCon("Unary", tToT));
-    let x = Type.mkTypeVar("x", t);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", t));
+    let unary = Type.Con(Type.mkTycon("Unary", tToT));
+    let x = Type.mkTyvar("x", t);
+    let int32 = Type.Con(Type.mkTycon("Int32", t));
 
     let constraints = unMkEquality(
-        Type.Application(TypeApplication.TypeApplication(
+        Type.Ap(TypeApplication.TypeApplication(
             unary,
-            Type.Variable(x)
+            Type.Var(x)
         )),
-        Type.Application(TypeApplication.TypeApplication(
+        Type.Ap(TypeApplication.TypeApplication(
             unary,
             int32
         ))
@@ -427,12 +427,12 @@ def unifyRepeatApplicationFullyUnifies(): Unit \ Assert = {
 // `Int32 ~ Bool, x ~ Int32 -> [Int32 ~ Bool], { x -> Int32 }`
 @Test
 def unifyRepeatPreservesUnsolvedConstraints(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
-    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.Star));
+    let x = Type.mkTyvar("x", Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
 
     let constraints = unMkEquality(int32, bool)
-        :: unMkEquality(Type.Variable(x), int32)
+        :: unMkEquality(Type.Var(x), int32)
         :: Nil;
 
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
@@ -445,16 +445,16 @@ def unifyRepeatPreservesUnsolvedConstraints(): Unit \ Assert = {
 // given: { Elem x = Bool }
 // `Elem x ~ Bool -> [], {}`
 @Test
-def unifyRepeatConsumesResidualEqualityFromAssociatedMemberReduction(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let assoc = Type.mkAssoc("Elem", Type.Variable(x), Kind.Star);
-    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.Star));
+def unifyRepeatConsumesResidualEqualityFromTyassocReduction(): Unit \ Assert = {
+    let x = Type.mkTyvar("x", Kind.Star);
+    let assoc = Type.mkTyassoc("Elem", Type.Var(x), Kind.Star);
+    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
 
-    let constraints = unMkEquality(Type.AssociatedMember(assoc), bool) :: Nil;
+    let constraints = unMkEquality(Type.Assoc(assoc), bool) :: Nil;
 
     let (remaining, subst) = unifyRepeat(
         unEmptyConstraintEnv(),
-        unMkGivenEquality(Type.AssociatedMember(assoc), bool) :: Nil,
+        unMkGivenEquality(Type.Assoc(assoc), bool) :: Nil,
         constraints
     );
 
@@ -466,30 +466,30 @@ def unifyRepeatConsumesResidualEqualityFromAssociatedMemberReduction(): Unit \ A
 // constraintEnv: { AssocA x = AssocB x, AssocB x = Int32 }
 // `AssocA x ~ Int32 -> [], {}`
 @Test
-def unifyRepeatFullyReducesChainedAssociatedMembers(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let assocA = Type.mkAssoc("AssocA", Type.Variable(x), Kind.Star);
-    let assocB = Type.mkAssoc("AssocB", Type.Variable(x), Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+def unifyRepeatFullyReducesChainedTyassocs(): Unit \ Assert = {
+    let x = Type.mkTyvar("x", Kind.Star);
+    let assocA = Type.mkTyassoc("AssocA", Type.Var(x), Kind.Star);
+    let assocB = Type.mkTyassoc("AssocB", Type.Var(x), Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
             Map.singleton(
                 Id.Id("AssocA"),
                 unMkEquality(
-                    Type.AssociatedMember(assocA),
-                    Type.AssociatedMember(assocB)
+                    Type.Assoc(assocA),
+                    Type.Assoc(assocB)
                 ) :: Nil
             ),
             Map.singleton(
                 Id.Id("AssocB"),
-                unMkEquality(Type.AssociatedMember(assocB), int32) :: Nil
+                unMkEquality(Type.Assoc(assocB), int32) :: Nil
             )
         ),
         Map.empty()
     );
 
-    let constraints = unMkEquality(Type.AssociatedMember(assocA), int32) :: Nil;
+    let constraints = unMkEquality(Type.Assoc(assocA), int32) :: Nil;
 
     let (remaining, subst) = unifyRepeat(constraintEnv, Nil, constraints);
 
@@ -501,12 +501,12 @@ def unifyRepeatFullyReducesChainedAssociatedMembers(): Unit \ Assert = {
 // `x ~ Int32, y ~ x -> [], { x -> Int32, y -> Int32 }`
 @Test
 def unifyRepeatComposesSubstitutionsAcrossSteps(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let y = Type.mkTypeVar("y", Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let x = Type.mkTyvar("x", Kind.Star);
+    let y = Type.mkTyvar("y", Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
-    let constraints = unMkEquality(Type.Variable(x), int32)
-        :: unMkEquality(Type.Variable(y), Type.Variable(x))
+    let constraints = unMkEquality(Type.Var(x), int32)
+        :: unMkEquality(Type.Var(y), Type.Var(x))
         :: Nil;
 
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
@@ -520,12 +520,12 @@ def unifyRepeatComposesSubstitutionsAcrossSteps(): Unit \ Assert = {
 // `y ~ x, x ~ Int32 -> [], { x -> Int32, y -> Int32 }`
 @Test
 def unifyRepeatComposesSubstitutionsAcrossStepsInReverseOrder(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let y = Type.mkTypeVar("y", Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let x = Type.mkTyvar("x", Kind.Star);
+    let y = Type.mkTyvar("y", Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
-    let constraints = unMkEquality(Type.Variable(y), Type.Variable(x))
-        :: unMkEquality(Type.Variable(x), int32)
+    let constraints = unMkEquality(Type.Var(y), Type.Var(x))
+        :: unMkEquality(Type.Var(x), int32)
         :: Nil;
 
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);

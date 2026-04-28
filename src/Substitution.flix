@@ -1,4 +1,4 @@
-pub enum Substitution(Map[TypeVariable, Type]) with Eq, ToString, Hash, Order
+pub enum Substitution(Map[Tyvar, Type]) with Eq, ToString, Hash, Order
 
 
 pub trait Substitutable[a] {
@@ -13,20 +13,20 @@ instance Substitutable[List[a]] with Substitutable[a] {
 
 
 mod Substitution {
-    def map(s: Substitution): Map[TypeVariable, Type] 
+    def map(s: Substitution): Map[Tyvar, Type] 
         = match s {
             case Substitution.Substitution(m) => m
         }
 
     
-    pub def singleton(tyVar: TypeVariable, ty: Type): Substitution = 
+    pub def singleton(tyVar: Tyvar, ty: Type): Substitution = 
         Substitution.Substitution(Map.singleton(tyVar, ty))
 
 
     pub def empty(): Substitution = Substitution(Map.empty())
 
 
-    pub def get(tyVar: TypeVariable, subst: Substitution): Option[Type] 
+    pub def get(tyVar: Tyvar, subst: Substitution): Option[Type] 
         = match subst {
             case Substitution(map) => map |> Map.get(tyVar)
         }

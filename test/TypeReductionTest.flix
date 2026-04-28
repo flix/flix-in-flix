@@ -13,17 +13,17 @@ def trEmptyConstraintEnv(): ConstraintEnvironment =
 // `x, Int32, Gen(0) -> None`
 @Test
 def reduceTypeOneStepLeavesSimpleTypesUnchanged(): Unit \ Assert = {
-    let tyVar = Type.mkTypeVar("x", Kind.Star);
-    let tyCon = Type.mkTypeCon("Int32", Kind.Star);
+    let tyVar = Type.mkTyvar("x", Kind.Star);
+    let tyCon = Type.mkTycon("Int32", Kind.Star);
     let gen = Gen.Gen(0, Kind.Star);
 
     Assert.assertEq(
         expected = None,
-        Type.Variable(tyVar) |> reduceTypeOneStep(trEmptyConstraintEnv(), Nil)
+        Type.Var(tyVar) |> reduceTypeOneStep(trEmptyConstraintEnv(), Nil)
     );
     Assert.assertEq(
         expected = None,
-        Type.Constructor(tyCon) |> reduceTypeOneStep(trEmptyConstraintEnv(), Nil)
+        Type.Con(tyCon) |> reduceTypeOneStep(trEmptyConstraintEnv(), Nil)
     );
     Assert.assertEq(
         expected = None,
@@ -35,16 +35,16 @@ def reduceTypeOneStepLeavesSimpleTypesUnchanged(): Unit \ Assert = {
 // given: { Elem x = Bool }
 // `Elem x -> Some(Bool)`
 @Test
-def reduceTypeOneStepUsesGivenEqualityForAssociatedMember(): Unit \ Assert = {
-    let arg = Type.mkTypeVar("x", Kind.Star);
-    let assoc = Type.mkAssoc("Elem", Type.Variable(arg), Kind.Star);
-    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.Star));
+def reduceTypeOneStepUsesGivenEqualityForTyassoc(): Unit \ Assert = {
+    let arg = Type.mkTyvar("x", Kind.Star);
+    let assoc = Type.mkTyassoc("Elem", Type.Var(arg), Kind.Star);
+    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
 
     Assert.assertEq(
         expected = Some(bool),
-        Type.AssociatedMember(assoc) |> reduceTypeOneStep(
+        Type.Assoc(assoc) |> reduceTypeOneStep(
             trEmptyConstraintEnv(),
-            trMkGivenEquality(Type.AssociatedMember(assoc), bool) :: Nil
+            trMkGivenEquality(Type.Assoc(assoc), bool) :: Nil
         )
     )
 }
@@ -54,18 +54,18 @@ def reduceTypeOneStepUsesGivenEqualityForAssociatedMember(): Unit \ Assert = {
 // `Elem Int32 -> None`
 @Test
 def reduceTypeOneStepGivenEqualityRequiresSyntacticLeftHandSideMatch(): Unit \ Assert = {
-    let a = Type.mkTypeVar("a", Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
-    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.Star);
-    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.Star);
+    let a = Type.mkTyvar("a", Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let genericAssoc = Type.mkTyassoc("Elem", Type.Var(a), Kind.Star);
+    let specificAssoc = Type.mkTyassoc("Elem", int32, Kind.Star);
 
     Assert.assertEq(
         expected = None,
-        Type.AssociatedMember(specificAssoc) |> reduceTypeOneStep(
+        Type.Assoc(specificAssoc) |> reduceTypeOneStep(
             trEmptyConstraintEnv(),
             trMkGivenEquality(
-                Type.AssociatedMember(genericAssoc),
-                Type.Variable(a)
+                Type.Assoc(genericAssoc),
+                Type.Var(a)
             ) :: Nil
         )
     )
@@ -76,17 +76,17 @@ def reduceTypeOneStepGivenEqualityRequiresSyntacticLeftHandSideMatch(): Unit \ A
 // `Elem Int32 -> Some(Int32)`
 @Test
 def reduceTypeOneStepInstantiatesConstraintEnvironmentEquality(): Unit \ Assert = {
-    let a = Type.mkTypeVar("a", Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
-    let genericAssoc = Type.mkAssoc("Elem", Type.Variable(a), Kind.Star);
-    let specificAssoc = Type.mkAssoc("Elem", int32, Kind.Star);
+    let a = Type.mkTyvar("a", Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let genericAssoc = Type.mkTyassoc("Elem", Type.Var(a), Kind.Star);
+    let specificAssoc = Type.mkTyassoc("Elem", int32, Kind.Star);
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
             Id.Id("Elem"),
             trMkEquality(
-                Type.AssociatedMember(genericAssoc),
-                Type.Variable(a)
+                Type.Assoc(genericAssoc),
+                Type.Var(a)
             ) :: Nil
         ),
         Map.empty()
@@ -94,7 +94,7 @@ def reduceTypeOneStepInstantiatesConstraintEnvironmentEquality(): Unit \ Assert 
 
     Assert.assertEq(
         expected = Some(int32),
-        Type.AssociatedMember(specificAssoc) |> reduceTypeOneStep(
+        Type.Assoc(specificAssoc) |> reduceTypeOneStep(
             constraintEnv,
             Nil
         )
@@ -105,35 +105,35 @@ def reduceTypeOneStepInstantiatesConstraintEnvironmentEquality(): Unit \ Assert 
 // constraintEnv: { Inner x = Int32, Outer Int32 = Bool }
 // `Outer (Inner x) -> Some(Outer Int32)`
 @Test
-def reduceTypeOneStepReducesAssociatedMemberArgumentBeforeOuterLookup(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let inner = Type.mkAssoc("Inner", Type.Variable(x), Kind.Star);
-    let outer = Type.mkAssoc(
+def reduceTypeOneStepReducesTyassocArgumentBeforeOuterLookup(): Unit \ Assert = {
+    let x = Type.mkTyvar("x", Kind.Star);
+    let inner = Type.mkTyassoc("Inner", Type.Var(x), Kind.Star);
+    let outer = Type.mkTyassoc(
         "Outer",
-        Type.AssociatedMember(inner),
+        Type.Assoc(inner),
         Kind.Star
     );
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
-    let bool = Type.Constructor(Type.mkTypeCon("Bool", Kind.Star));
-    let outerAfterArgReduction = Type.mkAssoc("Outer", int32, Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
+    let bool = Type.Con(Type.mkTycon("Bool", Kind.Star));
+    let outerAfterArgReduction = Type.mkTyassoc("Outer", int32, Kind.Star);
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
             Map.singleton(
                 Id.Id("Inner"),
-                trMkEquality(Type.AssociatedMember(inner), int32) :: Nil
+                trMkEquality(Type.Assoc(inner), int32) :: Nil
             ),
             Map.singleton(
                 Id.Id("Outer"),
-                trMkEquality(Type.AssociatedMember(outerAfterArgReduction), bool) :: Nil
+                trMkEquality(Type.Assoc(outerAfterArgReduction), bool) :: Nil
             )
         ),
         Map.empty()
     );
 
     Assert.assertEq(
-        expected = Some(Type.AssociatedMember(outerAfterArgReduction)),
-        Type.AssociatedMember(outer) |> reduceTypeOneStep(constraintEnv, Nil)
+        expected = Some(Type.Assoc(outerAfterArgReduction)),
+        Type.Assoc(outer) |> reduceTypeOneStep(constraintEnv, Nil)
     )
 }
 
@@ -146,44 +146,44 @@ def reduceTypeOneStepApplicationReducesFunctionBeforeArgument(): Unit \ Assert =
         Kind.Star,
         Kind.Star
     );
-    let funcAssoc = Type.mkAssoc(
+    let funcAssoc = Type.mkTyassoc(
         "UnaryCtor",
-        Type.Constructor(Type.mkTypeCon("Phantom", Kind.Star)),
+        Type.Con(Type.mkTycon("Phantom", Kind.Star)),
         unaryKind
     );
-    let argAssoc = Type.mkAssoc(
+    let argAssoc = Type.mkTyassoc(
         "Elem",
-        Type.Constructor(Type.mkTypeCon("Phantom", Kind.Star)),
+        Type.Con(Type.mkTycon("Phantom", Kind.Star)),
         Kind.Star
     );
-    let unary = Type.Constructor(Type.mkTypeCon("Unary", unaryKind));
+    let unary = Type.Con(Type.mkTycon("Unary", unaryKind));
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
             Map.singleton(
                 Id.Id("UnaryCtor"),
-                trMkEquality(Type.AssociatedMember(funcAssoc), unary) :: Nil
+                trMkEquality(Type.Assoc(funcAssoc), unary) :: Nil
             ),
             Map.singleton(
                 Id.Id("Elem"),
                 trMkEquality(
-                    Type.AssociatedMember(argAssoc),
-                    Type.Constructor(Type.mkTypeCon("Int32", Kind.Star))
+                    Type.Assoc(argAssoc),
+                    Type.Con(Type.mkTycon("Int32", Kind.Star))
                 ) :: Nil
             )
         ),
         Map.empty()
     );
 
-    let ty = Type.Application(TypeApplication.TypeApplication(
-        Type.AssociatedMember(funcAssoc),
-        Type.AssociatedMember(argAssoc)
+    let ty = Type.Ap(TypeApplication.TypeApplication(
+        Type.Assoc(funcAssoc),
+        Type.Assoc(argAssoc)
     ));
 
     Assert.assertEq(
-        expected = Some(Type.Application(TypeApplication.TypeApplication(
+        expected = Some(Type.Ap(TypeApplication.TypeApplication(
             unary,
-            Type.AssociatedMember(argAssoc)
+            Type.Assoc(argAssoc)
         ))),
         ty |> reduceTypeOneStep(constraintEnv, Nil)
     )
@@ -198,29 +198,29 @@ def reduceTypeOneStepApplicationReducesArgumentWhenFunctionIsStable(): Unit \ As
         Kind.Star,
         Kind.Star
     );
-    let unary = Type.Constructor(Type.mkTypeCon("Unary", unaryKind));
-    let argAssoc = Type.mkAssoc(
+    let unary = Type.Con(Type.mkTycon("Unary", unaryKind));
+    let argAssoc = Type.mkTyassoc(
         "Elem",
-        Type.Constructor(Type.mkTypeCon("Phantom", Kind.Star)),
+        Type.Con(Type.mkTycon("Phantom", Kind.Star)),
         Kind.Star
     );
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.singleton(
             Id.Id("Elem"),
-            trMkEquality(Type.AssociatedMember(argAssoc), int32) :: Nil
+            trMkEquality(Type.Assoc(argAssoc), int32) :: Nil
         ),
         Map.empty()
     );
 
-    let ty = Type.Application(TypeApplication.TypeApplication(
+    let ty = Type.Ap(TypeApplication.TypeApplication(
         unary,
-        Type.AssociatedMember(argAssoc)
+        Type.Assoc(argAssoc)
     ));
 
     Assert.assertEq(
-        expected = Some(Type.Application(TypeApplication.TypeApplication(
+        expected = Some(Type.Ap(TypeApplication.TypeApplication(
             unary,
             int32
         ))),
@@ -232,32 +232,32 @@ def reduceTypeOneStepApplicationReducesArgumentWhenFunctionIsStable(): Unit \ As
 // constraintEnv: { AssocA x = AssocB x, AssocB x = Int32 }
 // `AssocA x -> Some(AssocB x)`
 @Test
-def reduceTypeOneStepReducesChainedAssociatedMembersOneRuleAtATime(): Unit \ Assert = {
-    let x = Type.mkTypeVar("x", Kind.Star);
-    let assocA = Type.mkAssoc("AssocA", Type.Variable(x), Kind.Star);
-    let assocB = Type.mkAssoc("AssocB", Type.Variable(x), Kind.Star);
-    let int32 = Type.Constructor(Type.mkTypeCon("Int32", Kind.Star));
+def reduceTypeOneStepReducesChainedTyassocsOneRuleAtATime(): Unit \ Assert = {
+    let x = Type.mkTyvar("x", Kind.Star);
+    let assocA = Type.mkTyassoc("AssocA", Type.Var(x), Kind.Star);
+    let assocB = Type.mkTyassoc("AssocB", Type.Var(x), Kind.Star);
+    let int32 = Type.Con(Type.mkTycon("Int32", Kind.Star));
 
     let constraintEnv = ConstraintEnvironment.ConstraintEnvironment(
         Map.union(
             Map.singleton(
                 Id.Id("AssocA"),
                 trMkEquality(
-                    Type.AssociatedMember(assocA),
-                    Type.AssociatedMember(assocB)
+                    Type.Assoc(assocA),
+                    Type.Assoc(assocB)
                 ) :: Nil
             ),
             Map.singleton(
                 Id.Id("AssocB"),
-                trMkEquality(Type.AssociatedMember(assocB), int32) :: Nil
+                trMkEquality(Type.Assoc(assocB), int32) :: Nil
             )
         ),
         Map.empty()
     );
 
     Assert.assertEq(
-        expected = Some(Type.AssociatedMember(assocB)),
-        Type.AssociatedMember(assocA) |> reduceTypeOneStep(constraintEnv, Nil)
+        expected = Some(Type.Assoc(assocB)),
+        Type.Assoc(assocA) |> reduceTypeOneStep(constraintEnv, Nil)
     )
 }
 
@@ -266,9 +266,9 @@ def reduceTypeOneStepReducesChainedAssociatedMembersOneRuleAtATime(): Unit \ Ass
 // `(ReadEff x + ~WriteEff x) -> Some(Read + ~WriteEff x)`
 @Test
 def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
-    let arg = Type.mkTypeVar("x", Kind.Star);
-    let readAssoc = Type.mkAssoc("ReadEff", Type.Variable(arg), Kind.Eff);
-    let writeAssoc = Type.mkAssoc("WriteEff", Type.Variable(arg), Kind.Eff);
+    let arg = Type.mkTyvar("x", Kind.Star);
+    let readAssoc = Type.mkTyassoc("ReadEff", Type.Var(arg), Kind.Eff);
+    let writeAssoc = Type.mkTyassoc("WriteEff", Type.Var(arg), Kind.Eff);
 
     let read = SetFormula.Singleton(EffectLabel.EffectLabel(Id.Id("Read")));
     let write = SetFormula.Singleton(EffectLabel.EffectLabel(Id.Id("Write")));
@@ -278,14 +278,14 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
             Map.singleton(
                 Id.Id("ReadEff"),
                 trMkEquality(
-                    Type.AssociatedMember(readAssoc),
+                    Type.Assoc(readAssoc),
                     Type.SetFormula(read)
                 ) :: Nil
             ),
             Map.singleton(
                 Id.Id("WriteEff"),
                 trMkEquality(
-                    Type.AssociatedMember(writeAssoc),
+                    Type.Assoc(writeAssoc),
                     Type.SetFormula(write)
                 ) :: Nil
             )
@@ -295,9 +295,9 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
 
     let ty = Type.SetFormula(SetFormula.Binary(
         BinarySetFormula.BinarySetFormula(
-            SetFormula.AssociatedMember(readAssoc),
+            SetFormula.Tyassoc(readAssoc),
             SetBinaryOp.Union,
-            SetFormula.Complement(SetFormula.AssociatedMember(writeAssoc))
+            SetFormula.Complement(SetFormula.Tyassoc(writeAssoc))
         )
     ));
 
@@ -306,7 +306,7 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
             BinarySetFormula.BinarySetFormula(
                 read,
                 SetBinaryOp.Union,
-                SetFormula.Complement(SetFormula.AssociatedMember(writeAssoc))
+                SetFormula.Complement(SetFormula.Tyassoc(writeAssoc))
             )
         ))),
         ty |> reduceTypeOneStep(constraintEnv, Nil)
@@ -317,13 +317,13 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
 // constraintEnv: { Assoc x = IO }
 // `~Assoc x -> Some(~IO)`
 @Test
-def reduceTypeOneStepReducesAssociatedMemberInsideSetFormula(): Unit \ Assert = {
+def reduceTypeOneStepReducesTyassocInsideSetFormula(): Unit \ Assert = {
     let assocId = Id.Id("Assoc");
-    let arg = TypeVariable.TypeVariable(Id.Id("x"), Kind.Star);
+    let arg = Tyvar.Tyvar(Id.Id("x"), Kind.Star);
     let io = EffectLabel.EffectLabel(Id.Id("IO"));
-    let assoc = AssociatedMember.AssociatedMember(
+    let assoc = Tyassoc.Tyassoc(
         assocId,
-        Type.Variable(arg),
+        Type.Var(arg),
         Kind.Eff
     );
 
@@ -331,7 +331,7 @@ def reduceTypeOneStepReducesAssociatedMemberInsideSetFormula(): Unit \ Assert = 
         Map.singleton(
             assocId,
             EqualityConstraint.EqualityConstraint(
-                Type.AssociatedMember(assoc),
+                Type.Assoc(assoc),
                 Type.SetFormula(SetFormula.Singleton(io))
             ) :: Nil
         ),
@@ -339,7 +339,7 @@ def reduceTypeOneStepReducesAssociatedMemberInsideSetFormula(): Unit \ Assert = 
     );
 
     let ty = Type.SetFormula(
-        SetFormula.Complement(SetFormula.AssociatedMember(assoc))
+        SetFormula.Complement(SetFormula.Tyassoc(assoc))
     );
 
     Assert.assertEq(
