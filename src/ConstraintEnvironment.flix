@@ -1,8 +1,8 @@
-pub enum Instance(Qualified[Constraint])
+pub enum Instance(Qualified[ClassConstraint])
 
 
 mod Instance {
-    pub def head(inst: Instance): Constraint = match inst {
+    pub def head(inst: Instance): ClassConstraint = match inst {
         case Instance(qualified) => qualified |> Qualified.head
     }
 
