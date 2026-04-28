@@ -1,50 +1,80 @@
+def reduceInnerAssociatedMemberOneStep(
+    constraintEnv: ConstraintEnvironment,
+    given: List[Constraint],
+    assoc: AssociatedMember
+): Option[Type] = {
+    assoc 
+        |> AssociatedMember.ty 
+        |> reduceTypeOneStep(constraintEnv, given)
+        |> Option.map(ty -> Type.AssociatedMember(
+            AssociatedMember.AssociatedMember(
+                assoc |> AssociatedMember.id,
+                ty,
+                assoc |> AssociatedMember.kind
+            )
+        ))
+}
+
+
+def reduceAssociatedMemberFromGiven(
+    given: List[Constraint],
+    assoc: AssociatedMember
+): Option[Type] = {
+    given
+        |> List.filterMap(c -> c |> Constraint.asEqualityConstraint)
+        |> List.findMap(c -> {
+            let leftAM = c |> EqualityConstraint.left;
+            if (leftAM == Type.AssociatedMember(assoc)) {
+                Some(c |> EqualityConstraint.right)
+            } else None
+        })
+}
+
+
+def reduceAssociatedMemberFromEnv(
+    constraintEnv: ConstraintEnvironment,
+    assoc: AssociatedMember
+): Option[Type] = {
+    constraintEnv
+        |> ConstraintEnvironment.lookupAssociatedMemberEquality(
+            assoc |> AssociatedMember.id
+        )
+        |> List.findMap(c -> {
+            let leftAM = c |> EqualityConstraint.left;
+
+            matchTypes(leftAM, Type.AssociatedMember(assoc))
+                |> Result.toOption
+                |> Option.map(s -> c 
+                    |> EqualityConstraint.right 
+                    |> Substitutable.apply(s))
+        })
+}
+
+
 def reduceAssociatedMemberOneStep(
     constraintEnv: ConstraintEnvironment,
     given: List[Constraint],
     assoc: AssociatedMember
 ): Option[Type] = {
-    let reducedInner = assoc 
-        |> AssociatedMember.ty 
-        |> reduceTypeOneStep(constraintEnv, given)
-        |> Option.map(reducedTy -> Type.AssociatedMember(
-            AssociatedMember.AssociatedMember(
-                assoc |> AssociatedMember.id, 
-                reducedTy, 
-                assoc |> AssociatedMember.kind
-            )
-        ));
+    let reducedInner = reduceInnerAssociatedMemberOneStep(
+        constraintEnv,
+        given,
+        assoc
+    );
 
-    match reducedInner {
-        case Some(s) => Some(s)
-        
-        case None => {
-            let constraintFromGiven = given
-                |> List.filterMap(c -> c |> Constraint.asEqualityConstraint);
-            let constraintFromEnv = constraintEnv
-                |> ConstraintEnvironment.lookupAssociatedMemberEquality(
-                    assoc |> AssociatedMember.id
-                );
 
-            let allConstraints = constraintFromGiven ++ constraintFromEnv;
+    if (not (reducedInner |> Option.isEmpty)) {
+        reducedInner
+    } else {
+        let fromGiven = reduceAssociatedMemberFromGiven(given, assoc);
 
-            allConstraints
-                |> List.findMap(c -> {
-                    let leftAM = c |> EqualityConstraint.left;
-
-                    forM (
-                        subst <- matchTypes(
-                            leftAM, 
-                            Type.AssociatedMember(assoc)
-                        ) 
-                            |> Result.toOption
-                    ) yield c 
-                        |> EqualityConstraint.right 
-                        |> Substitutable.apply(subst)
-                })
+        if (not (fromGiven |> Option.isEmpty)) {
+            fromGiven
+        } else {
+            reduceAssociatedMemberFromEnv(constraintEnv, assoc)
         }
     }
 }
-
 
 
 def reduceSetFormulaOneStep(
