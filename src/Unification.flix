@@ -1,3 +1,4 @@
+import java.lang.Boolean
 pub enum MatchError with Eq, ToString, Hash, Order {
     case DoesNotMatch,
     case KindMismatch
@@ -65,6 +66,15 @@ def unifyNoEq(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type):
             eqs -> (eqs, Subst.empty()), 
             bindAssoc(env, giv, am, lhs)
         )
+
+        // Extra: performs boolean unification.
+        case _ 
+            if Kinded.kind(lhs) == Kind.Eff and Kinded.kind(rhs) == Kind.Eff => 
+            match boolUnify(lhs, rhs) {
+                case Some(sub) => Ok((Nil, sub))
+                case None => Err(UnificationError.NoApplicableRule)
+            }
+
 
         case _ => Err(UnificationError.NoApplicableRule)
     }
