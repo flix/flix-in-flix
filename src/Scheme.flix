@@ -12,3 +12,11 @@ mod Scheme {
     }   
 }
 
+pub trait Instantiate[a] {
+    pub def inst(tys: List[Type], sch: a): a
+}
+
+instance Instantiate[List[a]] with Instantiate[a] {
+    pub def inst(tys: List[Type], sch: List[a]): List[a] = 
+        List.map(s -> Instantiate.inst(tys, s), sch)
+}

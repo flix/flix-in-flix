@@ -1,5 +1,12 @@
 pub enum ClassConstr(Id, Type) with Eq, ToString, Hash, Order
 
+instance Instantiate[ClassConstr] {
+    pub def inst(tys: List[Type], sch: ClassConstr): ClassConstr = match sch {
+        case ClassConstr.ClassConstr(id, ty) => 
+            ClassConstr.ClassConstr(id, Instantiate.inst(tys, ty))
+    }
+}
+
 mod ClassConstr {
     pub def id(con: ClassConstr): Id = match con { 
         case ClassConstr(id, _) => id 
@@ -18,6 +25,15 @@ instance Substable[ClassConstr] {
 }
 
 pub enum EqConstr(Type, Type) with Eq, ToString, Hash, Order
+
+instance Instantiate[EqConstr] {
+    pub def inst(tys: List[Type], sch: EqConstr): EqConstr = match sch {
+        case EqConstr.EqConstr(lhs, rhs) => EqConstr.EqConstr(
+            Instantiate.inst(tys, lhs),
+            Instantiate.inst(tys, rhs)
+        )
+    }
+}
 
 instance Substable[EqConstr] {
     pub def apply(subst: Subst, con: EqConstr): EqConstr = {
@@ -55,6 +71,14 @@ mod Constr {
     }
 }
 
+instance Instantiate[Constr] {
+    pub def inst(tys: List[Type], sch: Constr): Constr = match sch {
+        case Constr.Class(cls) => Constr.Class(Instantiate.inst(tys, cls))
+        case Constr.Eq(eq) => Constr.Eq(Instantiate.inst(tys, eq))
+    }
+}
+
+
 pub enum Qual[a](a, List[Constr]) with Eq, ToString, Hash, Order
 
 mod Qual {
@@ -64,5 +88,12 @@ mod Qual {
     }
 }
 
+instance Instantiate[Qual[a]] with Instantiate[a] {
+    pub def inst(tys: List[Type], sch: Qual[a]): Qual[a] = match sch {
+        case Qual.Qual(q, ctx) => Qual.Qual(
+            Instantiate.inst(tys, q),
+            Instantiate.inst(tys, ctx)
+        )
     }
 }
+

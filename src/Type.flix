@@ -190,3 +190,14 @@ instance FreeVars[Type] {
         case Type.Gen(_) => Set.empty()
     }
 }
+
+instance Instantiate[Type] {
+    pub def inst(tys: List[Type], sch: Type): Type = match sch {
+        case Type.Gen(i) => List.get(i, tys)
+        case Type.Ap(f, x) => Type.Ap(
+            Instantiate.inst(tys, f), 
+            Instantiate.inst(tys, x)
+        )
+        case _ => sch
+    }
+}
