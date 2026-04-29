@@ -79,6 +79,10 @@ mod Type {
     pub def random(): Type = efConstant("Random")
     pub def http(): Type = efConstant("Http")
     pub def efUniverse(): Type = efConstant("EffectUniverse")
+
+    pub def mkArrow(arg: Type, ef: Type, res: Type): Type = {
+        Type.mkAp(Type.mkAp(Type.arrow(), arg), Type.mkAp(ef, res))
+    }
 }
 
 
