@@ -4,7 +4,7 @@ def freeTypeVariablesOfVariable(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let ty = Type.Var(x);
 
-    Assert.assertEq(expected = x :: Nil, ty |> FreeVars.fvs)
+    Assert.assertEq(expected = Set.singleton(x), ty |> FreeVars.fvs)
 }
 
 // `x y -> [x, y]`
@@ -14,7 +14,10 @@ def freeTypeVariablesOfTypeApplication(): Unit \ Assert = {
     let y = Tyvar.Tyvar("y", Kind.Star);
     let ty = Type.Ap(Type.Var(x), Type.Var(y));
 
-    Assert.assertEq(expected = x :: y :: Nil, ty |> FreeVars.fvs)
+    Assert.assertEq(
+        expected = Set.union(Set.singleton(x), Set.singleton(y)),
+        ty |> FreeVars.fvs
+    )
 }
 
 // `Union x (Compl y) -> [x, y]`
@@ -24,5 +27,8 @@ def freeTypeVariablesOfSetFormula(): Unit \ Assert = {
     let y = Tyvar.Tyvar("y", Kind.Eff);
     let ty = Type.mkUnion(Type.Var(x), Type.mkCompl(Type.Var(y)));
 
-    Assert.assertEq(expected = x :: y :: Nil, ty |> FreeVars.fvs)
+    Assert.assertEq(
+        expected = Set.union(Set.singleton(x), Set.singleton(y)),
+        ty |> FreeVars.fvs
+    )
 }

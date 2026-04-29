@@ -91,7 +91,7 @@ def bindAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc, ty: Type):
     ) yield EqConstr.EqConstr(redAm, ty) :: Nil
 
 def bindVar(tvar: Tyvar, ty: Type): Result[UnificationError, Subst] = {
-    if (List.memberOf(tvar, FreeVars.fvs(ty)))
+    if (Set.memberOf(tvar, FreeVars.fvs(ty)))
         Err(UnificationError.OccursCheckFailed)
     else if (Kinded.kind(tvar) != Kinded.kind(ty))
         Err(UnificationError.KindMismatch)

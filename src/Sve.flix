@@ -84,7 +84,7 @@ def boolVars(t: Type): Set[Type] = match t {
 
 pub def boolUnify(f1: Type, f2: Type): Option[Subst] = {
     let eqType = Type.mkXor(f1 ,f2);
-    let fvs = List.distinct(FreeVars.fvs(eqType));
+    let fvs = Set.toList(FreeVars.fvs(eqType));
 
     sve(eqType, fvs)
 }

@@ -9,7 +9,7 @@ instance Kinded[Tyvar] {
 }
 
 instance FreeVars[Tyvar] {
-    pub def fvs(v: Tyvar): List[Tyvar] = v :: Nil
+    pub def fvs(v: Tyvar): Set[Tyvar] = Set.singleton(v)
 }
 
 pub enum Tycon(Id, Kind) with Eq, ToString, Hash, Order
@@ -43,7 +43,7 @@ instance Kinded[Tyassoc] {
 }
 
 instance FreeVars[Tyassoc] {
-    pub def fvs(a: Tyassoc): List[Tyvar] = FreeVars.fvs(Tyassoc.ty(a))
+    pub def fvs(a: Tyassoc): Set[Tyvar] = FreeVars.fvs(Tyassoc.ty(a))
 }
 
 pub enum Gen(Int32, Kind) with Eq, ToString, Hash, Order
@@ -192,11 +192,11 @@ instance Substable[Type] {
 }
 
 instance FreeVars[Type] {
-    pub def fvs(t: Type): List[Tyvar] = match t {
+    pub def fvs(t: Type): Set[Tyvar] = match t {
         case Type.Var(v) => FreeVars.fvs(v)
-        case Type.Con(_) => Nil
+        case Type.Con(_) => Set.empty()
         case Type.Assoc(a) => FreeVars.fvs(a)
-        case Type.Ap(f, x) => FreeVars.fvs(f) ::: FreeVars.fvs(x)
-        case Type.Gen(_) => Nil
+        case Type.Ap(f, x) => FreeVars.fvs(f) ++ FreeVars.fvs(x)
+        case Type.Gen(_) => Set.empty()
     }
 }
