@@ -281,15 +281,15 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
         Map.empty()
     );
 
-    let ty = Type.efUnionAp(
+    let ty = Type.mkUnion(
         Type.Assoc(readAssoc),
-        Type.efComplAp(Type.Assoc(writeAssoc))
+        Type.mkCompl(Type.Assoc(writeAssoc))
     );
 
     Assert.assertEq(
-        expected = Some(Type.efUnionAp(
+        expected = Some(Type.mkUnion(
             read,
-            Type.efComplAp(Type.Assoc(writeAssoc))
+            Type.mkCompl(Type.Assoc(writeAssoc))
         )),
         ty |> reduceTyOne(constraintEnv, Nil)
     )
@@ -320,10 +320,10 @@ def reduceTypeOneStepReducesTyassocInsideSetFormula(): Unit \ Assert = {
         Map.empty()
     );
 
-    let ty = Type.efComplAp(Type.Assoc(assoc));
+    let ty = Type.mkCompl(Type.Assoc(assoc));
 
     Assert.assertEq(
-        expected = Some(Type.efComplAp(io)),
+        expected = Some(Type.mkCompl(io)),
         ty |> reduceTyOne(constraintEnv, Nil)
     )
 }

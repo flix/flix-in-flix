@@ -78,11 +78,9 @@ mod Type {
 mod Type {
     pub def efUnion(): Type = Type.Con(Tycon.Tycon("+", Kind.efBinary()))
     pub def efIntersect(): Type = Type.Con(Tycon.Tycon("&", Kind.efBinary()))
+    pub def efXor(): Type = Type.Con(Tycon.Tycon("^", Kind.efBinary()))
     pub def efComplement(): Type = Type.Con(Tycon.Tycon("~", Kind.efUnary()))
 
-    pub def efUnionAp(left: Type, right: Type): Type 
-        = Type.Ap(Type.Ap(efUnion(), left), right)
-    pub def efComplAp(ty: Type): Type = Type.Ap(efComplement(), ty)
 
     pub def efEmpty(): Type = Type.Con(Tycon.Tycon("{}", Kind.Eff))
     pub def efConstant(name: Id): Type = Type.Con(Tycon.Tycon(name, Kind.Eff))
@@ -90,6 +88,83 @@ mod Type {
     pub def io(): Type = efConstant("IO")
     pub def random(): Type = efConstant("Random")
     pub def http(): Type = efConstant("Http")
+    pub def efUniverse(): Type = efConstant("EffectUniverse")
+}
+
+
+
+mod Type {
+    def innerCompl(t: Type) : Option[Type] = match t {
+        case Type.Ap(com, inner) if com == Type.efComplement() => Some(inner)
+        case _ => None
+    }
+
+    pub def mkUnion(left: Type, right: Type): Type = {
+        if (left == right) left
+
+        else if (
+            innerCompl(left) == Some(right) 
+            or innerCompl(right) == Some(left)
+        ) Type.efUniverse()
+
+        else if (
+            left == Type.efUniverse()
+            or right == Type.efUniverse()
+        ) Type.efUniverse()
+
+        else if (left == Type.efEmpty()) right
+        else if (right == Type.efEmpty()) left
+
+        else Type.mkAp(Type.mkAp(Type.efUnion(), left), right)
+    }
+
+    pub def mkIntersect(left: Type, right: Type): Type = {
+        if (left == right) left
+
+        else if (
+            innerCompl(left) == Some(right) 
+            or innerCompl(right) == Some(left)
+        ) Type.efEmpty()
+
+        else if (
+            left == Type.efEmpty()
+            or right == Type.efEmpty()
+        ) Type.efEmpty()
+
+        else if (left == Type.efUniverse()) left
+        else if (right == Type.efUniverse()) right
+
+        else Type.mkAp(Type.mkAp(Type.efIntersect(), left), right)
+    }
+
+    pub def mkXor(left: Type, right: Type): Type = {
+        if (left == right) Type.efEmpty()
+
+        else if (
+            innerCompl(left) == Some(right) 
+            or innerCompl(right) == Some(left)
+        ) Type.efUniverse()
+
+        else if (left == Type.efEmpty()) right
+        else if (right == Type.efEmpty()) left
+
+        else if (left == Type.efUniverse()) Type.mkCompl(right)
+        else if (right == Type.efUniverse()) Type.mkCompl(left)
+
+        else Type.mkAp(Type.mkAp(Type.efXor(), left), right)
+    }
+
+    pub def mkCompl(inner: Type): Type = {
+        if (inner == Type.efEmpty()) Type.efUniverse()
+        else if (inner == Type.efUniverse()) Type.efEmpty()
+        else match innerCompl(inner) {
+            case Some(t) 
+                => if (t == Type.efEmpty()) Type.efUniverse() 
+                else if (t == Type.efUniverse()) Type.efEmpty() 
+                else t
+            case None => Type.mkAp(Type.efComplement(), inner)
+        }
+    }
 }
 
 instance Kinded[Type] {

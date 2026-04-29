@@ -22,7 +22,7 @@ def freeTypeVariablesOfTypeApplication(): Unit \ Assert = {
 def freeTypeVariablesOfSetFormula(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Eff);
     let y = Tyvar.Tyvar("y", Kind.Eff);
-    let ty = Type.efUnionAp(Type.Var(x), Type.efComplAp(Type.Var(y)));
+    let ty = Type.mkUnion(Type.Var(x), Type.mkCompl(Type.Var(y)));
 
     Assert.assertEq(expected = x :: y :: Nil, ty |> FreeVars.fvs)
 }
