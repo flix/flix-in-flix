@@ -74,7 +74,10 @@ def boolVars(t: Type): Set[Type] = match t {
     case Type.Con(_) => 
         if (t == Type.efEmpty() or t == Type.efUniverse()) Set.empty()
         else Set.singleton(t)
-    case Type.Assoc(_) => bug!("Assoc should be erased")
+    
+    // treat it as an uninterpreted constant
+    case Type.Assoc(_) => Set.singleton(t),
+
     case Type.Gen(_) => bug!("Gen shouldn't be present in boolUnify")
     case Type.Var(_) => Set.singleton(t)
 }
