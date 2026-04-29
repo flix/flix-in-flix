@@ -64,13 +64,5 @@ mod Qual {
     }
 }
 
-pub enum Scheme[a](Qual[a]) with Eq, ToString, Hash, Order
-
-mod Scheme {
-    pub def head(sch: Scheme[a]): a = match sch {
-        case Scheme(qua) => Qual.head(qua)
-    }
-    pub def context(sch: Scheme[a]): List[Constr] = match sch {
-        case Scheme(qua) => Qual.context(qua)
     }
 }
