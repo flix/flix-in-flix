@@ -46,22 +46,12 @@ instance FreeVars[Tyassoc] {
     pub def fvs(a: Tyassoc): Set[Tyvar] = FreeVars.fvs(Tyassoc.ty(a))
 }
 
-pub enum Gen(Int32, Kind) with Eq, ToString, Hash, Order
-
-mod Gen {
-    pub def kind(g: Gen): Kind = match g { case Gen(_, k) => k }
-}
-
-instance Kinded[Gen] {
-    pub def kind(g: Gen): Kind = Gen.kind(g)
-}
-
 pub enum Type with Eq, ToString, Hash, Order {
     case Var(Tyvar)
     case Con(Tycon)
     case Assoc(Tyassoc)
     case Ap(Type, Type)
-    case Gen(Gen)
+    case Gen(Int32)
 }
 
 mod Type {
@@ -176,7 +166,7 @@ instance Kinded[Type] {
             case Kind.KFun(_, k) => k
             case _ => bug!("Expected a function kind, but found: ${fk}")
         }
-        case Type.Gen(g) => Kinded.kind(g)
+        case Type.Gen(_) => bug!("Gen should'be asked for its kind directly")
     }
 }
 

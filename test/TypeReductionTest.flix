@@ -15,7 +15,6 @@ def trEmptyConstraintEnv(): ConstrEnv =
 def reduceTypeOneStepLeavesSimpleTypesUnchanged(): Unit \ Assert = {
     let tyVar = Tyvar.Tyvar("x", Kind.Star);
     let tyCon = Tycon.Tycon("Int32", Kind.Star);
-    let gen = Gen.Gen(0, Kind.Star);
 
     Assert.assertEq(
         expected = None,
@@ -27,7 +26,7 @@ def reduceTypeOneStepLeavesSimpleTypesUnchanged(): Unit \ Assert = {
     );
     Assert.assertEq(
         expected = None,
-        Type.Gen(gen) |> reduceTyOne(trEmptyConstraintEnv(), Nil)
+        Type.Gen(0) |> reduceTyOne(trEmptyConstraintEnv(), Nil)
     )
 }
 
