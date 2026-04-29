@@ -131,8 +131,8 @@ mod Type {
             or right == Type.efEmpty()
         ) Type.efEmpty()
 
-        else if (left == Type.efUniverse()) left
-        else if (right == Type.efUniverse()) right
+        else if (left == Type.efUniverse()) right
+        else if (right == Type.efUniverse()) left
 
         else Type.mkAp(Type.mkAp(Type.efIntersect(), left), right)
     }
