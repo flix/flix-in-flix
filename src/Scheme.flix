@@ -1,5 +1,13 @@
 pub enum Scheme[a](List[Kind], Qual[a]) with ToString
 
+instance Substable[Scheme[a]] with Substable[a] {
+    pub def apply(subst: Subst, a: Scheme[a]): Scheme[a] = match a {
+        case Scheme.Scheme(kinds, qua) => Scheme.Scheme(
+            kinds, Substable.apply(subst, qua)
+        )
+    }
+}
+
 mod Scheme {
     pub def head(sch: Scheme[a]): a = match sch {
         case Scheme(_, qua) => Qual.head(qua)

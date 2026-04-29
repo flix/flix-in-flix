@@ -79,13 +79,23 @@ instance Instantiate[Constr] {
 }
 
 
-pub enum Qual[a](a, List[Constr]) with Eq, ToString, Hash, Order
+pub enum Qual[a](List[Constr], a) with Eq, ToString, Hash, Order
+
+instance Substable[Qual[a]] with Substable[a] {
+    pub def apply(subst: Subst, a: Qual[a]): Qual[a] = match a {
+        case Qual.Qual(q, ctx) => Qual.Qual(
+            Substable.apply(subst, q),
+            Substable.apply(subst, ctx)
+        )
+    }
+}
 
 mod Qual {
-    pub def head(qua: Qual[q]): q = match qua { case Qual(q, _) => q }
+    pub def head(qua: Qual[q]): q = match qua { case Qual(_, q) => q }
     pub def context(qua: Qual[q]): List[Constr] = match qua {
-        case Qual(_, ctx) => ctx 
+        case Qual(ctx, _) => ctx 
     }
+    pub def newUnqual(q: q): Qual[q] = Qual(Nil, q)
 }
 
 instance Instantiate[Qual[a]] with Instantiate[a] {
