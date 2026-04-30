@@ -1,6 +1,5 @@
 def sve(f: Type, vars: List[Tyvar]): Option[Subst] = {
     if (not isSat(f)) Some(Subst.empty())
-
     else match vars {
         case Nil => None
         case x :: xs => {
@@ -8,9 +7,7 @@ def sve(f: Type, vars: List[Tyvar]): Option[Subst] = {
             let r = Substable.apply(Subst.singleton(x, Type.efUniverse()), f);
             let lr = Type.mkIntersect(l, r);
 
-            forM (
-                sub <- sve(lr, xs)
-            ) yield {
+            forM (sub <- sve(lr, xs)) yield {
                 let newH = Type.mkUnion(
                     Substable.apply(sub, l),
                     Type.mkIntersect(
@@ -32,7 +29,6 @@ def isSat(f: Type): Bool = {
 def evaluteAll(f: Type, vars: List[Type], trueVars: Set[Type]): Bool = {
     match vars {
         case Nil => evaluate(f, trueVars)
-
         case x :: xs => 
             evaluteAll(f, xs, Set.union(trueVars, Set.singleton(x))) 
             or evaluteAll(f, xs, trueVars)
@@ -46,9 +42,7 @@ def evaluate(f: Type, trueVars: Set[Type]): Bool =  {
     else match f {
         case Type.Ap(f1, f2) => {
             // we handle two cases: complement and binary ops
-
             if (f1 == Type.efComplement()) not evaluate(f2, trueVars)
-
             else match f1 {
                 // must be in the form of `ap(ap(binOp arg1) arg2)`
                 case Type.Ap(binOp, arg1) => {
@@ -60,11 +54,9 @@ def evaluate(f: Type, trueVars: Set[Type]): Bool =  {
                     else if (binOp == Type.efXor()) lBool != rBool
                     else bug!("Expected a binary operator, but found: ${binOp}")
                 }
-
                 case _ => bug!("Expected a binary operator, but found: ${f1}")
             }
         }
-
         case _ => false
     }
 }
@@ -84,7 +76,5 @@ def boolVars(t: Type): Set[Type] = match t {
 
 pub def boolUnify(f1: Type, f2: Type): Option[Subst] = {
     let eqType = Type.mkXor(f1 ,f2);
-    let fvs = Set.toList(FreeVars.fvs(eqType));
-
-    sve(eqType, fvs)
+    sve(eqType, Set.toList(FreeVars.fvs(eqType)))
 }
