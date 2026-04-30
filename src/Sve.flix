@@ -69,6 +69,9 @@ def boolVars(t: Type): Set[Type] = match t {
     case _ => Set.singleton(t)
 }
 
+pub def boolMatch(t1: Type, t2: Type): Option[Subst] = 
+    sve(Type.mkXor(t1, t2), Set.toList(FreeVars.fvs(t1)))
+
 pub def boolUnify(f1: Type, f2: Type): Option[Subst] = {
     let eqType = Type.mkXor(f1 ,f2);
     sve(eqType, Set.toList(FreeVars.fvs(eqType)))
