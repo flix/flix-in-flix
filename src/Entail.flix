@@ -65,7 +65,7 @@ pub def entailRepeat(
 
 def tryInst(inst: Inst, clsTy: Type): Option[List[Constr]] = Option.map(
     sub -> Substable.apply(sub, Inst.context(inst)),
-    Result.toOption(matchTy(ClassConstr.ty(Inst.head(inst)), clsTy))
+    matchTy(ClassConstr.ty(Inst.head(inst)), clsTy)
 )
 
 

@@ -4,6 +4,8 @@ def reduceInnerAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc):
         reduceTyOne(env, giv, Tyassoc.ty(am))
     )
 
+// REMARK: how about the set formulas there are not syntactically equal but 
+// semantically equal? for example, x + y and y + x, etc.
 def reduceAssocGiven(giv: List[Constr], am: Tyassoc): Option[Type] 
     = List.findMap(
         c -> match Constr.asEq(c) {
@@ -18,7 +20,7 @@ def reduceAssocEnv(env: ConstrEnv, am: Tyassoc): Option[Type]
     = List.findMap(
         eq -> Option.map(
             sub -> Substable.apply(sub, EqConstr.right(eq)),
-            Result.toOption(matchTy(EqConstr.left(eq), Type.Assoc(am)))
+            matchTy(EqConstr.left(eq), Type.Assoc(am))
         ),
         ConstrEnv.lookupTyassoc(Tyassoc.id(am), env)
     )
@@ -35,12 +37,7 @@ def reduceAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc): Option[Type]
 
 pub def reduceTyOne(env: ConstrEnv, giv: List[Constr], ty: Type): 
     Option[Type] = match ty {
-        case Type.Var(_) => None
-        case Type.Con(_) => None
-        case Type.Gen(_) => None
-
         case Type.Assoc(am) => reduceAssoc(env, giv, am)
-
         case Type.Ap(fn, arg) => match reduceTyOne(env, giv, fn) {
             case Some(redFn) => Some(Type.Ap(redFn, arg))
             case None => Option.map(
@@ -48,4 +45,5 @@ pub def reduceTyOne(env: ConstrEnv, giv: List[Constr], ty: Type):
                 reduceTyOne(env, giv, arg)
             )
         }
+        case _ => None
     }

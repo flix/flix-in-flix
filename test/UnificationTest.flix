@@ -18,7 +18,7 @@ def matchTypesVariableCreatesSubstitution(): Unit \ Assert = {
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
-        expected = Ok(Subst.singleton(x, int32)),
+        expected = Some(Subst.singleton(x, int32)),
         matchTy(Type.Var(x), int32)
     )
 }
@@ -31,7 +31,7 @@ def matchTypesVariableRejectsKindMismatch(): Unit \ Assert = {
     let emptySet = Type.efEmpty();
 
     Assert.assertEq(
-        expected = Err(MatchError.KindMismatch),
+        expected = None,
         matchTy(Type.Var(x), emptySet)
     )
 }
@@ -51,12 +51,12 @@ def matchTypesApplicationMergesSubstitutions(): Unit \ Assert = {
     let right = Type.Ap(unary, int32);
 
     match matchTy(left, right) {
-        case Ok(subst) => {
+        case Some(subst) => {
             Assert.assertEq(expected = Some(unary), subst |> Subst.get(f));
             Assert.assertEq(expected = Some(int32), subst |> Subst.get(x))
         }
 
-        case Err(err) => bug!("expected successful match, found: ${err}")
+        case None => bug!("expected successful match")
     }
 }
 
@@ -85,10 +85,7 @@ def matchTypesApplicationRejectsInconsistentSubstitution(): Unit \ Assert = {
         bool
     );
 
-    Assert.assertEq(
-        expected = Err(MatchError.DoesNotMatch),
-        matchTy(left, right)
-    )
+    Assert.assertEq(expected = None, matchTy(left, right))
 }
 
 
@@ -111,7 +108,7 @@ def matchTypesTyassocMatchesUnderlyingArgument(): Unit \ Assert = {
     ));
 
     Assert.assertEq(
-        expected = Ok(Subst.singleton(x, int32)),
+        expected = Some(Subst.singleton(x, int32)),
         matchTy(left, right)
     )
 }
