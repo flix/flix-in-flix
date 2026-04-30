@@ -1,38 +1,20 @@
-import java.lang.Boolean
-pub enum MatchError with Eq, ToString, Hash, Order {
-    case DoesNotMatch,
-    case KindMismatch
-}
-
-pub def matchTy(lhs: Type, rhs: Type): Result[MatchError, Subst] 
-    = match (lhs, rhs) {
-        case (Type.Ap(lhsFn, lhsArg), Type.Ap(rhsFn, rhsArg)) => {
-            forM (
-                fnSub <- matchTy(lhsFn, rhsFn);
-                argSub <- matchTy(lhsArg, rhsArg);
-                sub <- Option.getWithDefault(
-                    Err(MatchError.DoesNotMatch),
-                    Option.map(Ok, Subst.merge(fnSub, argSub))
-                )
-            ) yield sub
-        }
-
-        case (Type.Var(tvar), _) => {
-            let lhsKind = Kinded.kind(tvar);
-            let rhsKind = Kinded.kind(rhs);
-            if (lhsKind != rhsKind) Err(MatchError.KindMismatch)
-            else Ok(Subst.singleton(tvar, rhs))
-        }
-
-        case (Type.Con(lhsCon), Type.Con(rhsCon)) if lhsCon == rhsCon 
-            => Ok(Subst.empty())
-
-        case (Type.Assoc(lhsAm), Type.Assoc(rhsAm)) 
-            if Tyassoc.id(lhsAm) == Tyassoc.id(rhsAm) 
-            => matchTy(Tyassoc.ty(lhsAm), Tyassoc.ty(rhsAm))
-
-        case _ => Err(MatchError.DoesNotMatch)
+pub def matchTy(l: Type, r: Type): Option[Subst] = match (l, r) {
+    case (Type.Ap(lhsFn, lhsArg), Type.Ap(rhsFn, rhsArg)) => forM(
+        fnSub <- matchTy(lhsFn, rhsFn);
+        argSub <- matchTy(lhsArg, rhsArg);
+        sub <- Subst.merge(fnSub, argSub)
+    ) yield sub
+    case (Type.Var(tvar), _) => {
+        if (Kinded.kind(tvar) != Kinded.kind(r)) None 
+        else Some(Subst.singleton(tvar, r))
     }
+    case (Type.Con(lc), Type.Con(rc)) if lc == rc  => Some(Subst.empty())
+    case (Type.Assoc(la), Type.Assoc(ra)) if Tyassoc.id(la) == Tyassoc.id(ra) 
+        => matchTy(Tyassoc.ty(la), Tyassoc.ty(ra))
+    case _ if Kinded.kind(l) == Kind.Eff and Kinded.kind(r) == Kind.Eff 
+        => boolMatch(l, r),
+    case _ => None
+}
 
 pub enum UnificationError with Eq, ToString, Hash, Order {
     case OccursCheckFailed
