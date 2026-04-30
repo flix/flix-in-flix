@@ -18,6 +18,7 @@ mod Scheme {
     pub def varKinds(sch: Scheme[a]): List[Kind] = match sch {
         case Scheme(kinds, _) => kinds
     }   
+    pub def newUnqual(a: a): Scheme[a] = Scheme(Nil, Qual.newUnqual(a))
 }
 
 pub trait Instantiate[a] {
