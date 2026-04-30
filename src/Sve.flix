@@ -63,15 +63,10 @@ def evaluate(f: Type, trueVars: Set[Type]): Bool =  {
 
 def boolVars(t: Type): Set[Type] = match t {
     case Type.Ap(f, x) => Set.union(boolVars(f), boolVars(x))
-    case Type.Con(_) => 
-        if (t == Type.efEmpty() or t == Type.efUniverse()) Set.empty()
-        else Set.singleton(t)
-    
-    // treat it as an uninterpreted constant
-    case Type.Assoc(_) => Set.singleton(t),
-
+    case Type.Con(_) if (t == Type.efEmpty() or t == Type.efUniverse()) 
+        => Set.empty()
     case Type.Gen(_) => bug!("Gen shouldn't be present in boolUnify")
-    case Type.Var(_) => Set.singleton(t)
+    case _ => Set.singleton(t)
 }
 
 pub def boolUnify(f1: Type, f2: Type): Option[Subst] = {
