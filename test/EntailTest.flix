@@ -20,8 +20,8 @@ def enMkInstance(
     context: List[Constr]
 ): Inst =
     Inst.Inst(Qual.Qual(
-        enMkClassConstraint(className, classType),
-        context
+        context,
+        enMkClassConstraint(className, classType)
     ))
 
 
