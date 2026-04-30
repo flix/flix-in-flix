@@ -8,12 +8,8 @@ instance Instantiate[ClassConstr] {
 }
 
 mod ClassConstr {
-    pub def id(con: ClassConstr): Id = match con { 
-        case ClassConstr(id, _) => id 
-    }
-    pub def ty(con: ClassConstr): Type = match con { 
-        case ClassConstr(_, ty) => ty 
-    }
+    pub def id(c: ClassConstr): Id = match c { case ClassConstr(id, _) => id }
+    pub def ty(c: ClassConstr): Type = match c { case ClassConstr(_, ty) => ty }
 }
 
 instance Substable[ClassConstr] {
