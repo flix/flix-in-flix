@@ -4,12 +4,11 @@ def reduceInnerAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc):
         reduceTyOne(env, giv, Tyassoc.ty(am))
     )
 
-// REMARK: how about the set formulas there are not syntactically equal but 
-// semantically equal? for example, x + y and y + x, etc.
 def reduceAssocGiven(giv: List[Constr], am: Tyassoc): Option[Type] 
     = List.findMap(
         c -> match Constr.asEq(c) {
-            case Some(eq) if EqConstr.left(eq) == Type.Assoc(am) 
+            // REMARK: is boolEq necessary here?
+            case Some(eq) if boolEq(EqConstr.left(eq),  Type.Assoc(am))
                 => Some(EqConstr.right(eq))
             case _ => None
         },

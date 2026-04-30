@@ -76,3 +76,19 @@ pub def boolUnify(f1: Type, f2: Type): Option[Subst] = {
     let eqType = Type.mkXor(f1 ,f2);
     sve(eqType, Set.toList(FreeVars.fvs(eqType)))
 }
+
+def boolFormEq(f1: Type, f2: Type): Bool = not (isSat(Type.mkXor(f1 ,f2)))
+
+// REMARK: Is this necessary?
+pub def boolEq(t1: Type, t2: Type): Bool = match (t1, t2) {
+    case (Type.Var(v1), Type.Var(v2)) if v1 == v2 => true
+    case (Type.Ap(f1, x1), Type.Ap(f2, x2)) if boolEq(f1, f2) and boolEq(x1, x2) 
+        => true
+    case (Type.Con(c1), Type.Con(c2)) if c1 == c2 => true
+    case (Type.Assoc(a1), Type.Assoc(a2)) if Tyassoc.id(a1) == Tyassoc.id(a2) 
+        => boolEq(Tyassoc.ty(a1), Tyassoc.ty(a2))
+    case (Type.Gen(a), Type.Gen(b)) if a == b => true
+    case _ if Kinded.kind(t1) == Kind.Eff and Kinded.kind(t2) == Kind.Eff 
+        => boolFormEq(t1, t2)
+    case _ => false
+}

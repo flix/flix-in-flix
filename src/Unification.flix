@@ -12,6 +12,7 @@ pub def matchTy(l: Type, r: Type): Option[Subst] = match (l, r) {
     case (Type.Assoc(la), Type.Assoc(ra)) if Tyassoc.id(la) == Tyassoc.id(ra) 
         => matchTy(Tyassoc.ty(la), Tyassoc.ty(ra))
     case _ if Kinded.kind(l) == Kind.Eff and Kinded.kind(r) == Kind.Eff 
+        // REMARK: is boolMatch necessary here?
         => boolMatch(l, r),
     case _ => None
 }
@@ -95,11 +96,7 @@ def unifyRepeatHelper(
                 env, giv, EqConstr.left(head), EqConstr.right(head)
             ) {
                 case Ok((newEqs, sub)) => {
-                    let nextEqs = List.map(
-                        eq -> Substable.apply(sub, eq), 
-                        done ++ tail
-                    );
-
+                    let nextEqs = List.map(Substable.apply(sub), done ++ tail);
                     Some((nextEqs ++ newEqs, sub))
                 }
 

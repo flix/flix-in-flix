@@ -114,6 +114,48 @@ def matchTypesTyassocMatchesUnderlyingArgument(): Unit \ Assert = {
 }
 
 
+// `eff + IO ~ IO -> some boolean substitution for eff`
+@Test
+def matchTypesBooleanEffectsCreateLeftHandSubstitution(): Unit \ Assert = {
+    let effVar = Tyvar.Tyvar("eff", Kind.Eff);
+    let io = Type.io();
+    let left = Type.mkUnion(Type.Var(effVar), io);
+
+    Assert.assertEq(
+        expected = false,
+        matchTy(left, io) |> Option.isEmpty
+    )
+}
+
+
+// `IO ~ eff + IO -> None`
+@Test
+def matchTypesBooleanEffectsDoNotInstantiateRightHandVariables(): Unit \ Assert = {
+    let effVar = Tyvar.Tyvar("eff", Kind.Eff);
+    let io = Type.io();
+    let right = Type.mkUnion(Type.Var(effVar), io);
+
+    Assert.assertEq(
+        expected = None,
+        matchTy(io, right)
+    )
+}
+
+
+// `EffectUniverse ~ EffOf Phantom + ~(EffOf Phantom) -> {}`
+@Test
+def matchTypesBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ Assert = {
+    let phantom = Type.Con(Tycon.Tycon("Phantom", Kind.Star));
+    let assoc = Type.Assoc(Tyassoc.Tyassoc("EffOf", phantom, Kind.Eff));
+    let tautology = Type.mkUnion(assoc, Type.mkCompl(assoc));
+
+    Assert.assertEq(
+        expected = Some(Subst.empty()),
+        matchTy(Type.efUniverse(), tautology)
+    )
+}
+
+
 // `Unary x ~ Unary Int32 -> { Unary ~ Unary, x ~ Int32 }`
 @Test
 def unifyOneStepApplicationCreatesEqualityConstraints(): Unit \ Assert = {
