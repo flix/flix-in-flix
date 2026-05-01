@@ -158,7 +158,7 @@ def matchTypesBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ As
 
 // `Unary x ~ Unary Int32 -> { Unary ~ Unary, x ~ Int32 }`
 @Test
-def unifyOneStepApplicationCreatesEqualityConstraints(): Unit \ Assert = {
+def unifyOneApplicationCreatesEqualityConstraints(): Unit \ Assert = {
     let t = Kind.Star;
     let tToT = Kind.KFun(t, t);
     let unary = Type.Con(Tycon.Tycon("Unary", tToT));
@@ -175,20 +175,20 @@ def unifyOneStepApplicationCreatesEqualityConstraints(): Unit \ Assert = {
             :: Nil,
             Subst.empty()
         )),
-        unifyOneStep(unEmptyConstraintEnv(), Nil, left, right)
+        unifyOne(unEmptyConstraintEnv(), Nil, left, right)
     )
 }
 
 
 // `x ~ Int32 -> { x -> Int32 }`
 @Test
-def unifyOneStepVariableCreatesSubstitution(): Unit \ Assert = {
+def unifyOneVariableCreatesSubstitution(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Some((Nil, Subst.singleton(x, int32))),
-        unifyOneStep(
+        unifyOne(
             unEmptyConstraintEnv(),
             Nil,
             Type.Var(x),
@@ -200,7 +200,7 @@ def unifyOneStepVariableCreatesSubstitution(): Unit \ Assert = {
 
 // `x ~ Unary x -> OccursCheckFailed`
 @Test
-def unifyOneStepVariableRejectsOccursCheckFailure(): Unit \ Assert = {
+def unifyOneVariableRejectsOccursCheckFailure(): Unit \ Assert = {
     let t = Kind.Star;
     let tToT = Kind.KFun(t, t);
     let x = Tyvar.Tyvar("x", t);
@@ -209,7 +209,7 @@ def unifyOneStepVariableRejectsOccursCheckFailure(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = None,
-        unifyOneStep(
+        unifyOne(
             unEmptyConstraintEnv(),
             Nil,
             Type.Var(x),
@@ -221,13 +221,13 @@ def unifyOneStepVariableRejectsOccursCheckFailure(): Unit \ Assert = {
 
 // `Int32 ~ eff -> KindMismatch`
 @Test
-def unifyOneStepRightVariableRejectsKindMismatch(): Unit \ Assert = {
+def unifyOneRightVariableRejectsKindMismatch(): Unit \ Assert = {
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
     let effectVar = Tyvar.Tyvar("eff", Kind.Eff);
 
     Assert.assertEq(
         expected = None,
-        unifyOneStep(
+        unifyOne(
             unEmptyConstraintEnv(),
             Nil,
             int32,
@@ -239,66 +239,66 @@ def unifyOneStepRightVariableRejectsKindMismatch(): Unit \ Assert = {
 
 // `Int32 ~ Int32 -> no new constraints`
 @Test
-def unifyOneStepIdenticalTypesShortCircuits(): Unit \ Assert = {
+def unifyOneIdenticalTypesShortCircuits(): Unit \ Assert = {
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = Some((Nil, Subst.empty())),
-        unifyOneStep(unEmptyConstraintEnv(), Nil, int32, int32)
+        unifyOne(unEmptyConstraintEnv(), Nil, int32, int32)
     )
 }
 
 
 // `Int32 ~ Bool -> NoApplicableRule`
 @Test
-def unifyOneStepDifferentConstructorsHaveNoApplicableRule(): Unit \ Assert = {
+def unifyOneDifferentConstructorsHaveNoApplicableRule(): Unit \ Assert = {
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
     let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
 
     Assert.assertEq(
         expected = None,
-        unifyOneStep(unEmptyConstraintEnv(), Nil, int32, bool)
+        unifyOne(unEmptyConstraintEnv(), Nil, int32, bool)
     )
 }
 
 
 // `IO ~ x + IO -> some boolean substitution for x`
 @Test
-def unifyOneStepBooleanEffectsCreateSubstitution(): Unit \ Assert = {
+def unifyOneBooleanEffectsCreateSubstitution(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Eff);
     let io = Type.io();
     let right = Type.mkUnion(Type.Var(x), io);
 
     assertEq(
         expected = true, 
-        unifyOneStep(unEmptyConstraintEnv(), Nil, io, right) |> Option.nonEmpty
+        unifyOne(unEmptyConstraintEnv(), Nil, io, right) |> Option.nonEmpty
     )
 }
 
 
 // `IO ~ ~IO -> NoApplicableRule`
 @Test
-def unifyOneStepUnsatisfiableBooleanEffectsHaveNoApplicableRule(): Unit \ Assert = {
+def unifyOneUnsatisfiableBooleanEffectsHaveNoApplicableRule(): Unit \ Assert = {
     let io = Type.io();
     let notIo = Type.mkCompl(io);
 
     Assert.assertEq(
         expected = None,
-        unifyOneStep(unEmptyConstraintEnv(), Nil, io, notIo)
+        unifyOne(unEmptyConstraintEnv(), Nil, io, notIo)
     )
 }
 
 
 // `EffectUniverse ~ EffOf Phantom + ~(EffOf Phantom) -> {}`
 @Test
-def unifyOneStepBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ Assert = {
+def unifyOneBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ Assert = {
     let phantom = Type.Con(Tycon.Tycon("Phantom", Kind.Star));
     let assoc = Type.Assoc(Tyassoc.Tyassoc("EffOf", phantom, Kind.Eff));
     let tautology = Type.mkUnion(assoc, Type.mkCompl(assoc));
 
     Assert.assertEq(
         expected = Some((Nil, Subst.empty())),
-        unifyOneStep(
+        unifyOne(
             unEmptyConstraintEnv(),
             Nil,
             Type.efUni(),
@@ -310,14 +310,14 @@ def unifyOneStepBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ 
 
 // `{} ~ EffOf Phantom & ~(EffOf Phantom) -> {}`
 @Test
-def unifyOneStepBooleanEffectsTreatGroundEffectTyassocAsRigidConstantInContradiction(): Unit \ Assert = {
+def unifyOneBooleanEffectsTreatGroundEffectTyassocAsRigidConstantInContradiction(): Unit \ Assert = {
     let phantom = Type.Con(Tycon.Tycon("Phantom", Kind.Star));
     let assoc = Type.Assoc(Tyassoc.Tyassoc("EffOf", phantom, Kind.Eff));
     let contradiction = Type.mkIntersect(assoc, Type.mkCompl(assoc));
 
     Assert.assertEq(
         expected = Some((Nil, Subst.empty())),
-        unifyOneStep(
+        unifyOne(
             unEmptyConstraintEnv(),
             Nil,
             Type.efEmpty(),
@@ -329,14 +329,14 @@ def unifyOneStepBooleanEffectsTreatGroundEffectTyassocAsRigidConstantInContradic
 
 // `{} ~ EffOf Phantom + ~(EffOf Phantom) -> NoApplicableRule`
 @Test
-def unifyOneStepBooleanEffectsRejectUnsatisfiableGroundEffectTyassocFormula(): Unit \ Assert = {
+def unifyOneBooleanEffectsRejectUnsatisfiableGroundEffectTyassocFormula(): Unit \ Assert = {
     let phantom = Type.Con(Tycon.Tycon("Phantom", Kind.Star));
     let assoc = Type.Assoc(Tyassoc.Tyassoc("EffOf", phantom, Kind.Eff));
     let tautology = Type.mkUnion(assoc, Type.mkCompl(assoc));
 
     Assert.assertEq(
         expected = None,
-        unifyOneStep(
+        unifyOne(
             unEmptyConstraintEnv(),
             Nil,
             Type.efEmpty(),
@@ -349,7 +349,7 @@ def unifyOneStepBooleanEffectsRejectUnsatisfiableGroundEffectTyassocFormula(): U
 // given: { Elem x = Bool }
 // `Elem x ~ Bool -> { Bool ~ Bool }`
 @Test
-def unifyOneStepTyassocUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
+def unifyOneTyassocUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let assoc = Tyassoc.Tyassoc("Elem", Type.Var(x), Kind.Star);
     let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
@@ -359,7 +359,7 @@ def unifyOneStepTyassocUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
             unMkEquality(bool, bool) :: Nil,
             Subst.empty()
         )),
-        unifyOneStep(
+        unifyOne(
             unEmptyConstraintEnv(),
             unMkGivenEquality(Type.Assoc(assoc), bool) :: Nil,
             Type.Assoc(assoc),
@@ -372,7 +372,7 @@ def unifyOneStepTyassocUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
 // given: { Elem a = a }
 // `Elem Int32 ~ Int32 -> NoApplicableRule`
 @Test
-def unifyOneStepTyassocDoesNotInstantiateGivenEquality(): Unit \ Assert = {
+def unifyOneTyassocDoesNotInstantiateGivenEquality(): Unit \ Assert = {
     let a = Tyvar.Tyvar("a", Kind.Star);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
     let genericAssoc = Tyassoc.Tyassoc("Elem", Type.Var(a), Kind.Star);
@@ -380,7 +380,7 @@ def unifyOneStepTyassocDoesNotInstantiateGivenEquality(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = None,
-        unifyOneStep(
+        unifyOne(
             unEmptyConstraintEnv(),
             unMkGivenEquality(
                 Type.Assoc(genericAssoc),
@@ -396,7 +396,7 @@ def unifyOneStepTyassocDoesNotInstantiateGivenEquality(): Unit \ Assert = {
 // constraintEnv: { Elem a = a }
 // `Elem Int32 ~ Int32 -> { Int32 ~ Int32 }`
 @Test
-def unifyOneStepTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Assert = {
+def unifyOneTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Assert = {
     let a = Tyvar.Tyvar("a", Kind.Star);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
     let genericAssoc = Tyassoc.Tyassoc("Elem", Type.Var(a), Kind.Star);
@@ -418,7 +418,7 @@ def unifyOneStepTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Asser
             unMkEquality(int32, int32) :: Nil,
             Subst.empty()
         )),
-        unifyOneStep(
+        unifyOne(
             constraintEnv,
             Nil,
             Type.Assoc(specificAssoc),
@@ -431,7 +431,7 @@ def unifyOneStepTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Asser
 // given: { Elem x = Bool }
 // `Elem x ~ Int32 -> { Bool ~ Int32 }`
 @Test
-def unifyOneStepTyassocProducesResidualEquality(): Unit \ Assert = {
+def unifyOneTyassocProducesResidualEquality(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let assoc = Tyassoc.Tyassoc("Elem", Type.Var(x), Kind.Star);
     let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
@@ -442,7 +442,7 @@ def unifyOneStepTyassocProducesResidualEquality(): Unit \ Assert = {
             unMkEquality(bool, int32) :: Nil,
             Subst.empty()
         )),
-        unifyOneStep(
+        unifyOne(
             unEmptyConstraintEnv(),
             unMkGivenEquality(Type.Assoc(assoc), bool) :: Nil,
             Type.Assoc(assoc),
@@ -455,7 +455,7 @@ def unifyOneStepTyassocProducesResidualEquality(): Unit \ Assert = {
 // given: { EffOf x = IO }
 // `EffOf x ~ eff + IO -> { IO ~ eff + IO }`
 @Test
-def unifyOneStepEffectTyassocProducesBooleanResidualEquality(): Unit \ Assert = {
+def unifyOneEffectTyassocProducesBooleanResidualEquality(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let effVar = Tyvar.Tyvar("eff", Kind.Eff);
     let assoc = Tyassoc.Tyassoc("EffOf", Type.Var(x), Kind.Eff);
@@ -467,7 +467,7 @@ def unifyOneStepEffectTyassocProducesBooleanResidualEquality(): Unit \ Assert = 
             unMkEquality(io, right) :: Nil,
             Subst.empty()
         )),
-        unifyOneStep(
+        unifyOne(
             unEmptyConstraintEnv(),
             unMkGivenEquality(Type.Assoc(assoc), io) :: Nil,
             Type.Assoc(assoc),
@@ -480,7 +480,7 @@ def unifyOneStepEffectTyassocProducesBooleanResidualEquality(): Unit \ Assert = 
 // constraintEnv: { ReadEff x = Read }
 // `ReadEff x ~ Int32 -> KindMismatch`
 @Test
-def unifyOneStepTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
+def unifyOneTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let readAssoc = Tyassoc.Tyassoc("ReadEff", Type.Var(x), Kind.Eff);
     let read = Type.efConstant("Read");
@@ -496,7 +496,7 @@ def unifyOneStepTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = None,
-        unifyOneStep(
+        unifyOne(
             constraintEnv,
             Nil,
             Type.Assoc(readAssoc),
@@ -508,14 +508,14 @@ def unifyOneStepTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
 
 // `Elem x ~ Int32 -> NoApplicableRule`
 @Test
-def unifyOneStepTyassocWithoutReductionHasNoApplicableRule(): Unit \ Assert = {
+def unifyOneTyassocWithoutReductionHasNoApplicableRule(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let assoc = Tyassoc.Tyassoc("Elem", Type.Var(x), Kind.Star);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
         expected = None,
-        unifyOneStep(
+        unifyOne(
             unEmptyConstraintEnv(),
             Nil,
             Type.Assoc(assoc),
