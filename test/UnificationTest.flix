@@ -169,7 +169,7 @@ def unifyOneStepApplicationCreatesEqualityConstraints(): Unit \ Assert = {
     let right = Type.Ap(unary, int32);
 
     Assert.assertEq(
-        expected = Ok((
+        expected = Some((
             unMkEquality(unary, unary)
             :: unMkEquality(Type.Var(x), int32)
             :: Nil,
@@ -187,7 +187,7 @@ def unifyOneStepVariableCreatesSubstitution(): Unit \ Assert = {
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
-        expected = Ok((Nil, Subst.singleton(x, int32))),
+        expected = Some((Nil, Subst.singleton(x, int32))),
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,
@@ -208,7 +208,7 @@ def unifyOneStepVariableRejectsOccursCheckFailure(): Unit \ Assert = {
     let unaryX = Type.Ap(unary, Type.Var(x));
 
     Assert.assertEq(
-        expected = Err(UnificationError.OccursCheckFailed),
+        expected = None,
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,
@@ -226,7 +226,7 @@ def unifyOneStepRightVariableRejectsKindMismatch(): Unit \ Assert = {
     let effectVar = Tyvar.Tyvar("eff", Kind.Eff);
 
     Assert.assertEq(
-        expected = Err(UnificationError.KindMismatch),
+        expected = None,
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,
@@ -243,7 +243,7 @@ def unifyOneStepIdenticalTypesShortCircuits(): Unit \ Assert = {
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
-        expected = Ok((Nil, Subst.empty())),
+        expected = Some((Nil, Subst.empty())),
         unifyOneStep(unEmptyConstraintEnv(), Nil, int32, int32)
     )
 }
@@ -256,7 +256,7 @@ def unifyOneStepDifferentConstructorsHaveNoApplicableRule(): Unit \ Assert = {
     let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
 
     Assert.assertEq(
-        expected = Err(UnificationError.NoApplicableRule),
+        expected = None,
         unifyOneStep(unEmptyConstraintEnv(), Nil, int32, bool)
     )
 }
@@ -271,7 +271,7 @@ def unifyOneStepBooleanEffectsCreateSubstitution(): Unit \ Assert = {
 
     assertEq(
         expected = true, 
-        unifyOneStep(unEmptyConstraintEnv(), Nil, io, right) |> Result.isOk
+        unifyOneStep(unEmptyConstraintEnv(), Nil, io, right) |> Option.nonEmpty
     )
 }
 
@@ -283,7 +283,7 @@ def unifyOneStepUnsatisfiableBooleanEffectsHaveNoApplicableRule(): Unit \ Assert
     let notIo = Type.mkCompl(io);
 
     Assert.assertEq(
-        expected = Err(UnificationError.NoApplicableRule),
+        expected = None,
         unifyOneStep(unEmptyConstraintEnv(), Nil, io, notIo)
     )
 }
@@ -297,7 +297,7 @@ def unifyOneStepBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ 
     let tautology = Type.mkUnion(assoc, Type.mkCompl(assoc));
 
     Assert.assertEq(
-        expected = Ok((Nil, Subst.empty())),
+        expected = Some((Nil, Subst.empty())),
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,
@@ -316,7 +316,7 @@ def unifyOneStepBooleanEffectsTreatGroundEffectTyassocAsRigidConstantInContradic
     let contradiction = Type.mkIntersect(assoc, Type.mkCompl(assoc));
 
     Assert.assertEq(
-        expected = Ok((Nil, Subst.empty())),
+        expected = Some((Nil, Subst.empty())),
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,
@@ -335,7 +335,7 @@ def unifyOneStepBooleanEffectsRejectUnsatisfiableGroundEffectTyassocFormula(): U
     let tautology = Type.mkUnion(assoc, Type.mkCompl(assoc));
 
     Assert.assertEq(
-        expected = Err(UnificationError.NoApplicableRule),
+        expected = None,
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,
@@ -355,7 +355,7 @@ def unifyOneStepTyassocUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
     let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
 
     Assert.assertEq(
-        expected = Ok((
+        expected = Some((
             unMkEquality(bool, bool) :: Nil,
             Subst.empty()
         )),
@@ -379,7 +379,7 @@ def unifyOneStepTyassocDoesNotInstantiateGivenEquality(): Unit \ Assert = {
     let specificAssoc = Tyassoc.Tyassoc("Elem", int32, Kind.Star);
 
     Assert.assertEq(
-        expected = Err(UnificationError.NoApplicableRule),
+        expected = None,
         unifyOneStep(
             unEmptyConstraintEnv(),
             unMkGivenEquality(
@@ -414,7 +414,7 @@ def unifyOneStepTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Asser
     );
 
     Assert.assertEq(
-        expected = Ok((
+        expected = Some((
             unMkEquality(int32, int32) :: Nil,
             Subst.empty()
         )),
@@ -438,7 +438,7 @@ def unifyOneStepTyassocProducesResidualEquality(): Unit \ Assert = {
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
-        expected = Ok((
+        expected = Some((
             unMkEquality(bool, int32) :: Nil,
             Subst.empty()
         )),
@@ -463,7 +463,7 @@ def unifyOneStepEffectTyassocProducesBooleanResidualEquality(): Unit \ Assert = 
     let right = Type.mkUnion(Type.Var(effVar), io);
 
     Assert.assertEq(
-        expected = Ok((
+        expected = Some((
             unMkEquality(io, right) :: Nil,
             Subst.empty()
         )),
@@ -495,7 +495,7 @@ def unifyOneStepTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
     );
 
     Assert.assertEq(
-        expected = Err(UnificationError.KindMismatch),
+        expected = None,
         unifyOneStep(
             constraintEnv,
             Nil,
@@ -514,7 +514,7 @@ def unifyOneStepTyassocWithoutReductionHasNoApplicableRule(): Unit \ Assert = {
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
-        expected = Err(UnificationError.NoApplicableRule),
+        expected = None,
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,

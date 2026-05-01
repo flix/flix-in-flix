@@ -1,66 +1,48 @@
-pub enum UnificationError with Eq, ToString, Hash, Order {
-    case OccursCheckFailed
-    case KindMismatch
-    case NoApplicableRule
-}
-
 pub def unifyOneStep(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type): 
-    Result[UnificationError, (List[EqConstr], Subst)] =
-        if (lhs == rhs) Ok((Nil, Subst.empty()))
+    Option[(List[EqConstr], Subst)] =
+        if (boolEq(lhs, rhs)) Some((Nil, Subst.empty()))
         else unifyNoEq(env, giv, lhs, rhs)
 
 def unifyNoEq(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type): 
-    Result[UnificationError, (List[EqConstr], Subst)] = match (lhs, rhs) {
-        case (Type.Ap(lhsFn, lhsArg), Type.Ap(rhsFn, rhsArg)) => Ok((
+    Option[(List[EqConstr], Subst)] = match (lhs, rhs) {
+        case (Type.Ap(lhsFn, lhsArg), Type.Ap(rhsFn, rhsArg)) => Some((
             EqConstr.EqConstr(lhsFn, rhsFn) 
                 :: EqConstr.EqConstr(lhsArg, rhsArg) 
                 :: Nil,
             Subst.empty()
         ))
-
         case (Type.Var(tvar), _) 
-            => Result.map(sub -> (Nil, sub), bindVar(tvar, rhs))
+            => Option.map(sub -> (Nil, sub), bindVar(tvar, rhs))
         case (_, Type.Var(tvar)) 
-            => Result.map(sub -> (Nil, sub), bindVar(tvar, lhs))
-        case (Type.Assoc(am), _) => Result.map(
+            => Option.map(sub -> (Nil, sub), bindVar(tvar, lhs))
+        case (Type.Assoc(am), _) => Option.map(
             eqs -> (eqs, Subst.empty()), 
             bindAssoc(env, giv, am, rhs)
         )
-        case (_, Type.Assoc(am)) => Result.map(
+        case (_, Type.Assoc(am)) => Option.map(
             eqs -> (eqs, Subst.empty()), 
             bindAssoc(env, giv, am, lhs)
         )
-
-        // Extra: performs boolean unification.
         case _ 
             if Kinded.kind(lhs) == Kind.Eff and Kinded.kind(rhs) == Kind.Eff => 
             match boolUnify(lhs, rhs) {
-                case Some(sub) => Ok((Nil, sub))
-                case None => Err(UnificationError.NoApplicableRule)
+                case Some(sub) => Some((Nil, sub))
+                case None => None
             }
-
-
-        case _ => Err(UnificationError.NoApplicableRule)
+        case _ => None
     }
 
 def bindAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc, ty: Type): 
-    Result[UnificationError, List[EqConstr]] = forM (
-        redAm <- Option.toOk(
-            UnificationError.NoApplicableRule,
-            reduceTyOne(env, giv, Type.Assoc(am))
-        );
-        _ <- if (Kinded.kind(redAm) != Kinded.kind(ty))
-                Err(UnificationError.KindMismatch)
-            else Ok(())
+    Option[List[EqConstr]] = forM (
+        redAm <- reduceTyOne(env, giv, Type.Assoc(am));
+        _ <- if (Kinded.kind(redAm) != Kinded.kind(ty)) None
+            else Some(())
     ) yield EqConstr.EqConstr(redAm, ty) :: Nil
 
-def bindVar(tvar: Tyvar, ty: Type): Result[UnificationError, Subst] = {
-    if (Set.memberOf(tvar, FreeVars.fvs(ty)))
-        Err(UnificationError.OccursCheckFailed)
-    else if (Kinded.kind(tvar) != Kinded.kind(ty))
-        Err(UnificationError.KindMismatch)
-    else
-        Ok(Subst.singleton(tvar, ty))
+def bindVar(tvar: Tyvar, ty: Type): Option[Subst] = {
+    if (Set.memberOf(tvar, FreeVars.fvs(ty)) 
+        or Kinded.kind(tvar) != Kinded.kind(ty)) None
+    else Some(Subst.singleton(tvar, ty))
 }
 
 def unifyRepeatHelper(
@@ -76,12 +58,12 @@ def unifyRepeatHelper(
             case head :: tail => match unifyOneStep(
                 env, giv, EqConstr.left(head), EqConstr.right(head)
             ) {
-                case Ok((newEqs, sub)) => {
+                case Some((newEqs, sub)) => {
                     let nextEqs = List.map(Substable.apply(sub), done ++ tail);
                     Some((nextEqs ++ newEqs, sub))
                 }
 
-                case Err(_) => findStep(head :: done, tail)
+                case None => findStep(head :: done, tail)
             }
     };
 

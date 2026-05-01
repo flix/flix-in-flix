@@ -5,12 +5,12 @@ pub def entailOneStep(env: ConstrEnv, giv: List[Constr], goal: Constr):
 
         case Constr.Eq(eq) => Option.map(
             res -> (List.map(Constr.Eq, fst(res)), snd(res)),
-            Result.toOption(unifyOneStep(
+            unifyOneStep(
                 env, 
                 giv, 
                 EqConstr.left(eq), 
                 EqConstr.right(eq)
-            ))
+            )
         )
     }
 
