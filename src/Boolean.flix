@@ -1,6 +1,5 @@
-def sve(f: Type, vars: List[Tyvar]): Option[Subst] = {
-    if (not isSat(f)) Some(Subst.empty())
-    else match vars {
+def sve(f: Type, vars: List[Tyvar]): Option[Subst] = 
+    if (not isSat(f)) Some(Subst.empty()) else match vars {
         case Nil => None
         case x :: xs => {
             let l = Substable.apply(Subst.singleton(x, Type.efEmpty()), f);
@@ -20,7 +19,6 @@ def sve(f: Type, vars: List[Tyvar]): Option[Subst] = {
             }
         }
     }
-}
 
 def isSat(f: Type): Bool = {
     evaluteAll(f, Set.toList(boolVars(f)), Set.empty())
