@@ -30,7 +30,6 @@ instance Instantiate[Tyassoc] {
     )
 }
 
-
 mod Tyassoc {
     pub def ty(a: Tyassoc): Type = match a { case Tyassoc(_, t, _) => t }
     pub def id(a: Tyassoc): Id = match a { case Tyassoc(id, _, _) => id }
@@ -135,6 +134,10 @@ mod Type {
                 else t
             case None => Type.mkAp(Type.efCompl(), i)
         }
+    }
+
+    pub def mkExclusion(l: Type, r: Type): Type = {
+        mkIntersect(l, mkCompl(r))
     }
 }
 
