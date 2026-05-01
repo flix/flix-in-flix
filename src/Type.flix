@@ -24,6 +24,13 @@ instance Kinded[Tycon] {
 
 pub enum Tyassoc(Id, Type, Kind) with Eq, ToString, Hash, Order
 
+instance Instantiate[Tyassoc] {
+    pub def inst(tys: List[Type], s: Tyassoc): Tyassoc = Tyassoc.Tyassoc(
+        Tyassoc.id(s), Instantiate.inst(tys, Tyassoc.ty(s)), Kinded.kind(s)
+    )
+}
+
+
 mod Tyassoc {
     pub def ty(a: Tyassoc): Type = match a { case Tyassoc(_, t, _) => t }
     pub def id(a: Tyassoc): Id = match a { case Tyassoc(id, _, _) => id }
@@ -179,9 +186,9 @@ instance Substable[Type] {
         case Type.Var(v) => Option.getWithDefault(t, Subst.get(v, s))
         case Type.Ap(f, x) 
             => Type.Ap(Substable.apply(s, f), Substable.apply(s, x))
+        case Type.Assoc(a) => Type.Assoc(Substable.apply(s, a))
         case Type.Gen(_) => t
         case Type.Con(_) => t
-        case Type.Assoc(_) => t
     }
 }
 
@@ -202,6 +209,7 @@ instance Instantiate[Type] {
             Instantiate.inst(tys, f), 
             Instantiate.inst(tys, x)
         )
+        case Type.Assoc(a) => Type.Assoc(Instantiate.inst(tys, a))
         case _ => sch
     }
 }
