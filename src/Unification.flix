@@ -6,8 +6,8 @@ pub def unifyOne(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type):
 def unifyNoEq(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type): 
     Option[(List[EqConstr], Subst)] = match (lhs, rhs) {
         case (Type.Ap(lhsFn, lhsArg), Type.Ap(rhsFn, rhsArg)) => Some((
-            EqConstr.EqConstr(lhsFn, rhsFn) 
-                :: EqConstr.EqConstr(lhsArg, rhsArg) 
+            (lhsFn, rhsFn) 
+                :: (lhsArg, rhsArg) 
                 :: Nil,
             Subst.empty()
         ))
@@ -37,7 +37,7 @@ def bindAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc, ty: Type):
         redAm <- reduceTyOne(env, giv, Type.Assoc(am));
         _ <- if (Kinded.kind(redAm) != Kinded.kind(ty)) None
             else Some(())
-    ) yield EqConstr.EqConstr(redAm, ty) :: Nil
+    ) yield (redAm, ty) :: Nil
 
 def bindVar(tvar: Tyvar, ty: Type): Option[Subst] = {
     if (Set.memberOf(tvar, FreeVars.fvs(ty)) 
@@ -55,15 +55,12 @@ def unifyRepeatHelper(
         Option[(List[EqConstr], Subst)] = match rest {
             case Nil => None
 
-            case head :: tail => match unifyOne(
-                env, giv, EqConstr.left(head), EqConstr.right(head)
-            ) {
+            case (l, r) :: tail => match unifyOne(env, giv, l, r) {
                 case Some((newEqs, sub)) => {
                     let nextEqs = List.map(Substable.apply(sub), done ++ tail);
                     Some((nextEqs ++ newEqs, sub))
                 }
-
-                case None => findStep(head :: done, tail)
+                case None => findStep((l, r) :: done, tail)
             }
     };
 

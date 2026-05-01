@@ -1,95 +1,42 @@
-pub enum ClassConstr(Id, Type) with Eq, ToString, Hash, Order
+pub type alias ClassConstr = (Id, Type)
+pub type alias EqConstr = (Type, Type)
 
-instance Instantiate[ClassConstr] {
-    pub def inst(tys: List[Type], sch: ClassConstr): ClassConstr = match sch {
-        case ClassConstr.ClassConstr(id, ty) => 
-            ClassConstr.ClassConstr(id, Instantiate.inst(tys, ty))
-    }
-}
-
-instance FreeVars[ClassConstr] {
-    pub def fvs(a: ClassConstr): Set[Tyvar] = match a {
-        case ClassConstr.ClassConstr(_, ty) => FreeVars.fvs(ty)
-    }
-}
-
-mod ClassConstr {
-    pub def id(c: ClassConstr): Id = match c { case ClassConstr(id, _) => id }
-    pub def ty(c: ClassConstr): Type = match c { case ClassConstr(_, ty) => ty }
-}
-
-instance Substable[ClassConstr] {
-    pub def apply(subst: Subst, con: ClassConstr): ClassConstr = {
-        let id = ClassConstr.id(con);
-        let ty = Substable.apply(subst, ClassConstr.ty(con));
-        ClassConstr.ClassConstr(id, ty)
-    }
-}
-
-pub enum EqConstr(Type, Type) with Eq, ToString, Hash, Order
-
-instance FreeVars[EqConstr] {
-    pub def fvs(a: EqConstr): Set[Tyvar] = match a {
-        case EqConstr.EqConstr(l, r) => FreeVars.fvs(l) ++ FreeVars.fvs(r)
-    }
-}
-
-instance Instantiate[EqConstr] {
-    pub def inst(tys: List[Type], sch: EqConstr): EqConstr = match sch {
-        case EqConstr.EqConstr(lhs, rhs) => EqConstr.EqConstr(
-            Instantiate.inst(tys, lhs),
-            Instantiate.inst(tys, rhs)
+instance Substable[(a, b)] with Substable[a], Substable[b] {
+    pub def apply(subst: Subst, a: (a, b)): (a, b) = match a {
+        case (x, y) => (
+            Substable.apply(subst, x), Substable.apply(subst, y)
         )
     }
 }
 
-instance Substable[EqConstr] {
-    pub def apply(subst: Subst, con: EqConstr): EqConstr = {
-        let lhs = Substable.apply(subst, EqConstr.left(con));
-        let rhs = Substable.apply(subst, EqConstr.right(con));
-        EqConstr.EqConstr(lhs, rhs)
-    }
-}
-
-mod EqConstr {
-    pub def left(con: EqConstr): Type = match con { 
-        case EqConstr(lhs, _) => lhs
-    }
-    pub def right(con: EqConstr): Type = match con { 
-        case EqConstr(_, rhs) => rhs 
-    }
-}
-
 pub enum Constr with Eq, ToString, Hash, Order {
-    case Class(ClassConstr),
-    case Eq(EqConstr)
+    case Class(Id, Type),
+    case Eq(Type, Type)
 }
 
 instance FreeVars[Constr] {
     pub def fvs(con: Constr): Set[Tyvar] = match con {
-        case Constr.Class(cls) => FreeVars.fvs(cls)
-        case Constr.Eq(eq) => FreeVars.fvs(eq)
+        case Constr.Class(_, ty) => FreeVars.fvs(ty)
+        case Constr.Eq(lhs, rhs) => FreeVars.fvs(lhs) ++ FreeVars.fvs(rhs)
     }
 }
 
 instance Substable[Constr] {
-    pub def apply(subst: Subst, con: Constr): Constr = match con {
-        case Constr.Class(cls) => Constr.Class(Substable.apply(subst, cls))
-        case Constr.Eq(eq) => Constr.Eq(Substable.apply(subst, eq))
+    pub def apply(sub: Subst, con: Constr): Constr = match con {
+        case Constr.Class(i, t) => Constr.Class(i, Substable.apply(sub, t))
+        case Constr.Eq(l, r) => Constr.Eq(
+            Substable.apply(sub, l), Substable.apply(sub, r)
+        )
     }
 }
 
-mod Constr {
-    pub def asEq(con: Constr): Option[EqConstr] = match con {
-        case Constr.Eq(eq) => Some(eq)
-        case _ => None
-    }
-}
 
 instance Instantiate[Constr] {
     pub def inst(tys: List[Type], sch: Constr): Constr = match sch {
-        case Constr.Class(cls) => Constr.Class(Instantiate.inst(tys, cls))
-        case Constr.Eq(eq) => Constr.Eq(Instantiate.inst(tys, eq))
+        case Constr.Class(i, t) => Constr.Class(i, Instantiate.inst(tys, t))
+        case Constr.Eq(l, r) => Constr.Eq(
+            Instantiate.inst(tys, l), Instantiate.inst(tys, r)
+        )
     }
 }
 

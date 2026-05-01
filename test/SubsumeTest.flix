@@ -1,9 +1,9 @@
 def suMkClassConstraint(name: Id, ty: Type): ClassConstr =
-    ClassConstr.ClassConstr(name, ty)
+    (name, ty)
 
 
 def suMkGivenClass(name: Id, ty: Type): Constr =
-    Constr.Class(suMkClassConstraint(name, ty))
+    Constr.Class(name, ty)
 
 
 def suMkScheme(
@@ -19,7 +19,7 @@ def suEmptyConstraintEnv(): ConstrEnv =
 
 
 def suRunSubsume(env: ConstrEnv, l: Scheme[Type], r: Scheme[Type]): Bool =
-    Fresh.withFresh(_ -> subsume(env, l, r))
+    Fresh.withFresh(_ -> subsume(env, l, r)) == Nil
 
 
 // `Int32 ≤ Int32`
@@ -120,7 +120,7 @@ def subsumeReducesAssociatedTypesWhileCheckingTypeEquality(): Unit \ Assert = {
     let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
             "Elem",
-            EqConstr.EqConstr(Type.Assoc(genericAssoc), Type.Var(a)) :: Nil
+            (Type.Assoc(genericAssoc), Type.Var(a)) :: Nil
         ),
         Map.empty()
     );

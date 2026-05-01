@@ -1,10 +1,10 @@
 use Assert.assertEq
 def unMkEquality(left: Type, right: Type): EqConstr =
-    EqConstr.EqConstr(left, right)
+    (left, right)
 
 
 def unMkGivenEquality(left: Type, right: Type): Constr =
-    Constr.Eq(unMkEquality(left, right))
+    Constr.Eq(left, right)
 
 
 def unEmptyConstraintEnv(): ConstrEnv =

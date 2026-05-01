@@ -6,10 +6,10 @@ def reduceInnerAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc):
 
 def reduceAssocGiven(giv: List[Constr], am: Tyassoc): Option[Type] 
     = List.findMap(
-        c -> match Constr.asEq(c) {
+        c -> match c {
             // REMARK: is boolEq necessary here?
-            case Some(eq) if boolEq(EqConstr.left(eq),  Type.Assoc(am))
-                => Some(EqConstr.right(eq))
+            case Constr.Eq(lhs, rhs) if boolEq(lhs, Type.Assoc(am))
+                => Some(rhs)
             case _ => None
         },
         giv
@@ -18,8 +18,8 @@ def reduceAssocGiven(giv: List[Constr], am: Tyassoc): Option[Type]
 def reduceAssocEnv(env: ConstrEnv, am: Tyassoc): Option[Type] 
     = List.findMap(
         eq -> Option.map(
-            sub -> Substable.apply(sub, EqConstr.right(eq)),
-            matchTy(EqConstr.left(eq), Type.Assoc(am))
+            sub -> Substable.apply(sub, snd(eq)),
+            matchTy(fst(eq), Type.Assoc(am))
         ),
         ConstrEnv.lookupTyassoc(Tyassoc.id(am), env)
     )

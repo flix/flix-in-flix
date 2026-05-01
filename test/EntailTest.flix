@@ -1,17 +1,17 @@
 def enMkEquality(left: Type, right: Type): EqConstr =
-    EqConstr.EqConstr(left, right)
+    (left, right)
 
 
 def enMkGivenEquality(left: Type, right: Type): Constr =
-    Constr.Eq(enMkEquality(left, right))
+    Constr.Eq(left, right)
 
 
 def enMkClassConstraint(name: Id, ty: Type): ClassConstr =
-    ClassConstr.ClassConstr(name, ty)
+    (name, ty)
 
 
 def enMkGivenClass(name: Id, ty: Type): Constr =
-    Constr.Class(enMkClassConstraint(name, ty))
+    Constr.Class(name, ty)
 
 
 def enMkInstance(
@@ -40,7 +40,7 @@ def entailOneDelegatesEqualityGoalsToUnification(): Unit \ Assert = {
         entailOne(
             enEmptyConstraintEnv(),
             Nil,
-            Constr.Eq(enMkEquality(Type.Var(x), int32))
+            Constr.Eq(Type.Var(x), int32)
         )
     )
 }
@@ -63,10 +63,10 @@ def entailOneDoesNotInstantiateEqualityGiven(): Unit \ Assert = {
                 Type.Assoc(genericAssoc),
                 Type.Var(a)
             ) :: Nil,
-            Constr.Eq(enMkEquality(
+            Constr.Eq(
                 Type.Assoc(specificAssoc),
                 int32
-            ))
+            )
         )
     )
 }
@@ -94,16 +94,16 @@ def entailOneInstantiatesEqualityFromConstraintEnvironment(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = Some((
-            Constr.Eq(enMkEquality(int32, int32)) :: Nil,
+            Constr.Eq(int32, int32) :: Nil,
             Subst.empty()
         )),
         entailOne(
             constraintEnv,
             Nil,
-            Constr.Eq(enMkEquality(
+            Constr.Eq(
                 Type.Assoc(specificAssoc),
                 int32
-            ))
+            )
         )
     )
 }
@@ -128,7 +128,7 @@ def entailOneDischargesClassGoalByGivenSuperclass(): Unit \ Assert = {
         entailOne(
             constraintEnv,
             enMkGivenClass("Ord", int32) :: Nil,
-            Constr.Class(enMkClassConstraint("Eq", int32))
+            Constr.Class("Eq", int32)
         )
     )
 }
@@ -156,16 +156,16 @@ def entailOneReducesClassGoalTypeBeforeOtherEntailmentRules(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = Some((
-            Constr.Class(enMkClassConstraint("Show", int32)) :: Nil,
+            Constr.Class("Show", int32) :: Nil,
             Subst.empty()
         )),
         entailOne(
             constraintEnv,
             Nil,
-            Constr.Class(enMkClassConstraint(
+            Constr.Class(
                 "Show",
                 Type.Assoc(specificAssoc)
-            ))
+            )
         )
     )
 }
@@ -201,7 +201,7 @@ def entailOneInstantiatesMatchingInstanceContext(): Unit \ Assert = {
         entailOne(
             constraintEnv,
             Nil,
-            Constr.Class(enMkClassConstraint("Eq", int32))
+            Constr.Class("Eq", int32)
         )
     )
 }
@@ -214,9 +214,11 @@ def entailRepeatAppliesEqualitySubstitutionToRemainingGoals(): Unit \ Assert = {
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     let constraints = Constr.Eq(
-        enMkEquality(Type.Var(x), int32)
+        Type.Var(x),
+        int32
     ) :: Constr.Class(
-        enMkClassConstraint("Show", Type.Var(x))
+        "Show",
+        Type.Var(x)
     ) :: Nil;
 
     let (remaining, subst) = entailRepeat(
@@ -263,10 +265,10 @@ def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
     let (remaining, subst) = entailRepeat(
         constraintEnv,
         enMkGivenClass("Show", int32) :: Nil,
-        Constr.Class(enMkClassConstraint(
+        Constr.Class(
             "Eq",
             Type.Assoc(specificAssoc)
-        )) :: Nil
+        ) :: Nil
     );
 
     Assert.assertEq(expected = Nil, remaining);

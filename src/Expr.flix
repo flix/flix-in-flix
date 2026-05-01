@@ -42,10 +42,7 @@ mod Expr {
         let freshE = Type.Var(Fresh.freshVar(Kind.Eff));
         let freshR = Type.Var(Fresh.freshVar(Kind.Star));
 
-        Collect.collect(Constr.Eq(EqConstr.EqConstr(
-            funTy, 
-            Type.mkArrow(argTy, freshE, freshR))
-        ));
+        Collect.collect(Constr.Eq(funTy, Type.mkArrow(argTy, freshE, freshR)));
 
         (freshR, Type.mkUnion(argE, Type.mkUnion(funE, freshE)))
 
@@ -67,8 +64,8 @@ mod Expr {
         let (tTy, tEff) = infer(assums, t);
         let (fTy, fEff) = infer(assums, f);
 
-        Collect.collect(Constr.Eq(EqConstr.EqConstr(cTy, Type.bool())));
-        Collect.collect(Constr.Eq(EqConstr.EqConstr(tTy, fTy)));
+        Collect.collect(Constr.Eq(cTy, Type.bool()));
+        Collect.collect(Constr.Eq(tTy, fTy));
 
         (tTy, Type.mkUnion(cEff, Type.mkUnion(tEff, fEff)))
     }

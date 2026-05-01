@@ -1,9 +1,9 @@
 def trMkEquality(left: Type, right: Type): EqConstr =
-    EqConstr.EqConstr(left, right)
+    (left, right)
 
 
 def trMkGivenEquality(left: Type, right: Type): Constr =
-    Constr.Eq(trMkEquality(left, right))
+    Constr.Eq(left, right)
 
 
 def trEmptyConstraintEnv(): ConstrEnv =
@@ -311,7 +311,7 @@ def reduceTypeOneStepReducesTyassocInsideSetFormula(): Unit \ Assert = {
     let constraintEnv = ConstrEnv.ConstrEnv(
         Map.singleton(
             assocId,
-            EqConstr.EqConstr(
+            (
                 Type.Assoc(assoc),
                 io
             ) :: Nil
