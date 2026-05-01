@@ -11,3 +11,8 @@ instance FreeVars[List[a]] with FreeVars[a] {
             a
         )
 }
+
+instance FreeVars[Map[k, v]] with FreeVars[v] {
+    pub def fvs(m: Map[k, v]): Set[Tyvar] =
+        Map.foldLeft((s, v) -> Set.union(FreeVars.fvs(v), s), Set.empty(), m)
+}
