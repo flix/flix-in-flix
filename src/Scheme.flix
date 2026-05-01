@@ -8,6 +8,13 @@ instance Substable[Scheme[a]] with Substable[a] {
     }
 }
 
+instance FreeVars[Scheme[a]] with FreeVars[a] {
+    pub def fvs(a: Scheme[a]): Set[Tyvar] = match a {
+        case Scheme.Scheme(_, qua) => FreeVars.fvs(qua)
+    }
+}
+
+
 mod Scheme {
     pub def head(sch: Scheme[a]): a = match sch {
         case Scheme(_, qua) => Qual.head(qua)
