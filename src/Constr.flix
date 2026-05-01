@@ -7,6 +7,12 @@ instance Instantiate[ClassConstr] {
     }
 }
 
+instance FreeVars[ClassConstr] {
+    pub def fvs(a: ClassConstr): Set[Tyvar] = match a {
+        case ClassConstr.ClassConstr(_, ty) => FreeVars.fvs(ty)
+    }
+}
+
 mod ClassConstr {
     pub def id(c: ClassConstr): Id = match c { case ClassConstr(id, _) => id }
     pub def ty(c: ClassConstr): Type = match c { case ClassConstr(_, ty) => ty }
@@ -21,6 +27,12 @@ instance Substable[ClassConstr] {
 }
 
 pub enum EqConstr(Type, Type) with Eq, ToString, Hash, Order
+
+instance FreeVars[EqConstr] {
+    pub def fvs(a: EqConstr): Set[Tyvar] = match a {
+        case EqConstr.EqConstr(l, r) => FreeVars.fvs(l) ++ FreeVars.fvs(r)
+    }
+}
 
 instance Instantiate[EqConstr] {
     pub def inst(tys: List[Type], sch: EqConstr): EqConstr = match sch {
@@ -53,6 +65,13 @@ pub enum Constr with Eq, ToString, Hash, Order {
     case Eq(EqConstr)
 }
 
+instance FreeVars[Constr] {
+    pub def fvs(con: Constr): Set[Tyvar] = match con {
+        case Constr.Class(cls) => FreeVars.fvs(cls)
+        case Constr.Eq(eq) => FreeVars.fvs(eq)
+    }
+}
+
 instance Substable[Constr] {
     pub def apply(subst: Subst, con: Constr): Constr = match con {
         case Constr.Class(cls) => Constr.Class(Substable.apply(subst, cls))
@@ -76,6 +95,12 @@ instance Instantiate[Constr] {
 
 
 pub enum Qual[a](List[Constr], a) with Eq, ToString, Hash, Order
+
+instance FreeVars[Qual[a]] with FreeVars[a] {
+    pub def fvs(a: Qual[a]): Set[Tyvar] = match a {
+        case Qual.Qual(q, ctx) => FreeVars.fvs(q) ++ FreeVars.fvs(ctx)
+    }
+}
 
 instance Substable[Qual[a]] with Substable[a] {
     pub def apply(subst: Subst, a: Qual[a]): Qual[a] = match a {
