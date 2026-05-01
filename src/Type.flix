@@ -100,70 +100,44 @@ mod Type {
         case _ => None
     }
 
-    pub def mkUnion(left: Type, right: Type): Type = {
-        if (left == right) left
-
-        else if (
-            innerCompl(left) == Some(right) 
-            or innerCompl(right) == Some(left)
-        ) Type.efUniverse()
-
-        else if (
-            left == Type.efUniverse()
-            or right == Type.efUniverse()
-        ) Type.efUniverse()
-
-        else if (left == Type.efEmpty()) right
-        else if (right == Type.efEmpty()) left
-
-        else Type.mkAp(Type.mkAp(Type.efUnion(), left), right)
+    pub def mkUnion(l: Type, r: Type): Type = {
+        if (l == r) l
+        else if (innerCompl(l) == Some(r) or innerCompl(r) == Some(l)) 
+            Type.efUniverse()
+        else if (l == Type.efUniverse() or r == Type.efUniverse()) 
+            Type.efUniverse()
+        else if (l == Type.efEmpty()) r else if (r == Type.efEmpty()) l
+        else Type.mkAp(Type.mkAp(Type.efUnion(), l), r)
     }
 
-    pub def mkIntersect(left: Type, right: Type): Type = {
-        if (left == right) left
-
-        else if (
-            innerCompl(left) == Some(right) 
-            or innerCompl(right) == Some(left)
-        ) Type.efEmpty()
-
-        else if (
-            left == Type.efEmpty()
-            or right == Type.efEmpty()
-        ) Type.efEmpty()
-
-        else if (left == Type.efUniverse()) right
-        else if (right == Type.efUniverse()) left
-
-        else Type.mkAp(Type.mkAp(Type.efIntersect(), left), right)
+    pub def mkIntersect(l: Type, r: Type): Type = {
+        if (l == r) l
+        else if (innerCompl(l) == Some(r) or innerCompl(r) == Some(l)) 
+            Type.efEmpty()
+        else if (l == Type.efEmpty() or r == Type.efEmpty()) Type.efEmpty()
+        else if (l == Type.efUniverse()) r else if (r == Type.efUniverse()) l
+        else Type.mkAp(Type.mkAp(Type.efIntersect(), l), r)
     }
 
-    pub def mkXor(left: Type, right: Type): Type = {
-        if (left == right) Type.efEmpty()
-
-        else if (
-            innerCompl(left) == Some(right) 
-            or innerCompl(right) == Some(left)
-        ) Type.efUniverse()
-
-        else if (left == Type.efEmpty()) right
-        else if (right == Type.efEmpty()) left
-
-        else if (left == Type.efUniverse()) Type.mkCompl(right)
-        else if (right == Type.efUniverse()) Type.mkCompl(left)
-
-        else Type.mkAp(Type.mkAp(Type.efXor(), left), right)
+    pub def mkXor(l: Type, r: Type): Type = {
+        if (l == r) Type.efEmpty()
+        else if (innerCompl(l) == Some(r) or innerCompl(r) == Some(l)) 
+            Type.efUniverse()
+        else if (l == Type.efEmpty()) r else if (r == Type.efEmpty()) l
+        else if (l == Type.efUniverse()) Type.mkCompl(r)
+        else if (r == Type.efUniverse()) Type.mkCompl(l)
+        else Type.mkAp(Type.mkAp(Type.efXor(), l), r)
     }
 
-    pub def mkCompl(inner: Type): Type = {
-        if (inner == Type.efEmpty()) Type.efUniverse()
-        else if (inner == Type.efUniverse()) Type.efEmpty()
-        else match innerCompl(inner) {
-            case Some(t) 
-                => if (t == Type.efEmpty()) Type.efUniverse() 
+    pub def mkCompl(i: Type): Type = {
+        if (i == Type.efEmpty()) Type.efUniverse()
+        else if (i == Type.efUniverse()) Type.efEmpty()
+        else match innerCompl(i) {
+            case Some(t) => 
+                if (t == Type.efEmpty()) Type.efUniverse() 
                 else if (t == Type.efUniverse()) Type.efEmpty() 
                 else t
-            case None => Type.mkAp(Type.efComplement(), inner)
+            case None => Type.mkAp(Type.efComplement(), i)
         }
     }
 }
