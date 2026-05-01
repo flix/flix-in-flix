@@ -1,4 +1,4 @@
-pub def unifyOneStep(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type): 
+pub def unifyOne(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type): 
     Option[(List[EqConstr], Subst)] =
         if (boolEq(lhs, rhs)) Some((Nil, Subst.empty()))
         else unifyNoEq(env, giv, lhs, rhs)
@@ -55,7 +55,7 @@ def unifyRepeatHelper(
         Option[(List[EqConstr], Subst)] = match rest {
             case Nil => None
 
-            case head :: tail => match unifyOneStep(
+            case head :: tail => match unifyOne(
                 env, giv, EqConstr.left(head), EqConstr.right(head)
             ) {
                 case Some((newEqs, sub)) => {
