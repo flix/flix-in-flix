@@ -20,4 +20,9 @@ mod Fresh {
                 res(Tyvar.Tyvar("!v${curr}", k))
         }
     }
+
+    pub def freshInst(s: Scheme[a]): Qual[a] \ Fresh with Instantiate[a] = {
+        let ts = List.map(k -> Type.Var(Fresh.freshVar(k)), Scheme.varKinds(s));
+        Instantiate.inst(ts, Scheme.qual(s))
+    }
 }
