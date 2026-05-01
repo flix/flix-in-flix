@@ -151,7 +151,7 @@ def matchTypesBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ As
 
     Assert.assertEq(
         expected = Some(Subst.empty()),
-        matchTy(Type.efUniverse(), tautology)
+        matchTy(Type.efUni(), tautology)
     )
 }
 
@@ -301,7 +301,7 @@ def unifyOneStepBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ 
         unifyOneStep(
             unEmptyConstraintEnv(),
             Nil,
-            Type.efUniverse(),
+            Type.efUni(),
             tautology
         )
     )

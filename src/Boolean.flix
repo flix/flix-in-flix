@@ -3,7 +3,7 @@ def sve(f: Type, vars: List[Tyvar]): Option[Subst] =
         case Nil => None
         case x :: xs => {
             let l = Substable.apply(Subst.singleton(x, Type.efEmpty()), f);
-            let r = Substable.apply(Subst.singleton(x, Type.efUniverse()), f);
+            let r = Substable.apply(Subst.singleton(x, Type.efUni()), f);
             let lr = Type.mkIntersect(l, r);
 
             forM (sub <- sve(lr, xs)) yield {
@@ -35,12 +35,12 @@ def evaluteAll(f: Type, vars: List[Type], trueVars: Set[Type]): Bool = {
 
 def evaluate(f: Type, trueVars: Set[Type]): Bool =  {
     if (f == Type.efEmpty()) false
-    else if (f == Type.efUniverse()) true
+    else if (f == Type.efUni()) true
     else if (Set.memberOf(f, trueVars)) true
     else match f {
         case Type.Ap(f1, f2) => {
             // we handle two cases: complement and binary ops
-            if (f1 == Type.efComplement()) not evaluate(f2, trueVars)
+            if (f1 == Type.efCompl()) not evaluate(f2, trueVars)
             else match f1 {
                 // must be in the form of `ap(ap(binOp arg1) arg2)`
                 case Type.Ap(binOp, arg1) => {
@@ -61,7 +61,7 @@ def evaluate(f: Type, trueVars: Set[Type]): Bool =  {
 
 def boolVars(t: Type): Set[Type] = match t {
     case Type.Ap(f, x) => Set.union(boolVars(f), boolVars(x))
-    case Type.Con(_) if (t == Type.efEmpty() or t == Type.efUniverse()) 
+    case Type.Con(_) if (t == Type.efEmpty() or t == Type.efUni()) 
         => Set.empty()
     case Type.Gen(_) => bug!("Gen shouldn't be present in boolUnify")
     case _ => Set.singleton(t)

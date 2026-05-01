@@ -76,7 +76,7 @@ mod Type {
     pub def efUnion(): Type = Type.Con(Tycon.Tycon("+", Kind.efBinary()))
     pub def efIntersect(): Type = Type.Con(Tycon.Tycon("&", Kind.efBinary()))
     pub def efXor(): Type = Type.Con(Tycon.Tycon("^", Kind.efBinary()))
-    pub def efComplement(): Type = Type.Con(Tycon.Tycon("~", Kind.efUnary()))
+    pub def efCompl(): Type = Type.Con(Tycon.Tycon("~", Kind.efUnary()))
 
 
     pub def efEmpty(): Type = Type.Con(Tycon.Tycon("{}", Kind.Eff))
@@ -85,7 +85,7 @@ mod Type {
     pub def io(): Type = efConstant("IO")
     pub def random(): Type = efConstant("Random")
     pub def http(): Type = efConstant("Http")
-    pub def efUniverse(): Type = efConstant("EffectUniverse")
+    pub def efUni(): Type = efConstant("EffectUniverse")
 
     pub def mkArrow(arg: Type, ef: Type, res: Type): Type = {
         Type.mkAp(Type.mkAp(Type.arrow(), arg), Type.mkAp(ef, res))
@@ -95,49 +95,45 @@ mod Type {
 
 
 mod Type {
-    def innerCompl(t: Type) : Option[Type] = match t {
-        case Type.Ap(com, inner) if com == Type.efComplement() => Some(inner)
+    def tryComl(t: Type) : Option[Type] = match t {
+        case Type.Ap(com, inner) if com == Type.efCompl() => Some(inner)
         case _ => None
     }
 
     pub def mkUnion(l: Type, r: Type): Type = {
         if (l == r) l
-        else if (innerCompl(l) == Some(r) or innerCompl(r) == Some(l)) 
-            Type.efUniverse()
-        else if (l == Type.efUniverse() or r == Type.efUniverse()) 
-            Type.efUniverse()
+        else if (tryComl(l) == Some(r) or tryComl(r) == Some(l)) Type.efUni()
+        else if (l == Type.efUni() or r == Type.efUni()) Type.efUni()
         else if (l == Type.efEmpty()) r else if (r == Type.efEmpty()) l
         else Type.mkAp(Type.mkAp(Type.efUnion(), l), r)
     }
 
     pub def mkIntersect(l: Type, r: Type): Type = {
         if (l == r) l
-        else if (innerCompl(l) == Some(r) or innerCompl(r) == Some(l)) 
-            Type.efEmpty()
+        else if (tryComl(l) == Some(r) or tryComl(r) == Some(l)) Type.efEmpty()
         else if (l == Type.efEmpty() or r == Type.efEmpty()) Type.efEmpty()
-        else if (l == Type.efUniverse()) r else if (r == Type.efUniverse()) l
+        else if (l == Type.efUni()) r else if (r == Type.efUni()) l
         else Type.mkAp(Type.mkAp(Type.efIntersect(), l), r)
     }
 
     pub def mkXor(l: Type, r: Type): Type = {
         if (l == r) Type.efEmpty()
-        else if (innerCompl(l) == Some(r) or innerCompl(r) == Some(l)) 
-            Type.efUniverse()
+        else if (tryComl(l) == Some(r) or tryComl(r) == Some(l)) Type.efUni()
         else if (l == Type.efEmpty()) r else if (r == Type.efEmpty()) l
-        else if (l == Type.efUniverse()) Type.mkCompl(r)
-        else if (r == Type.efUniverse()) Type.mkCompl(l)
+        else if (l == Type.efUni()) Type.mkCompl(r)
+        else if (r == Type.efUni()) Type.mkCompl(l)
         else Type.mkAp(Type.mkAp(Type.efXor(), l), r)
     }
 
     pub def mkCompl(i: Type): Type = {
-        if (i == Type.efEmpty()) Type.efUniverse()
-        else if (i == Type.efUniverse()) Type.efEmpty()
-        else match innerCompl(i) {
+        if (i == Type.efEmpty()) Type.efUni()
+        else if (i == Type.efUni()) Type.efEmpty()
+        else match tryComl(i) {
             case Some(t) => 
-                if (t == Type.efEmpty()) Type.efUniverse() 
-                else if (t == Type.efUniverse()) Type.efEmpty() 
+                if (t == Type.efEmpty()) Type.efUni() 
+                else if (t == Type.efUni()) Type.efEmpty() 
                 else t
-            case None => Type.mkAp(Type.efComplement(), i)
+            case None => Type.mkAp(Type.efCompl(), i)
         }
     }
 }

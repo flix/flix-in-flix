@@ -7,7 +7,7 @@ pub def booleanXandYUnifyWithTrue(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = false,
-        boolUnify(f, Type.efUniverse()) |> Option.isEmpty
+        boolUnify(f, Type.efUni()) |> Option.isEmpty
     )
 }
 
@@ -29,7 +29,7 @@ pub def booleanXandYUnifyWithFalse(): Unit \ Assert = {
 pub def trueDoesNotUnifyWithFalse(): Unit \ Assert = {
     Assert.assertEq(
         expected = true,
-        boolUnify(Type.efUniverse(), Type.efEmpty()) |> Option.isEmpty
+        boolUnify(Type.efUni(), Type.efEmpty()) |> Option.isEmpty
     )
 }
 
