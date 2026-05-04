@@ -62,12 +62,10 @@ def entailRepeatHelper(
         case head :: tail => {
             match entailOne(env, giv, head) {
                 case Some((newCs, sub)) => {
-                    let nextCs = List.map(
-                        c -> Substable.apply(sub, c), 
-                        done ++ tail
-                    );
+                    let doneS = List.map(c -> Substable.apply(sub, c), done);
+                    let tailS = List.map(c -> Substable.apply(sub, c), tail);
 
-                    Some((nextCs ++ newCs, sub))
+                    Some((doneS ++ newCs ++ tailS, sub))
                 }
 
                 case None => findStep(head :: done, tail)

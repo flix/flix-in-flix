@@ -57,9 +57,11 @@ def unifyRepeatHelper(
 
             case (l, r) :: tail => match unifyOne(env, giv, l, r) {
                 case Some((newEqs, sub)) => {
-                    let nextEqs = List.map(Substable.apply(sub), done ++ tail);
-                    Some((nextEqs ++ newEqs, sub))
+                    let doneS = List.map(Substable.apply(sub), done);
+                    let tailS = List.map(Substable.apply(sub), tail);
+                    Some((doneS ++ newEqs ++ tailS, sub))
                 }
+
                 case None => findStep((l, r) :: done, tail)
             }
     };
