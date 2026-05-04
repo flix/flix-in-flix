@@ -1,5 +1,3 @@
-use Expr.infer
-
 /// Represents name, its type ascribed by the programmer, and its body.
 pub type alias TopLevelDecl = (Id, Scheme[Type], Expr)
 
@@ -20,7 +18,7 @@ pub def typeCheckProgram(
         x -> {
             let (id, sch, expr) = x;
             let ((ty, ef), constrs) = 
-                Collect.withCollect(() -> infer(initialAssums, expr));
+                Collect.withCollect(() -> Expr.infer(initialAssums, expr));
 
             (id, subsume(env, Qual.Qual(constrs, ty), ef, sch))
         }, 
@@ -42,12 +40,8 @@ def subsume(
     r: Scheme[Type]
 ): List[Constr] \ Fresh = 
     let rcon = List.map(Fresh.freshCon >> Type.Con, Scheme.varKinds(r));
-
     let rinst = Instantiate.inst(rcon, Scheme.qual(r));
-
     let tyEq = Constr.Eq(Qual.head(l), Qual.head(rinst));
     let efPure = Constr.Eq(le, Type.efEmpty());
-
     let wanteds = tyEq :: efPure :: Qual.context(l);
-
     fst(entailRepeat(e, Qual.context(rinst), wanteds))
