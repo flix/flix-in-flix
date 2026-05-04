@@ -8,7 +8,7 @@ def unMkGivenEquality(left: Type, right: Type): Constr =
 
 
 def unEmptyConstraintEnv(): ConstrEnv =
-    ConstrEnv.ConstrEnv(Map.empty(), Map.empty())
+    ConstrEnv.empty()
 
 
 // `x ~ Int32 -> { x -> Int32 }`
@@ -402,15 +402,13 @@ def unifyOneTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Assert = 
     let genericAssoc = Tyassoc.Tyassoc("Elem", Type.Var(a), Kind.Star);
     let specificAssoc = Tyassoc.Tyassoc("Elem", int32, Kind.Star);
 
-    let constraintEnv = ConstrEnv.ConstrEnv(
-        Map.singleton(
-            "Elem",
-            unMkEquality(
-                Type.Assoc(genericAssoc),
-                Type.Var(a)
-            ) :: Nil
+    let constraintEnv = ConstrEnv.addAssocEq(
+        "Elem",
+        unMkEquality(
+            Type.Assoc(genericAssoc),
+            Type.Var(a)
         ),
-        Map.empty()
+        ConstrEnv.empty()
     );
 
     Assert.assertEq(
@@ -486,12 +484,10 @@ def unifyOneTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
     let read = Type.efConstant("Read");
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstrEnv.ConstrEnv(
-        Map.singleton(
-            "ReadEff",
-            unMkEquality(Type.Assoc(readAssoc), read) :: Nil
-        ), 
-        Map.empty()
+    let constraintEnv = ConstrEnv.addAssocEq(
+        "ReadEff",
+        unMkEquality(Type.Assoc(readAssoc), read),
+        ConstrEnv.empty()
     );
 
     Assert.assertEq(
@@ -584,12 +580,10 @@ def unifyRepeatSolvesBooleanResidualFromEffectTyassocReduction(): Unit \ Assert 
     let specificAssoc = Tyassoc.Tyassoc("EffOf", int32, Kind.Eff);
     let io = Type.io();
 
-    let constraintEnv = ConstrEnv.ConstrEnv(
-        Map.singleton(
-            "EffOf",
-            unMkEquality(Type.Assoc(genericAssoc), io) :: Nil
-        ),
-        Map.empty()
+    let constraintEnv = ConstrEnv.addAssocEq(
+        "EffOf",
+        unMkEquality(Type.Assoc(genericAssoc), io),
+        ConstrEnv.empty()
     );
 
     let constraints = unMkEquality(
@@ -692,12 +686,10 @@ def unifyRepeatPreservesUnsolvedBooleanResidualFromEffectTyassocReduction(): Uni
     let io = Type.io();
     let notIo = Type.mkCompl(io);
 
-    let constraintEnv = ConstrEnv.ConstrEnv(
-        Map.singleton(
-            "EffOf",
-            unMkEquality(Type.Assoc(genericAssoc), notIo) :: Nil
-        ),
-        Map.empty()
+    let constraintEnv = ConstrEnv.addAssocEq(
+        "EffOf",
+        unMkEquality(Type.Assoc(genericAssoc), notIo),
+        ConstrEnv.empty()
     );
 
     let constraints = unMkEquality(Type.Assoc(specificAssoc), io) :: Nil;
@@ -718,22 +710,18 @@ def unifyRepeatFullyReducesChainedTyassocs(): Unit \ Assert = {
     let assocB = Tyassoc.Tyassoc("AssocB", Type.Var(x), Kind.Star);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstrEnv.ConstrEnv(
-        Map.union(
-            Map.singleton(
-                "AssocA",
-                unMkEquality(
-                    Type.Assoc(assocA),
-                    Type.Assoc(assocB)
-                ) :: Nil
-            ),
-            Map.singleton(
-                "AssocB",
-                unMkEquality(Type.Assoc(assocB), int32) :: Nil
+    let constraintEnv = ConstrEnv.empty()
+        |> ConstrEnv.addAssocEq(
+            "AssocA",
+            unMkEquality(
+                Type.Assoc(assocA),
+                Type.Assoc(assocB)
             )
-        ),
-        Map.empty()
-    );
+        )
+        |> ConstrEnv.addAssocEq(
+            "AssocB",
+            unMkEquality(Type.Assoc(assocB), int32)
+        );
 
     let constraints = unMkEquality(Type.Assoc(assocA), int32) :: Nil;
 

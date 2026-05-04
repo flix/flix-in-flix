@@ -34,12 +34,9 @@ def tryInst(inst: Inst, clsTy: Type): Option[List[Constr]] = Option.map(
     matchTy(snd(Inst.head(inst)), clsTy)
 )
 
-def byInst(env: ConstrEnv, clsId: Id, clsTy: Type): Option[List[Constr]] = {
-    forM (
-        cls <- ConstrEnv.lookupClass(clsId, env);
-        ctx <- List.findMap(i -> tryInst(i, clsTy), Class.insts(cls))
-    ) yield ctx
-}
+def byInst(env: ConstrEnv, clsId: Id, clsTy: Type): Option[List[Constr]] =
+    List.findMap(i -> tryInst(i, clsTy), ConstrEnv.getClassInsts(clsId, env))
+
 
 def reduceClass(env: ConstrEnv, giv: List[Constr], clsId: Id, clsTy: Type): 
     Option[ClassConstr] = Option.map(

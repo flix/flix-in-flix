@@ -10,52 +10,70 @@ mod Inst {
     }
 }
 
-pub enum Class(List[Id], List[Inst])
-
-mod Class {
-    pub def supers(cls: Class): List[Id] = match cls { 
-        case Class(sups, _) => sups 
-    }
-    pub def insts(cls: Class): List[Inst] = match cls { 
-        case Class(_, insts) => insts
-    }
-}
-
 pub enum ConstrEnv(
     // Map from associated member id to the equality constraints
     Map[Id, List[EqConstr]],
-    Map[Id, Class]
+    Map[Id, List[Inst]],
+    Set[(Id, Id)]
 )
 
 mod ConstrEnv {
+    pub def empty(): ConstrEnv = ConstrEnv(
+        Map.empty(), Map.empty(), Set.empty()
+    )
+
     def tyassocs(env: ConstrEnv): Map[Id, List[EqConstr]] = match env {
-        case ConstrEnv(amap, _) => amap
+        case ConstrEnv(amap, _, _) => amap
     }
 
-    def classes(env: ConstrEnv): Map[Id, Class] = match env {
-        case ConstrEnv(_, cmap) => cmap
+    pub def addAssocEq(
+        id: Id, 
+        eq: EqConstr, 
+        env: ConstrEnv
+    ): ConstrEnv = match env {
+        case ConstrEnv(amap, cmap, sups) => ConstrEnv(
+            Map.insertWith(List.append, id, eq :: Nil, amap),
+            cmap,
+            sups
+        )
     }
 
-    pub def lookupClass(id: Id, env: ConstrEnv): Option[Class] = {
-        Map.get(id, classes(env))
+    pub def addClass(id: Id, env: ConstrEnv): ConstrEnv = match env {
+        case ConstrEnv(amap, cmap, sups) => ConstrEnv(
+            amap, 
+            Map.insert(id, Nil, cmap),
+            sups
+        )
+    }
+
+    pub def addInst(id: Id, inst: Inst, env: ConstrEnv): ConstrEnv = match env {
+        case ConstrEnv(amap, cmap, sups) => ConstrEnv(
+            amap,
+            Map.insertWith(List.append, id, inst :: Nil, cmap),
+            sups
+        )
+    }
+
+    pub def addSuper(sub: Id, sup: Id, env: ConstrEnv): ConstrEnv = match env {
+        case ConstrEnv(amap, cmap, sups) => ConstrEnv(
+            amap,
+            cmap,
+            Set.insert((sub, sup), sups)
+        )
+    }
+
+    pub def getClassInsts(id: Id, env: ConstrEnv): List[Inst] = {
+        Option.getWithDefault(Nil, Map.get(id, match env {
+            case ConstrEnv(_, cmap, _) => cmap
+        }))
     }
 
     pub def lookupTyassoc(id: Id, env: ConstrEnv): List[EqConstr] = {
         Option.getWithDefault(Nil, Map.get(id, tyassocs(env)))
     }
 
-    pub def supersOf(id: Id, env: ConstrEnv): List[Id] = {
-        Option.getWithDefault(
-            Nil,
-            Option.map(cls -> Class.supers(cls), Map.get(id, classes(env)))
-        )
-    }
-
-    pub def superFact(env: ConstrEnv): #{ StrictSuper(Id, Id) | r } = {
-        inject Set.flatMap(
-            x -> List.toSet(List.map(y -> (y, x), supersOf(x, env))),
-            Map.keysOf(classes(env))
-        ) into StrictSuper/2
+    pub def superFact(e: ConstrEnv): #{ StrictSuper(Id, Id) | r } = match e {
+        case ConstrEnv(_, _, sups) =>  inject sups into StrictSuper/2
     }
 
     pub def parentClasses(id: Id, env: ConstrEnv): Set[Id] = {
@@ -65,7 +83,7 @@ mod ConstrEnv {
         };
 
         Vector.toSet(query superFact(env), rules, #{ Super(id, id). }
-            select x from Super(x, id)
+            select x from Super(id, x)
         )
     }
 }
