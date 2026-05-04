@@ -41,7 +41,12 @@ def subsume(
 ): List[Constr] \ Fresh = 
     let rcon = List.map(Fresh.freshCon >> Type.Con, Scheme.varKinds(r));
     let rinst = Instantiate.inst(rcon, Scheme.qual(r));
+
+    // the substitution should be empty.
+    let (reducedGivs, _) = entailRepeat(e, Nil, Qual.context(rinst));
+
     let tyEq = Constr.Eq(Qual.head(l), Qual.head(rinst));
     let efPure = Constr.Eq(le, Type.efEmpty());
     let wanteds = tyEq :: efPure :: Qual.context(l);
-    fst(entailRepeat(e, Qual.context(rinst), wanteds))
+
+    fst(entailRepeat(e, reducedGivs, wanteds))
