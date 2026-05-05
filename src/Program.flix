@@ -26,6 +26,24 @@ pub def typeCheckProgram(
     )
 }
 
+def collectAssoc(ty: Type): Set[Tyassoc] = match ty {
+    case Type.Assoc(a) => Set.singleton(a) ++ collectAssoc(Tyassoc.ty(a))
+    case Type.Ap(l, r) => collectAssoc(l) ++ collectAssoc(r)
+    case _ => Set.empty()
+}
+
+def collectAssocInContext(cs: List[Constr]): Set[Tyassoc] = List.foldLeft(
+    (set, c) -> match c {
+        case Constr.Class(_, t) => set ++ collectAssoc(t)
+        case Constr.Eq(l, r) => set ++ collectAssoc(l) ++ collectAssoc(r)
+    }, 
+    Set.empty(), 
+    cs
+)
+
+def collectAssocInQual(q: Qual[Type]): Set[Tyassoc] = 
+    collectAssocInContext(Qual.context(q)) ++ collectAssoc(Qual.head(q))
+
 /// ΘP , [T / a2] π2 |= entail {π1, τ1 = [T /a2]τ2} ->! •; R
 /// where T are fresh type constructors
 /// --------------------------------------------------
@@ -42,11 +60,18 @@ def subsume(
     let rcon = List.map(Fresh.freshCon >> Type.Con, Scheme.varKinds(r));
     let rinst = Instantiate.inst(rcon, Scheme.qual(r));
 
+    let requiredClsConstrs = Set.toList(Set.map(
+        x -> Constr.Class(
+            ConstrEnv.getTraitOfAssoc(Tyassoc.id(x), e), Tyassoc.ty(x)
+        ),
+        collectAssocInQual(rinst)
+    ));
+
     // the substitution should be empty.
     let (reducedGivs, _) = entailRepeat(e, Nil, Qual.context(rinst));
-
+    
     let tyEq = Constr.Eq(Qual.head(l), Qual.head(rinst));
     let efPure = Constr.Eq(le, Type.efEmpty());
-    let wanteds = tyEq :: efPure :: Qual.context(l);
+    let wanteds = tyEq :: efPure :: Qual.context(l) ++ requiredClsConstrs;
 
     fst(entailRepeat(e, reducedGivs, wanteds))

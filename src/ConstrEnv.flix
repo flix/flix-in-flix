@@ -14,16 +14,17 @@ pub enum ConstrEnv(
     // Map from associated member id to the equality constraints
     Map[Id, List[EqConstr]],
     Map[Id, List[Inst]],
+    Map[Id, Id],
     Set[(Id, Id)]
 )
 
 mod ConstrEnv {
     pub def empty(): ConstrEnv = ConstrEnv(
-        Map.empty(), Map.empty(), Set.empty()
+        Map.empty(), Map.empty(), Map.empty(), Set.empty()
     )
 
     def tyassocs(env: ConstrEnv): Map[Id, List[EqConstr]] = match env {
-        case ConstrEnv(amap, _, _) => amap
+        case ConstrEnv(amap, _, _, _) => amap
     }
 
     pub def addAssocEq(
@@ -31,40 +32,62 @@ mod ConstrEnv {
         eq: EqConstr, 
         env: ConstrEnv
     ): ConstrEnv = match env {
-        case ConstrEnv(amap, cmap, sups) => ConstrEnv(
+        case ConstrEnv(amap, cmap, assocs, sups) => ConstrEnv(
             Map.insertWith(List.append, id, eq :: Nil, amap),
             cmap,
+            assocs,
             sups
         )
     }
 
     pub def addClass(id: Id, env: ConstrEnv): ConstrEnv = match env {
-        case ConstrEnv(amap, cmap, sups) => ConstrEnv(
+        case ConstrEnv(amap, cmap, assocs, sups) => ConstrEnv(
             amap, 
             Map.insert(id, Nil, cmap),
+            assocs, 
             sups
         )
     }
 
     pub def addInst(id: Id, inst: Inst, env: ConstrEnv): ConstrEnv = match env {
-        case ConstrEnv(amap, cmap, sups) => ConstrEnv(
+        case ConstrEnv(amap, cmap, assocs, sups) => ConstrEnv(
             amap,
             Map.insertWith(List.append, id, inst :: Nil, cmap),
+            assocs,
             sups
         )
     }
 
     pub def addSuper(sub: Id, sup: Id, env: ConstrEnv): ConstrEnv = match env {
-        case ConstrEnv(amap, cmap, sups) => ConstrEnv(
+        case ConstrEnv(amap, cmap, assocs, sups) => ConstrEnv(
             amap,
             cmap,
+            assocs,
             Set.insert((sub, sup), sups)
         )
     }
 
+    pub def getTraitOfAssoc(id: Id, env: ConstrEnv): Id = match env {
+        case ConstrEnv(_, _, assocs, _) => match Map.get(id, assocs){
+            case Some(traitId) => traitId
+            case None => bug!("Unknown associated member: " + id)
+        }
+        
+    }
+
+    pub def addAssocTo(assocId: Id, classId: Id, env: ConstrEnv): ConstrEnv = 
+        match env {
+            case ConstrEnv(amap, cmap, assocs, sups) => ConstrEnv(
+                amap,
+                cmap,
+                Map.insert(assocId, classId, assocs),
+                sups
+            )
+        }
+
     pub def getClassInsts(id: Id, env: ConstrEnv): List[Inst] = {
         Option.getWithDefault(Nil, Map.get(id, match env {
-            case ConstrEnv(_, cmap, _) => cmap
+            case ConstrEnv(_, cmap, _, _) => cmap
         }))
     }
 
@@ -73,7 +96,7 @@ mod ConstrEnv {
     }
 
     pub def superFact(e: ConstrEnv): #{ StrictSuper(Id, Id) | r } = match e {
-        case ConstrEnv(_, _, sups) =>  inject sups into StrictSuper/2
+        case ConstrEnv(_, _, _, sups) =>  inject sups into StrictSuper/2
     }
 
     pub def parentClasses(id: Id, env: ConstrEnv): Set[Id] = {
