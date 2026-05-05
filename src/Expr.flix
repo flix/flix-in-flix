@@ -5,7 +5,14 @@ pub enum Expr {
     case Lam(Id, Expr),
     case Do(Id),
     case IfElse(Expr, Expr, Expr),
-    case RunWith(Expr, Id)
+    
+    // represent the `run <e> with <e>` constructor
+    // where
+    // - Expr is the body of the `run` with effectful computation
+    // - Id is the effect being handled
+    // - Id is the name of the continuation variable in the handler
+    // - Expr is the handler body, which can refer to the continuation variable
+    case RunWith(Expr, Id, Id, Expr)
 }
 
 mod Expr {
@@ -17,7 +24,7 @@ mod Expr {
         case Do(ef) => inferDo(ef)
         case Expr.Lam(x, e) => inferLam(assumps, x, e)
         case IfElse(c, t, f) => inferIfElse(assumps, c, t, f)
-        case RunWith(e, ef) => inferRunWith(assumps, e, ef)
+        case RunWith(e, ef, k, h) => inferRunWith(assumps, e, ef, k, h)
     }
 
     def inferVar(assumps: Assumps, x: Id): (Type, Type) \ Fresh + Collect = 
@@ -71,10 +78,20 @@ mod Expr {
     }
 
     def inferRunWith(
-        assums: Assumps, e: Expr, ef: Id
+        assums: Assumps, e: Expr, ef: Id, kId: Id, h: Expr
     ): (Type, Type) \ Fresh + Collect = {
         let (eTy, eEff) = infer(assums, e);
-        (eTy, mkExclusion(eEff, efConstant(ef)))
+
+        let excluded = mkExclusion(eEff, efConstant(ef));
+        let kTy = mkArrow(tUnit(), excluded, eTy);
+        let newAssumps = Map.insert(kId, mkScheme(kTy), assums);
+
+        let (hTy, hEff) = infer(newAssumps, h);
+
+        Collect.collect(Constr.Eq(hTy, eTy));
+        Collect.collect(Constr.Eq(hEff, excluded));
+
+        (eTy, excluded)
     }
 
     def inferDo(ef: Id): (Type, Type) = (tUnit(), efConstant(ef))
