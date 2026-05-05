@@ -24,7 +24,7 @@ def unifyNoEq(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type):
             bindAssoc(env, giv, am, lhs)
         )
         case _ 
-            if Kinded.kind(lhs) == Kind.Eff and Kinded.kind(rhs) == Kind.Eff => 
+            if kindOf(lhs) == Kind.Eff and kindOf(rhs) == Kind.Eff => 
             match boolUnify(lhs, rhs) {
                 case Some(sub) => Some((Nil, sub))
                 case None => None
@@ -35,13 +35,13 @@ def unifyNoEq(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type):
 def bindAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc, ty: Type): 
     Option[List[EqConstr]] = forM (
         redAm <- reduceTyOne(env, giv, Type.Assoc(am));
-        _ <- if (Kinded.kind(redAm) != Kinded.kind(ty)) None
+        _ <- if (kindOf(redAm) != kindOf(ty)) None
             else Some(())
     ) yield (redAm, ty) :: Nil
 
 def bindVar(tvar: Tyvar, ty: Type): Option[Subst] = {
     if (Set.memberOf(tvar, FreeVars.fvs(ty)) 
-        or Kinded.kind(tvar) != Kinded.kind(ty)) None
+        or kindOf(Type.Var(tvar)) != kindOf(ty)) None
     else Some(Subst.singleton(tvar, ty))
 }
 

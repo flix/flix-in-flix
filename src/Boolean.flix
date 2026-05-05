@@ -86,7 +86,7 @@ pub def boolEq(t1: Type, t2: Type): Bool = match (t1, t2) {
     case (Type.Assoc(a1), Type.Assoc(a2)) if Tyassoc.id(a1) == Tyassoc.id(a2) 
         => boolEq(Tyassoc.ty(a1), Tyassoc.ty(a2))
     case (Type.Gen(a), Type.Gen(b)) if a == b => true
-    case _ if Kinded.kind(t1) == Kind.Eff and Kinded.kind(t2) == Kind.Eff 
+    case _ if kindOf(t1) == Kind.Eff and kindOf(t2) == Kind.Eff 
         => boolFormEq(t1, t2)
     case _ => false
 }

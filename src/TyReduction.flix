@@ -1,6 +1,6 @@
 def reduceInnerAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc): 
     Option[Type] = Option.map(
-        ty -> Type.Assoc(Tyassoc.Tyassoc(Tyassoc.id(am), ty, Kinded.kind(am))),
+        ty -> Type.Assoc(Tyassoc.Tyassoc(Tyassoc.id(am), ty, kindOf(Type.Assoc(am)))),
         reduceTyOne(env, giv, Tyassoc.ty(am))
     )
 

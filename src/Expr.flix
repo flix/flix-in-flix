@@ -79,14 +79,3 @@ mod Expr {
 
     def inferDo(ef: Id): (Type, Type) = (Type.unit(), Type.efConstant(ef))
 }
-
-def genWithVars(gv: Set[Tyvar], qual: Qual[Type]): Scheme[Type] =
-    let gvl = Set.toList(gv);
-    let kinds = List.map(Kinded.kind, gvl);
-    let subst = List.toMap(List.map(
-        x -> (snd(x), Type.Gen(fst(x))), 
-        List.zipWithIndex(gvl)
-    ));
-    let schQual = Substable.apply(subst, qual);
-
-    Scheme.Scheme(kinds, schQual)

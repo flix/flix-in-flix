@@ -15,7 +15,3 @@ mod Kind {
     pub def efBinary(): Kind 
         = Kind.KFun(Kind.Eff, Kind.KFun(Kind.Eff, Kind.Eff))
 }
-
-pub trait Kinded[a] {
-    pub def kind(a: a): Kind
-}

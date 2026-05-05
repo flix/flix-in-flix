@@ -1,33 +1,18 @@
 pub enum Tyvar(Id, Kind) with Eq, ToString, Hash, Order
 
-mod Tyvar {
-    pub def kind(v: Tyvar): Kind = match v { case Tyvar(_, k) => k }
-}
-
-instance Kinded[Tyvar] {
-    pub def kind(v: Tyvar): Kind = Tyvar.kind(v)
-}
-
 instance FreeVars[Tyvar] {
     pub def fvs(v: Tyvar): Set[Tyvar] = Set.singleton(v)
 }
 
 pub enum Tycon(Id, Kind) with Eq, ToString, Hash, Order
 
-mod Tycon {
-    pub def kind(c: Tycon): Kind = match c { case Tycon(_, k) => k }
-}
-
-instance Kinded[Tycon] {
-    pub def kind(c: Tycon): Kind = Tycon.kind(c)
-}
-
 pub enum Tyassoc(Id, Type, Kind) with Eq, ToString, Hash, Order
 
 instance Instantiate[Tyassoc] {
-    pub def inst(tys: List[Type], s: Tyassoc): Tyassoc = Tyassoc.Tyassoc(
-        Tyassoc.id(s), Instantiate.inst(tys, Tyassoc.ty(s)), Kinded.kind(s)
-    )
+    pub def inst(tys: List[Type], s: Tyassoc): Tyassoc = match s {
+        case Tyassoc.Tyassoc(id, t, k) 
+            => Tyassoc.Tyassoc(id, Instantiate.inst(tys, t), k)
+    }
 }
 
 mod Tyassoc {
@@ -39,12 +24,6 @@ instance Substable[Tyassoc] {
     pub def apply(s: Subst, a: Tyassoc): Tyassoc = match a {
         case Tyassoc.Tyassoc(id, t, k) 
             => Tyassoc.Tyassoc(id, Substable.apply(s, t), k)
-    }
-}
-
-instance Kinded[Tyassoc] {
-    pub def kind(a: Tyassoc): Kind = match a {
-        case Tyassoc.Tyassoc(_, _, k) => k
     }
 }
 
@@ -133,17 +112,15 @@ mod Type {
     }
 }
 
-instance Kinded[Type] {
-    pub def kind(t: Type): Kind = match t {
-        case Type.Var(v) => Kinded.kind(v)
-        case Type.Con(c) => Kinded.kind(c)
-        case Type.Assoc(a) => Kinded.kind(a)
-        case Type.Ap(f, _) => let fk = Kinded.kind(f); match fk {
-            case Kind.KFun(_, k) => k
-            case _ => bug!("Expected a function kind, but found: ${fk}")
-        }
-        case Type.Gen(_) => bug!("Gen should'be asked for its kind directly")
+pub def kindOf(t: Type): Kind = match t {
+    case Type.Var(Tyvar.Tyvar(_, k)) => k,
+    case Type.Con(Tycon.Tycon(_, k)) => k,
+    case Type.Assoc(Tyassoc.Tyassoc(_, _, k)) => k
+    case Type.Ap(f, _) => let fk = kindOf(f); match fk {
+        case Kind.KFun(_, k) => k
+        case _ => bug!("Expected a function kind, but found: ${fk}")
     }
+    case Type.Gen(_) => bug!("Gen should'be asked for its kind directly")
 }
 
 instance Substable[Type] {
