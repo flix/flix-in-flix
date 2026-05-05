@@ -5,8 +5,7 @@ def redArgAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc): Option[Type] =
 def reduceAssocGiven(giv: List[Constr], am: Tyassoc): Option[Type] 
     = List.findMap(
         c -> match c {
-            // REMARK: is boolEq necessary here?
-            case Constr.Eq(lhs, rhs) if boolEq(lhs, Type.Assoc(am))
+            case Constr.Eq(lhs, rhs) if equiv(lhs, Type.Assoc(am))
                 => Some(rhs)
             case _ => None
         },

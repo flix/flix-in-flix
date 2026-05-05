@@ -1,6 +1,6 @@
 pub def unifyOne(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type): 
     Option[(List[EqConstr], Subst)] =
-        if (boolEq(lhs, rhs)) Some((Nil, Subst.empty()))
+        if (equiv(lhs, rhs)) Some((Nil, Subst.empty()))
         else unifyNoEq(env, giv, lhs, rhs)
 
 def unifyNoEq(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type): 

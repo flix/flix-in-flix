@@ -78,15 +78,15 @@ pub def boolUnify(f1: Type, f2: Type): Option[Subst] = {
 def boolFormEq(f1: Type, f2: Type): Bool = not (isSat(mkXor(f1 ,f2)))
 
 // REMARK: Is this necessary?
-pub def boolEq(t1: Type, t2: Type): Bool = match (t1, t2) {
+pub def equiv(t1: Type, t2: Type): Bool = match (t1, t2) {
     case (Type.Var(v1), Type.Var(v2)) if v1 == v2 => true
-    case (Type.Ap(f1, x1), Type.Ap(f2, x2)) if boolEq(f1, f2) and boolEq(x1, x2) 
+    case (Type.Ap(f1, x1), Type.Ap(f2, x2)) if equiv(f1, f2) and equiv(x1, x2) 
         => true
     case (Type.Con(c1), Type.Con(c2)) if c1 == c2 => true
     case (
         Type.Assoc(Tyassoc.Tyassoc(lid, larg, _)), 
         Type.Assoc(Tyassoc.Tyassoc(rid, rarg, _))
-    ) if lid == rid => boolEq(larg, rarg)
+    ) if lid == rid => equiv(larg, rarg)
     case (Type.Gen(a), Type.Gen(b)) if a == b => true
     case _ if kindOf(t1) == Kind.Eff and kindOf(t2) == Kind.Eff 
         => boolFormEq(t1, t2)
