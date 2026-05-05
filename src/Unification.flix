@@ -34,7 +34,7 @@ def unifyNoEq(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type):
 
 def bindAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc, ty: Type): 
     Option[List[EqConstr]] = forM (
-        redAm <- reduceTyOne(env, giv, Type.Assoc(am));
+        redAm <- reduce(env, giv, Type.Assoc(am));
         _ <- if (kindOf(redAm) != kindOf(ty)) None
             else Some(())
     ) yield (redAm, ty) :: Nil

@@ -1,35 +1,8 @@
 pub enum Tyvar(Id, Kind) with Eq, ToString, Hash, Order
 
-instance FreeVars[Tyvar] {
-    pub def fvs(v: Tyvar): Set[Tyvar] = Set.singleton(v)
-}
-
 pub enum Tycon(Id, Kind) with Eq, ToString, Hash, Order
 
 pub enum Tyassoc(Id, Type, Kind) with Eq, ToString, Hash, Order
-
-instance Instantiate[Tyassoc] {
-    pub def inst(tys: List[Type], s: Tyassoc): Tyassoc = match s {
-        case Tyassoc.Tyassoc(id, t, k) 
-            => Tyassoc.Tyassoc(id, Instantiate.inst(tys, t), k)
-    }
-}
-
-mod Tyassoc {
-    pub def ty(a: Tyassoc): Type = match a { case Tyassoc(_, t, _) => t }
-    pub def id(a: Tyassoc): Id = match a { case Tyassoc(id, _, _) => id }
-}
-
-instance Substable[Tyassoc] {
-    pub def apply(s: Subst, a: Tyassoc): Tyassoc = match a {
-        case Tyassoc.Tyassoc(id, t, k) 
-            => Tyassoc.Tyassoc(id, Substable.apply(s, t), k)
-    }
-}
-
-instance FreeVars[Tyassoc] {
-    pub def fvs(a: Tyassoc): Set[Tyvar] = FreeVars.fvs(Tyassoc.ty(a))
-}
 
 pub enum Type with Eq, ToString, Hash, Order {
     case Var(Tyvar)
@@ -128,7 +101,9 @@ instance Substable[Type] {
         case Type.Var(v) => Option.getWithDefault(t, Subst.get(v, s))
         case Type.Ap(f, x) 
             => Type.Ap(Substable.apply(s, f), Substable.apply(s, x))
-        case Type.Assoc(a) => Type.Assoc(Substable.apply(s, a))
+        case Type.Assoc(Tyassoc.Tyassoc(i, a, k)) => Type.Assoc(Tyassoc.Tyassoc(
+            i, Substable.apply(s, a), k)
+        )
         case Type.Gen(_) => t
         case Type.Con(_) => t
     }
@@ -136,9 +111,9 @@ instance Substable[Type] {
 
 instance FreeVars[Type] {
     pub def fvs(t: Type): Set[Tyvar] = match t {
-        case Type.Var(v) => FreeVars.fvs(v)
+        case Type.Var(v) => Set.singleton(v)
         case Type.Con(_) => Set.empty()
-        case Type.Assoc(a) => FreeVars.fvs(a)
+        case Type.Assoc(Tyassoc.Tyassoc(_, a, _)) => FreeVars.fvs(a)
         case Type.Ap(f, x) => FreeVars.fvs(f) ++ FreeVars.fvs(x)
         case Type.Gen(_) => Set.empty()
     }
@@ -151,7 +126,9 @@ instance Instantiate[Type] {
             Instantiate.inst(tys, f), 
             Instantiate.inst(tys, x)
         )
-        case Type.Assoc(a) => Type.Assoc(Instantiate.inst(tys, a))
+        case Type.Assoc(Tyassoc.Tyassoc(i, t, k)) => Type.Assoc(Tyassoc.Tyassoc(
+            i, Instantiate.inst(tys, t), k
+        ))
         case _ => sch
     }
 }

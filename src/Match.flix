@@ -9,8 +9,10 @@ pub def matchTy(l: Type, r: Type): Option[Subst] = match (l, r) {
         else Some(Subst.singleton(tvar, r))
     }
     case (Type.Con(lc), Type.Con(rc)) if lc == rc  => Some(Subst.empty())
-    case (Type.Assoc(la), Type.Assoc(ra)) if Tyassoc.id(la) == Tyassoc.id(ra) 
-        => matchTy(Tyassoc.ty(la), Tyassoc.ty(ra))
+    case (
+        Type.Assoc(Tyassoc.Tyassoc(lid, larg, _)), 
+        Type.Assoc(Tyassoc.Tyassoc(rid, rarg, _))
+    ) if rid == lid => matchTy(larg, rarg)
     case _ if kindOf(l) == Kind.Eff and kindOf(r) == Kind.Eff 
         // REMARK: is boolMatch necessary here?
         => boolMatch(l, r),

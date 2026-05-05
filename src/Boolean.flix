@@ -83,8 +83,10 @@ pub def boolEq(t1: Type, t2: Type): Bool = match (t1, t2) {
     case (Type.Ap(f1, x1), Type.Ap(f2, x2)) if boolEq(f1, f2) and boolEq(x1, x2) 
         => true
     case (Type.Con(c1), Type.Con(c2)) if c1 == c2 => true
-    case (Type.Assoc(a1), Type.Assoc(a2)) if Tyassoc.id(a1) == Tyassoc.id(a2) 
-        => boolEq(Tyassoc.ty(a1), Tyassoc.ty(a2))
+    case (
+        Type.Assoc(Tyassoc.Tyassoc(lid, larg, _)), 
+        Type.Assoc(Tyassoc.Tyassoc(rid, rarg, _))
+    ) if lid == rid => boolEq(larg, rarg)
     case (Type.Gen(a), Type.Gen(b)) if a == b => true
     case _ if kindOf(t1) == Kind.Eff and kindOf(t2) == Kind.Eff 
         => boolFormEq(t1, t2)

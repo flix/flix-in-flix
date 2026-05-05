@@ -27,7 +27,8 @@ pub def typeCheckProgram(
 }
 
 def collectAssoc(ty: Type): Set[Tyassoc] = match ty {
-    case Type.Assoc(a) => Set.singleton(a) ++ collectAssoc(Tyassoc.ty(a))
+    case Type.Assoc(Tyassoc.Tyassoc(id, a, k)) => 
+        Set.singleton(Tyassoc.Tyassoc(id, a, k)) ++ collectAssoc(a)
     case Type.Ap(l, r) => collectAssoc(l) ++ collectAssoc(r)
     case _ => Set.empty()
 }
@@ -61,9 +62,11 @@ def subsume(
     let rinst = Instantiate.inst(rcon, Scheme.qual(r));
 
     let requiredClsConstrs = Set.toList(Set.map(
-        x -> Constr.Class(
-            ConstrEnv.getTraitOfAssoc(Tyassoc.id(x), e), Tyassoc.ty(x)
-        ),
+        x ->  {
+            let Tyassoc.Tyassoc(id, arg, _) = x;
+            let traitId = ConstrEnv.getTraitOfAssoc(id, e);
+            Constr.Class(traitId, arg)
+        },
         collectAssocInQual(rinst)
     ));
 

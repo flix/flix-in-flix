@@ -41,7 +41,7 @@ def byInst(env: ConstrEnv, clsId: Id, clsTy: Type): Option[List[Constr]] =
 def reduceClass(env: ConstrEnv, giv: List[Constr], clsId: Id, clsTy: Type): 
     Option[ClassConstr] = Option.map(
         ty -> (clsId, ty),
-        reduceTyOne(env, giv, clsTy)
+        reduce(env, giv, clsTy)
     )
 
 def entailRepeatHelper(
