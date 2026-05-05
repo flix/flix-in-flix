@@ -16,7 +16,7 @@ pub def typeCheckProgram(
         x -> {
             let (id, sch, expr) = x;
             let ((ty, ef), constrs) = 
-                Collect.withCollect(() -> Expr.infer(initialAssums, expr));
+                Collect.withCollect(() -> infer(initialAssums, expr));
 
             (id, subsume(env, Qual.Qual(constrs, ty), ef, sch))
         }, 

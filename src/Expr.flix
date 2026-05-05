@@ -15,84 +15,77 @@ pub enum Expr {
     case RunWith(Expr, Id, Id, Expr)
 }
 
-mod Expr {
-    pub def infer(assumps: Assumps, expr: Expr): (Type, Type) \ Fresh + Collect 
+pub def infer(assumps: Assumps, expr: Expr): (Type, Type) \ Fresh + Collect 
     = match expr {
         case Expr.Var(x) => inferVar(assumps, x)
         case Expr.Lit(x) => (x, efEmpty())
         case Expr.Ap(fun, arg) => inferAp(assumps, fun, arg) 
-        case Do(ef) => inferDo(ef)
+        case Expr.Do(ef) => inferDo(ef)
         case Expr.Lam(x, e) => inferLam(assumps, x, e)
-        case IfElse(c, t, f) => inferIfElse(assumps, c, t, f)
-        case RunWith(e, ef, k, h) => inferRunWith(assumps, e, ef, k, h)
+        case Expr.IfElse(c, t, f) => inferIfElse(assumps, c, t, f)
+        case Expr.RunWith(e, ef, k, h) => inferRunWith(assumps, e, ef, k, h)
     }
 
-    def inferVar(assumps: Assumps, x: Id): (Type, Type) \ Fresh + Collect = 
-        match Map.get(x, assumps) {
-            case Some(sch) => {
-                let Qual.Qual(context, ty) = Fresh.freshInst(sch);
-                foreach (c <- context) Collect.collect(c);
-                (ty, efEmpty())
-            }
-            case None => (
-                Type.Var(Fresh.freshVar(Kind.Star)),
-                Type.Var(Fresh.freshVar(Kind.Eff))
-            )
+def inferVar(assumps: Assumps, x: Id): (Type, Type) \ Fresh + Collect = 
+    match Map.get(x, assumps) {
+        case Some(sch) => {
+            let Qual.Qual(context, ty) = Fresh.freshInst(sch);
+            foreach (c <- context) Collect.collect(c);
+            (ty, efEmpty())
         }
-
-    def inferAp(
-        assumps: Assumps, fun: Expr, arg: Expr
-    ): (Type, Type) \ Fresh + Collect = 
-        let (funTy, funE) = infer(assumps, fun);
-        let (argTy, argE) = infer(assumps, arg);
-
-        let freshE = Type.Var(Fresh.freshVar(Kind.Eff));
-        let freshR = Type.Var(Fresh.freshVar(Kind.Star));
-
-        Collect.collect(Constr.Eq(funTy, mkArrow(argTy, freshE, freshR)));
-
-        (freshR, mkUnion(argE, mkUnion(funE, freshE)))
-
-    def inferLam(
-        assumps: Assumps, x: Id, e: Expr
-    ): (Type, Type) \ Fresh + Collect =  {
-        let newVar = Fresh.freshVar(Kind.Star);
-        let freshVarScheme = mkScheme(Type.Var(newVar));
-        let newAssumps = Map.insert(x, freshVarScheme, assumps);
-        let (bodyTy, bodyEff) = infer(newAssumps, e);
-
-        (mkArrow(Type.Var(newVar), bodyEff, bodyTy), efEmpty())
+        case None => (
+            Type.Var(Fresh.freshVar(Kind.Star)),
+            Type.Var(Fresh.freshVar(Kind.Eff))
+        )
     }
 
-    def inferIfElse(
-        assums: Assumps, c: Expr, t: Expr, f: Expr
-    ): (Type, Type) \ Fresh + Collect = {
-        let (cTy, cEff) = infer(assums, c);
-        let (tTy, tEff) = infer(assums, t);
-        let (fTy, fEff) = infer(assums, f);
+def inferAp(assums: Assumps, f: Expr, a: Expr): (Type, Type) \ Fresh + Collect = 
+    let (funTy, funE) = infer(assums, f);
+    let (argTy, argE) = infer(assums, a);
 
-        Collect.collect(Constr.Eq(cTy, tBool()));
-        Collect.collect(Constr.Eq(tTy, fTy));
+    let freshE = Type.Var(Fresh.freshVar(Kind.Eff));
+    let freshR = Type.Var(Fresh.freshVar(Kind.Star));
 
-        (tTy, mkUnion(cEff, mkUnion(tEff, fEff)))
-    }
+    Collect.collect(Constr.Eq(funTy, mkArrow(argTy, freshE, freshR)));
 
-    def inferRunWith(
-        assums: Assumps, e: Expr, ef: Id, kId: Id, h: Expr
-    ): (Type, Type) \ Fresh + Collect = {
-        let (eTy, eEff) = infer(assums, e);
+    (freshR, mkUnion(argE, mkUnion(funE, freshE)))
 
-        let excluded = mkExclusion(eEff, efConstant(ef));
-        let kTy = mkArrow(tUnit(), excluded, eTy);
-        let newAssumps = Map.insert(kId, mkScheme(kTy), assums);
+def inferLam(assums: Assumps, x: Id, e: Expr): (Type, Type) \ Fresh + Collect = 
+    let newVar = Fresh.freshVar(Kind.Star);
+    let freshVarScheme = mkScheme(Type.Var(newVar));
+    let newAssumps = Map.insert(x, freshVarScheme, assums);
+    let (bodyTy, bodyEff) = infer(newAssumps, e);
 
-        let (hTy, hEff) = infer(newAssumps, h);
+    (mkArrow(Type.Var(newVar), bodyEff, bodyTy), efEmpty())
 
-        Collect.collect(Constr.Eq(hTy, eTy));
-        Collect.collect(Constr.Eq(hEff, excluded));
 
-        (eTy, excluded)
-    }
+def inferIfElse(
+    assums: Assumps, c: Expr, t: Expr, f: Expr
+): (Type, Type) \ Fresh + Collect = 
+    let (cTy, cEff) = infer(assums, c);
+    let (tTy, tEff) = infer(assums, t);
+    let (fTy, fEff) = infer(assums, f);
 
-    def inferDo(ef: Id): (Type, Type) = (tUnit(), efConstant(ef))
+    Collect.collect(Constr.Eq(cTy, tBool()));
+    Collect.collect(Constr.Eq(tTy, fTy));
+
+    (tTy, mkUnion(cEff, mkUnion(tEff, fEff)))
+
+def inferRunWith(
+    assums: Assumps, e: Expr, ef: Id, kId: Id, h: Expr
+): (Type, Type) \ Fresh + Collect = {
+    let (eTy, eEff) = infer(assums, e);
+
+    let excluded = mkExclusion(eEff, efConstant(ef));
+    let kTy = mkArrow(tUnit(), excluded, eTy);
+    let newAssumps = Map.insert(kId, mkScheme(kTy), assums);
+
+    let (hTy, hEff) = infer(newAssumps, h);
+
+    Collect.collect(Constr.Eq(hTy, eTy));
+    Collect.collect(Constr.Eq(hEff, excluded));
+
+    (eTy, excluded)
 }
+
+def inferDo(ef: Id): (Type, Type) = (tUnit(), efConstant(ef))
