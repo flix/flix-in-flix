@@ -69,14 +69,10 @@ mod Type {
         = Type.Con(Tycon.Tycon("List", Kind.KFun(Kind.Star, Kind.Star)))
     pub def arrow(): Type = Type.Con(Tycon.Tycon("->",  Kind.arrow()))
     pub def mkAp(fn: Type, arg: Type): Type = Type.Ap(fn, arg)
-}
-
-mod Type {
     pub def efUnion(): Type = Type.Con(Tycon.Tycon("+", Kind.efBinary()))
     pub def efIntersect(): Type = Type.Con(Tycon.Tycon("&", Kind.efBinary()))
     pub def efXor(): Type = Type.Con(Tycon.Tycon("^", Kind.efBinary()))
     pub def efCompl(): Type = Type.Con(Tycon.Tycon("~", Kind.efUnary()))
-
 
     pub def efEmpty(): Type = Type.Con(Tycon.Tycon("{}", Kind.Eff))
     pub def efConstant(name: Id): Type = Type.Con(Tycon.Tycon(name, Kind.Eff))
@@ -89,11 +85,7 @@ mod Type {
     pub def mkArrow(arg: Type, ef: Type, res: Type): Type = {
         Type.mkAp(Type.mkAp(Type.arrow(), arg), Type.mkAp(ef, res))
     }
-}
 
-
-
-mod Type {
     def tryComl(t: Type) : Option[Type] = match t {
         case Type.Ap(com, inner) if com == Type.efCompl() => Some(inner)
         case _ => None
