@@ -6,9 +6,7 @@ pub def unifyOne(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type):
 def unifyNoEq(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type): 
     Option[(List[EqConstr], Subst)] = match (lhs, rhs) {
         case (Type.Ap(lhsFn, lhsArg), Type.Ap(rhsFn, rhsArg)) => Some((
-            (lhsFn, rhsFn) 
-                :: (lhsArg, rhsArg) 
-                :: Nil,
+            (lhsFn, rhsFn) :: (lhsArg, rhsArg) :: Nil,
             Subst.empty()
         ))
         case (Type.Var(tvar), _) 
@@ -23,12 +21,8 @@ def unifyNoEq(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type):
             eqs -> (eqs, Subst.empty()), 
             bindAssoc(env, giv, am, lhs)
         )
-        case _ 
-            if kindOf(lhs) == Kind.Eff and kindOf(rhs) == Kind.Eff => 
-            match boolUnify(lhs, rhs) {
-                case Some(sub) => Some((Nil, sub))
-                case None => None
-            }
+        case _ if kindOf(lhs) == Kind.Eff and kindOf(rhs) == Kind.Eff => 
+            Option.map(s -> (Nil, s), boolUnify(lhs, rhs)) 
         case _ => None
     }
 
