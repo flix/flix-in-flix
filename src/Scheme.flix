@@ -1,31 +1,31 @@
-pub enum Scheme[a](List[Kind], Qual[a]) with ToString
+pub enum Scheme(List[Kind], Qual[Type]) with ToString
 
-instance Substable[Scheme[a]] with Substable[a] {
-    pub def apply(subst: Subst, a: Scheme[a]): Scheme[a] = match a {
+instance Substable[Scheme] {
+    pub def apply(subst: Subst, a: Scheme): Scheme = match a {
         case Scheme.Scheme(kinds, qua) => Scheme.Scheme(
             kinds, Substable.apply(subst, qua)
         )
     }
 }
 
-instance FreeVars[Scheme[a]] with FreeVars[a] {
-    pub def fvs(a: Scheme[a]): Set[Tyvar] = match a {
+instance FreeVars[Scheme] {
+    pub def fvs(a: Scheme): Set[Tyvar] = match a {
         case Scheme.Scheme(_, qua) => FreeVars.fvs(qua)
     }
 }
 
 
 mod Scheme {
-    pub def head(sch: Scheme[a]): a = match sch {
+    pub def head(sch: Scheme): Type = match sch {
         case Scheme(_, qua) => Qual.head(qua)
     }
-    pub def qual(sch: Scheme[a]): Qual[a] = match sch {
+    pub def qual(sch: Scheme): Qual[Type] = match sch {
         case Scheme(_, qua) => qua
     }
-    pub def varKinds(sch: Scheme[a]): List[Kind] = match sch {
+    pub def varKinds(sch: Scheme): List[Kind] = match sch {
         case Scheme(kinds, _) => kinds
     }   
-    pub def newUnqual(a: a): Scheme[a] = Scheme(Nil, Qual.newUnqual(a))
+    pub def newUnqual(t: Type): Scheme = Scheme(Nil, Qual.newUnqual(t))
 }
 
 pub trait Instantiate[a] {

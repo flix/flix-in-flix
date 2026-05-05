@@ -21,7 +21,7 @@ mod Fresh {
         }
     }
 
-    pub def freshInst(s: Scheme[a]): Qual[a] \ Fresh with Instantiate[a] = {
+    pub def freshInst(s: Scheme): Qual[Type] \ Fresh = {
         let ts = List.map(k -> Type.Var(Fresh.freshVar(k)), Scheme.varKinds(s));
         Instantiate.inst(ts, Scheme.qual(s))
     }

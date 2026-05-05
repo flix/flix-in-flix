@@ -4,7 +4,7 @@ def prEmptyConstraintEnv(): ConstrEnv =
     ConstrEnv.empty()
 
 
-def prDecl(id: Id, sch: Scheme[Type], expr: Expr): TopLevelDecl =
+def prDecl(id: Id, sch: Scheme, expr: Expr): TopLevelDecl =
     (id, sch, expr)
 
 

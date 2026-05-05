@@ -1,5 +1,5 @@
 /// Represents name, its type ascribed by the programmer, and its body.
-pub type alias TopLevelDecl = (Id, Scheme[Type], Expr)
+pub type alias TopLevelDecl = (Id, Scheme, Expr)
 
 /// Represents a typical diagnostic result of type checking of a program: 
 /// contains the Id of the Expr declared, and a list of unsatisfied constraints.
@@ -9,10 +9,8 @@ pub def typeCheckProgram(
     env: ConstrEnv, 
     decls: List[TopLevelDecl]
 ): List[Check] \ Fresh = {
-    let initialAssums = List.map(x -> {
-        let (id, sch, _) = x;
-        (id, sch)
-    }, decls) |> List.toMap;
+    let initialAssums = List.map(x -> let (id, sch, _) = x; (id, sch), decls) 
+        |> List.toMap;
 
     List.map(
         x -> {
@@ -56,7 +54,7 @@ def subsume(
     e: ConstrEnv, 
     l: Qual[Type], 
     le: Type, 
-    r: Scheme[Type]
+    r: Scheme
 ): List[Constr] \ Fresh = 
     let rcon = List.map(Fresh.freshCon >> Type.Con, Scheme.varKinds(r));
     let rinst = Instantiate.inst(rcon, Scheme.qual(r));
