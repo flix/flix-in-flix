@@ -23,8 +23,8 @@ def typeCheckProgramLeavesEmptyProgramEmpty(): Unit \ Assert = {
 def typeCheckProgramAcceptsPureMatchingLiteral(): Unit \ Assert = {
     let decls = prDecl(
         "x",
-        mkScheme(Type.int32()),
-        Expr.Lit(Type.int32())
+        mkScheme(tInt32()),
+        Expr.Lit(tInt32())
     ) :: Nil;
 
     Assert.assertEq(
@@ -39,7 +39,7 @@ def typeCheckProgramAcceptsPureMatchingLiteral(): Unit \ Assert = {
 def typeCheckProgramUsesSelfAssumptionDuringInference(): Unit \ Assert = {
     let decls = prDecl(
         "x",
-        mkScheme(Type.int32()),
+        mkScheme(tInt32()),
         Expr.Var("x")
     ) :: Nil;
 
@@ -55,17 +55,17 @@ def typeCheckProgramUsesSelfAssumptionDuringInference(): Unit \ Assert = {
 def typeCheckProgramBuildsInitialAssumptionsFromAllDeclarations(): Unit \ Assert = {
     let decls = prDecl(
         "useLater",
-        mkScheme(Type.int32()),
+        mkScheme(tInt32()),
         Expr.Var("provider")
     ) :: prDecl(
         "provider",
-        mkScheme(Type.int32()),
-        Expr.Lit(Type.bool())
+        mkScheme(tInt32()),
+        Expr.Lit(tBool())
     ) :: Nil;
 
     Assert.assertEq(
         expected = ("useLater", Nil)
-            :: ("provider", Constr.Eq(Type.bool(), Type.int32()) :: Nil)
+            :: ("provider", Constr.Eq(tBool(), tInt32()) :: Nil)
             :: Nil,
         Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
     )
@@ -77,12 +77,12 @@ def typeCheckProgramBuildsInitialAssumptionsFromAllDeclarations(): Unit \ Assert
 def typeCheckProgramReturnsResidualEffectConstraintForImpureDeclaration(): Unit \ Assert = {
     let decls = prDecl(
         "main",
-        mkScheme(Type.unit()),
+        mkScheme(tUnit()),
         Expr.Do("IO")
     ) :: Nil;
 
     Assert.assertEq(
-        expected = ("main", Constr.Eq(Type.io(), Type.efEmpty()) :: Nil) :: Nil,
+        expected = ("main", Constr.Eq(efIo(), efEmpty()) :: Nil) :: Nil,
         Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
     )
 }

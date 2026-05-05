@@ -76,7 +76,7 @@ def subsume(
     let (reducedGivs, _) = entailRepeat(e, Nil, rGivs);
     
     let tyEq = Constr.Eq(lTy, rTy);
-    let efPure = Constr.Eq(le, Type.efEmpty());
+    let efPure = Constr.Eq(le, efEmpty());
     let wanteds = tyEq :: efPure :: lWanteds ++ requiredClsConstrs;
 
     fst(entailRepeat(e, reducedGivs, wanteds))

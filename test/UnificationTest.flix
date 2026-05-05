@@ -28,7 +28,7 @@ def matchTypesVariableCreatesSubstitution(): Unit \ Assert = {
 @Test
 def matchTypesVariableRejectsKindMismatch(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
-    let emptySet = Type.efEmpty();
+    let emptySet = efEmpty();
 
     Assert.assertEq(
         expected = None,
@@ -118,12 +118,12 @@ def matchTypesTyassocMatchesUnderlyingArgument(): Unit \ Assert = {
 @Test
 def matchTypesBooleanEffectsCreateLeftHandSubstitution(): Unit \ Assert = {
     let effVar = Tyvar.Tyvar("eff", Kind.Eff);
-    let io = Type.io();
-    let left = Type.mkUnion(Type.Var(effVar), io);
+    let ioEf = efIo();
+    let left = mkUnion(Type.Var(effVar), ioEf);
 
     Assert.assertEq(
         expected = false,
-        matchTy(left, io) |> Option.isEmpty
+        matchTy(left, ioEf) |> Option.isEmpty
     )
 }
 
@@ -132,12 +132,12 @@ def matchTypesBooleanEffectsCreateLeftHandSubstitution(): Unit \ Assert = {
 @Test
 def matchTypesBooleanEffectsDoNotInstantiateRightHandVariables(): Unit \ Assert = {
     let effVar = Tyvar.Tyvar("eff", Kind.Eff);
-    let io = Type.io();
-    let right = Type.mkUnion(Type.Var(effVar), io);
+    let ioEf = efIo();
+    let right = mkUnion(Type.Var(effVar), ioEf);
 
     Assert.assertEq(
         expected = None,
-        matchTy(io, right)
+        matchTy(ioEf, right)
     )
 }
 
@@ -147,11 +147,11 @@ def matchTypesBooleanEffectsDoNotInstantiateRightHandVariables(): Unit \ Assert 
 def matchTypesBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ Assert = {
     let phantom = Type.Con(Tycon.Tycon("Phantom", Kind.Star));
     let assoc = Type.Assoc(Tyassoc.Tyassoc("EffOf", phantom, Kind.Eff));
-    let tautology = Type.mkUnion(assoc, Type.mkCompl(assoc));
+    let tautology = mkUnion(assoc, mkCompl(assoc));
 
     Assert.assertEq(
         expected = Some(Subst.empty()),
-        matchTy(Type.efUni(), tautology)
+        matchTy(efUni(), tautology)
     )
 }
 
@@ -266,12 +266,12 @@ def unifyOneDifferentConstructorsHaveNoApplicableRule(): Unit \ Assert = {
 @Test
 def unifyOneBooleanEffectsCreateSubstitution(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Eff);
-    let io = Type.io();
-    let right = Type.mkUnion(Type.Var(x), io);
+    let ioEf = efIo();
+    let right = mkUnion(Type.Var(x), ioEf);
 
     assertEq(
         expected = true, 
-        unifyOne(unEmptyConstraintEnv(), Nil, io, right) |> Option.nonEmpty
+        unifyOne(unEmptyConstraintEnv(), Nil, ioEf, right) |> Option.nonEmpty
     )
 }
 
@@ -279,12 +279,12 @@ def unifyOneBooleanEffectsCreateSubstitution(): Unit \ Assert = {
 // `IO ~ ~IO -> NoApplicableRule`
 @Test
 def unifyOneUnsatisfiableBooleanEffectsHaveNoApplicableRule(): Unit \ Assert = {
-    let io = Type.io();
-    let notIo = Type.mkCompl(io);
+    let ioEf = efIo();
+    let notIo = mkCompl(ioEf);
 
     Assert.assertEq(
         expected = None,
-        unifyOne(unEmptyConstraintEnv(), Nil, io, notIo)
+        unifyOne(unEmptyConstraintEnv(), Nil, ioEf, notIo)
     )
 }
 
@@ -294,14 +294,14 @@ def unifyOneUnsatisfiableBooleanEffectsHaveNoApplicableRule(): Unit \ Assert = {
 def unifyOneBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ Assert = {
     let phantom = Type.Con(Tycon.Tycon("Phantom", Kind.Star));
     let assoc = Type.Assoc(Tyassoc.Tyassoc("EffOf", phantom, Kind.Eff));
-    let tautology = Type.mkUnion(assoc, Type.mkCompl(assoc));
+    let tautology = mkUnion(assoc, mkCompl(assoc));
 
     Assert.assertEq(
         expected = Some((Nil, Subst.empty())),
         unifyOne(
             unEmptyConstraintEnv(),
             Nil,
-            Type.efUni(),
+            efUni(),
             tautology
         )
     )
@@ -313,14 +313,14 @@ def unifyOneBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ Asse
 def unifyOneBooleanEffectsTreatGroundEffectTyassocAsRigidConstantInContradiction(): Unit \ Assert = {
     let phantom = Type.Con(Tycon.Tycon("Phantom", Kind.Star));
     let assoc = Type.Assoc(Tyassoc.Tyassoc("EffOf", phantom, Kind.Eff));
-    let contradiction = Type.mkIntersect(assoc, Type.mkCompl(assoc));
+    let contradiction = mkIntersect(assoc, mkCompl(assoc));
 
     Assert.assertEq(
         expected = Some((Nil, Subst.empty())),
         unifyOne(
             unEmptyConstraintEnv(),
             Nil,
-            Type.efEmpty(),
+            efEmpty(),
             contradiction
         )
     )
@@ -332,14 +332,14 @@ def unifyOneBooleanEffectsTreatGroundEffectTyassocAsRigidConstantInContradiction
 def unifyOneBooleanEffectsRejectUnsatisfiableGroundEffectTyassocFormula(): Unit \ Assert = {
     let phantom = Type.Con(Tycon.Tycon("Phantom", Kind.Star));
     let assoc = Type.Assoc(Tyassoc.Tyassoc("EffOf", phantom, Kind.Eff));
-    let tautology = Type.mkUnion(assoc, Type.mkCompl(assoc));
+    let tautology = mkUnion(assoc, mkCompl(assoc));
 
     Assert.assertEq(
         expected = None,
         unifyOne(
             unEmptyConstraintEnv(),
             Nil,
-            Type.efEmpty(),
+            efEmpty(),
             tautology
         )
     )
@@ -457,17 +457,17 @@ def unifyOneEffectTyassocProducesBooleanResidualEquality(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let effVar = Tyvar.Tyvar("eff", Kind.Eff);
     let assoc = Tyassoc.Tyassoc("EffOf", Type.Var(x), Kind.Eff);
-    let io = Type.io();
-    let right = Type.mkUnion(Type.Var(effVar), io);
+    let ioEf = efIo();
+    let right = mkUnion(Type.Var(effVar), ioEf);
 
     Assert.assertEq(
         expected = Some((
-            unMkEquality(io, right) :: Nil,
+            unMkEquality(ioEf, right) :: Nil,
             Subst.empty()
         )),
         unifyOne(
             unEmptyConstraintEnv(),
-            unMkGivenEquality(Type.Assoc(assoc), io) :: Nil,
+            unMkGivenEquality(Type.Assoc(assoc), ioEf) :: Nil,
             Type.Assoc(assoc),
             right
         )
@@ -481,7 +481,7 @@ def unifyOneEffectTyassocProducesBooleanResidualEquality(): Unit \ Assert = {
 def unifyOneTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let readAssoc = Tyassoc.Tyassoc("ReadEff", Type.Var(x), Kind.Eff);
-    let read = Type.efConstant("Read");
+    let read = efConstant("Read");
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     let constraintEnv = ConstrEnv.addAssocEq(
@@ -551,14 +551,14 @@ def unifyRepeatSolvesStarAndBooleanEffectConstraintsTogether(): Unit \ Assert = 
     let x = Tyvar.Tyvar("x", t);
     let effVar = Tyvar.Tyvar("eff", Kind.Eff);
     let int32 = Type.Con(Tycon.Tycon("Int32", t));
-    let io = Type.io();
+    let ioEf = efIo();
 
     let constraints = unMkEquality(
         Type.Ap(unary, Type.Var(x)),
         Type.Ap(unary, int32)
     ) :: unMkEquality(
-        io,
-        Type.mkUnion(Type.Var(effVar), io)
+        ioEf,
+        mkUnion(Type.Var(effVar), ioEf)
     ) :: Nil;
 
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
@@ -578,17 +578,17 @@ def unifyRepeatSolvesBooleanResidualFromEffectTyassocReduction(): Unit \ Assert 
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
     let genericAssoc = Tyassoc.Tyassoc("EffOf", Type.Var(a), Kind.Eff);
     let specificAssoc = Tyassoc.Tyassoc("EffOf", int32, Kind.Eff);
-    let io = Type.io();
+    let ioEf = efIo();
 
     let constraintEnv = ConstrEnv.addAssocEq(
         "EffOf",
-        unMkEquality(Type.Assoc(genericAssoc), io),
+        unMkEquality(Type.Assoc(genericAssoc), ioEf),
         ConstrEnv.empty()
     );
 
     let constraints = unMkEquality(
         Type.Assoc(specificAssoc),
-        Type.mkUnion(Type.Var(effVar), io)
+        mkUnion(Type.Var(effVar), ioEf)
     ) :: Nil;
 
     let (remaining, subst) = unifyRepeat(constraintEnv, Nil, constraints);
@@ -622,10 +622,10 @@ def unifyRepeatPreservesUnsolvedStarConstraintsWhileSolvingBooleanEffects(): Uni
     let effVar = Tyvar.Tyvar("eff", Kind.Eff);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
     let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
-    let io = Type.io();
+    let ioEf = efIo();
 
     let constraints = unMkEquality(int32, bool)
-        :: unMkEquality(io, Type.mkUnion(Type.Var(effVar), io))
+        :: unMkEquality(ioEf, mkUnion(Type.Var(effVar), ioEf))
         :: Nil;
 
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
@@ -661,16 +661,16 @@ def unifyRepeatConsumesResidualEqualityFromTyassocReduction(): Unit \ Assert = {
 def unifyRepeatPreservesUnsolvedBooleanEffectsWhileSolvingStarConstraints(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
-    let io = Type.io();
-    let notIo = Type.mkCompl(io);
+    let ioEf = efIo();
+    let notIo = mkCompl(ioEf);
 
     let constraints = unMkEquality(Type.Var(x), int32)
-        :: unMkEquality(io, notIo)
+        :: unMkEquality(ioEf, notIo)
         :: Nil;
 
     let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
 
-    Assert.assertEq(expected = unMkEquality(io, notIo) :: Nil, remaining);
+    Assert.assertEq(expected = unMkEquality(ioEf, notIo) :: Nil, remaining);
     Assert.assertEq(expected = Some(int32), subst |> Subst.get(x))
 }
 
@@ -683,8 +683,8 @@ def unifyRepeatPreservesUnsolvedBooleanResidualFromEffectTyassocReduction(): Uni
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
     let genericAssoc = Tyassoc.Tyassoc("EffOf", Type.Var(a), Kind.Eff);
     let specificAssoc = Tyassoc.Tyassoc("EffOf", int32, Kind.Eff);
-    let io = Type.io();
-    let notIo = Type.mkCompl(io);
+    let ioEf = efIo();
+    let notIo = mkCompl(ioEf);
 
     let constraintEnv = ConstrEnv.addAssocEq(
         "EffOf",
@@ -692,11 +692,11 @@ def unifyRepeatPreservesUnsolvedBooleanResidualFromEffectTyassocReduction(): Uni
         ConstrEnv.empty()
     );
 
-    let constraints = unMkEquality(Type.Assoc(specificAssoc), io) :: Nil;
+    let constraints = unMkEquality(Type.Assoc(specificAssoc), ioEf) :: Nil;
 
     let (remaining, subst) = unifyRepeat(constraintEnv, Nil, constraints);
 
-    Assert.assertEq(expected = unMkEquality(notIo, io) :: Nil, remaining);
+    Assert.assertEq(expected = unMkEquality(notIo, ioEf) :: Nil, remaining);
     Assert.assertEq(expected = Subst.empty(), subst)
 }
 

@@ -2,16 +2,16 @@ def sve(f: Type, vars: List[Tyvar]): Option[Subst] =
     if (not isSat(f)) Some(Subst.empty()) else match vars {
         case Nil => None
         case x :: xs => {
-            let l = Substable.apply(Subst.singleton(x, Type.efEmpty()), f);
-            let r = Substable.apply(Subst.singleton(x, Type.efUni()), f);
-            let lr = Type.mkIntersect(l, r);
+            let l = Substable.apply(Subst.singleton(x, efEmpty()), f);
+            let r = Substable.apply(Subst.singleton(x, efUni()), f);
+            let lr = mkIntersect(l, r);
 
             forM (sub <- sve(lr, xs)) yield {
-                let newH = Type.mkUnion(
+                let newH = mkUnion(
                     Substable.apply(sub, l),
-                    Type.mkIntersect(
+                    mkIntersect(
                         Type.Var(x), 
-                        Type.mkCompl(Substable.apply(sub, r))
+                        mkCompl(Substable.apply(sub, r))
                     )
                 );
 
@@ -34,22 +34,22 @@ def evaluteAll(f: Type, vars: List[Type], trueVars: Set[Type]): Bool = {
 }
 
 def evaluate(f: Type, trueVars: Set[Type]): Bool =  {
-    if (f == Type.efEmpty()) false
-    else if (f == Type.efUni()) true
+    if (f == efEmpty()) false
+    else if (f == efUni()) true
     else if (Set.memberOf(f, trueVars)) true
     else match f {
         case Type.Ap(f1, f2) => {
             // we handle two cases: complement and binary ops
-            if (f1 == Type.efCompl()) not evaluate(f2, trueVars)
+            if (f1 == efCompl()) not evaluate(f2, trueVars)
             else match f1 {
                 // must be in the form of `ap(ap(binOp arg1) arg2)`
                 case Type.Ap(binOp, arg1) => {
                     let lBool = evaluate(arg1, trueVars);
                     let rBool = evaluate(f2, trueVars);
 
-                    if (binOp == Type.efUnion()) lBool or rBool
-                    else if (binOp == Type.efIntersect()) lBool and rBool
-                    else if (binOp == Type.efXor()) lBool != rBool
+                    if (binOp == efUnion()) lBool or rBool
+                    else if (binOp == efIntersect()) lBool and rBool
+                    else if (binOp == efXor()) lBool != rBool
                     else bug!("Expected a binary operator, but found: ${binOp}")
                 }
                 case _ => bug!("Expected a binary operator, but found: ${f1}")
@@ -61,21 +61,21 @@ def evaluate(f: Type, trueVars: Set[Type]): Bool =  {
 
 def boolVars(t: Type): Set[Type] = match t {
     case Type.Ap(f, x) => Set.union(boolVars(f), boolVars(x))
-    case Type.Con(_) if (t == Type.efEmpty() or t == Type.efUni()) 
+    case Type.Con(_) if (t == efEmpty() or t == efUni()) 
         => Set.empty()
     case Type.Gen(_) => bug!("Gen shouldn't be present in boolUnify")
     case _ => Set.singleton(t)
 }
 
 pub def boolMatch(t1: Type, t2: Type): Option[Subst] = 
-    sve(Type.mkXor(t1, t2), Set.toList(FreeVars.fvs(t1)))
+    sve(mkXor(t1, t2), Set.toList(FreeVars.fvs(t1)))
 
 pub def boolUnify(f1: Type, f2: Type): Option[Subst] = {
-    let eqType = Type.mkXor(f1 ,f2);
+    let eqType = mkXor(f1 ,f2);
     sve(eqType, Set.toList(FreeVars.fvs(eqType)))
 }
 
-def boolFormEq(f1: Type, f2: Type): Bool = not (isSat(Type.mkXor(f1 ,f2)))
+def boolFormEq(f1: Type, f2: Type): Bool = not (isSat(mkXor(f1 ,f2)))
 
 // REMARK: Is this necessary?
 pub def boolEq(t1: Type, t2: Type): Bool = match (t1, t2) {

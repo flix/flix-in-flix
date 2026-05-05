@@ -3,11 +3,11 @@
 pub def booleanXandYUnifyWithTrue(): Unit \ Assert = {
     let x = Type.Var(Tyvar.Tyvar("x", Kind.Eff));
     let y = Type.Var(Tyvar.Tyvar("y", Kind.Eff));
-    let f = Type.mkIntersect(x, y);
+    let f = mkIntersect(x, y);
 
     Assert.assertEq(
         expected = false,
-        boolUnify(f, Type.efUni()) |> Option.isEmpty
+        boolUnify(f, efUni()) |> Option.isEmpty
     )
 }
 
@@ -16,11 +16,11 @@ pub def booleanXandYUnifyWithTrue(): Unit \ Assert = {
 pub def booleanXandYUnifyWithFalse(): Unit \ Assert = {
     let x = Type.Var(Tyvar.Tyvar("x", Kind.Eff));
     let y = Type.Var(Tyvar.Tyvar("y", Kind.Eff));
-    let f = Type.mkIntersect(x, y);
+    let f = mkIntersect(x, y);
 
     Assert.assertEq(
         expected = false,
-        boolUnify(f, Type.efEmpty()) |> Option.isEmpty
+        boolUnify(f, efEmpty()) |> Option.isEmpty
     )
 }
 
@@ -29,7 +29,7 @@ pub def booleanXandYUnifyWithFalse(): Unit \ Assert = {
 pub def trueDoesNotUnifyWithFalse(): Unit \ Assert = {
     Assert.assertEq(
         expected = true,
-        boolUnify(Type.efUni(), Type.efEmpty()) |> Option.isEmpty
+        boolUnify(efUni(), efEmpty()) |> Option.isEmpty
     )
 }
 
@@ -37,7 +37,7 @@ pub def trueDoesNotUnifyWithFalse(): Unit \ Assert = {
 @Test
 pub def complementDoesNotUnifyWithOriginal(): Unit \ Assert = {
     let x = Type.Var(Tyvar.Tyvar("x", Kind.Eff));
-    let f = Type.mkCompl(x);
+    let f = mkCompl(x);
 
     Assert.assertEq(
         expected = true,
@@ -52,8 +52,8 @@ pub def threeVariablesDoesNotUnify(): Unit \ Assert = {
     let y = Type.Var(Tyvar.Tyvar("y", Kind.Eff));
     let z = Type.Var(Tyvar.Tyvar("z", Kind.Eff));
 
-    let f1 = Type.mkUnion(y, Type.mkCompl(Type.mkIntersect(x, z)));
-    let f2 = Type.mkIntersect(x, Type.mkIntersect(Type.mkCompl(y), z));
+    let f1 = mkUnion(y, mkCompl(mkIntersect(x, z)));
+    let f2 = mkIntersect(x, mkIntersect(mkCompl(y), z));
 
     Assert.assertEq(
         expected = true,
@@ -68,8 +68,8 @@ pub def fourVariablesUnify(): Unit \ Assert = {
     let c = Type.Var(Tyvar.Tyvar("c", Kind.Eff));
     let d = Type.Var(Tyvar.Tyvar("d", Kind.Eff));
 
-    let f1 = Type.mkIntersect(a, b);
-    let f2 = Type.mkIntersect(c, d);
+    let f1 = mkIntersect(a, b);
+    let f2 = mkIntersect(c, d);
 
     Assert.assertEq(
         expected = false,

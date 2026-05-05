@@ -12,77 +12,75 @@ pub enum Type with Eq, ToString, Hash, Order {
     case Gen(Int32)
 }
 
-mod Type {
-    pub def unit(): Type = Type.Con(Tycon.Tycon("Unit", Kind.Star))
-    pub def int32(): Type = Type.Con(Tycon.Tycon("Int32", Kind.Star))
-    pub def char(): Type = Type.Con(Tycon.Tycon("Char", Kind.Star))
-    pub def bool(): Type = Type.Con(Tycon.Tycon("Bool", Kind.Star))
-    pub def list(): Type 
-        = Type.Con(Tycon.Tycon("List", Kind.KFun(Kind.Star, Kind.Star)))
-    pub def arrow(): Type = Type.Con(Tycon.Tycon("->",  Kind.arrow()))
-    pub def mkAp(fn: Type, arg: Type): Type = Type.Ap(fn, arg)
-    pub def efUnion(): Type = Type.Con(Tycon.Tycon("+", Kind.efBinary()))
-    pub def efIntersect(): Type = Type.Con(Tycon.Tycon("&", Kind.efBinary()))
-    pub def efXor(): Type = Type.Con(Tycon.Tycon("^", Kind.efBinary()))
-    pub def efCompl(): Type = Type.Con(Tycon.Tycon("~", Kind.efUnary()))
+pub def tUnit(): Type = Type.Con(Tycon.Tycon("Unit", Kind.Star))
+pub def tInt32(): Type = Type.Con(Tycon.Tycon("Int32", Kind.Star))
+pub def tChar(): Type = Type.Con(Tycon.Tycon("Char", Kind.Star))
+pub def tBool(): Type = Type.Con(Tycon.Tycon("Bool", Kind.Star))
+pub def tList(): Type 
+    = Type.Con(Tycon.Tycon("List", Kind.KFun(Kind.Star, Kind.Star)))
+pub def tArrow(): Type = Type.Con(Tycon.Tycon("->",  Kind.arrow()))
+pub def mkAp(fn: Type, arg: Type): Type = Type.Ap(fn, arg)
+pub def efUnion(): Type = Type.Con(Tycon.Tycon("+", Kind.efBinary()))
+pub def efIntersect(): Type = Type.Con(Tycon.Tycon("&", Kind.efBinary()))
+pub def efXor(): Type = Type.Con(Tycon.Tycon("^", Kind.efBinary()))
+pub def efCompl(): Type = Type.Con(Tycon.Tycon("~", Kind.efUnary()))
 
-    pub def efEmpty(): Type = Type.Con(Tycon.Tycon("{}", Kind.Eff))
-    pub def efConstant(name: Id): Type = Type.Con(Tycon.Tycon(name, Kind.Eff))
+pub def efEmpty(): Type = Type.Con(Tycon.Tycon("{}", Kind.Eff))
+pub def efConstant(name: Id): Type = Type.Con(Tycon.Tycon(name, Kind.Eff))
 
-    pub def io(): Type = efConstant("IO")
-    pub def random(): Type = efConstant("Random")
-    pub def http(): Type = efConstant("Http")
-    pub def efUni(): Type = efConstant("EffectUniverse")
+pub def efIo(): Type = efConstant("IO")
+pub def efRandom(): Type = efConstant("Random")
+pub def efHttp(): Type = efConstant("Http")
+pub def efUni(): Type = efConstant("EffectUniverse")
 
-    pub def mkArrow(arg: Type, ef: Type, res: Type): Type = {
-        Type.mkAp(Type.mkAp(Type.arrow(), arg), Type.mkAp(ef, res))
+pub def mkArrow(arg: Type, ef: Type, res: Type): Type = {
+    mkAp(mkAp(tArrow(), arg), mkAp(ef, res))
+}
+
+def tryComl(t: Type) : Option[Type] = match t {
+    case Type.Ap(com, inner) if com == efCompl() => Some(inner)
+    case _ => None
+}
+
+pub def mkUnion(l: Type, r: Type): Type = {
+    if (l == r) l
+    else if (tryComl(l) == Some(r) or tryComl(r) == Some(l)) efUni()
+    else if (l == efUni() or r == efUni()) efUni()
+    else if (l == efEmpty()) r else if (r == efEmpty()) l
+    else mkAp(mkAp(efUnion(), l), r)
+}
+
+pub def mkIntersect(l: Type, r: Type): Type = {
+    if (l == r) l
+    else if (tryComl(l) == Some(r) or tryComl(r) == Some(l)) efEmpty()
+    else if (l == efEmpty() or r == efEmpty()) efEmpty()
+    else if (l == efUni()) r else if (r == efUni()) l
+    else mkAp(mkAp(efIntersect(), l), r)
+}
+
+pub def mkXor(l: Type, r: Type): Type = {
+    if (l == r) efEmpty()
+    else if (tryComl(l) == Some(r) or tryComl(r) == Some(l)) efUni()
+    else if (l == efEmpty()) r else if (r == efEmpty()) l
+    else if (l == efUni()) mkCompl(r)
+    else if (r == efUni()) mkCompl(l)
+    else mkAp(mkAp(efXor(), l), r)
+}
+
+pub def mkCompl(i: Type): Type = {
+    if (i == efEmpty()) efUni()
+    else if (i == efUni()) efEmpty()
+    else match tryComl(i) {
+        case Some(t) => 
+            if (t == efEmpty()) efUni() 
+            else if (t == efUni()) efEmpty() 
+            else t
+        case None => mkAp(efCompl(), i)
     }
+}
 
-    def tryComl(t: Type) : Option[Type] = match t {
-        case Type.Ap(com, inner) if com == Type.efCompl() => Some(inner)
-        case _ => None
-    }
-
-    pub def mkUnion(l: Type, r: Type): Type = {
-        if (l == r) l
-        else if (tryComl(l) == Some(r) or tryComl(r) == Some(l)) Type.efUni()
-        else if (l == Type.efUni() or r == Type.efUni()) Type.efUni()
-        else if (l == Type.efEmpty()) r else if (r == Type.efEmpty()) l
-        else Type.mkAp(Type.mkAp(Type.efUnion(), l), r)
-    }
-
-    pub def mkIntersect(l: Type, r: Type): Type = {
-        if (l == r) l
-        else if (tryComl(l) == Some(r) or tryComl(r) == Some(l)) Type.efEmpty()
-        else if (l == Type.efEmpty() or r == Type.efEmpty()) Type.efEmpty()
-        else if (l == Type.efUni()) r else if (r == Type.efUni()) l
-        else Type.mkAp(Type.mkAp(Type.efIntersect(), l), r)
-    }
-
-    pub def mkXor(l: Type, r: Type): Type = {
-        if (l == r) Type.efEmpty()
-        else if (tryComl(l) == Some(r) or tryComl(r) == Some(l)) Type.efUni()
-        else if (l == Type.efEmpty()) r else if (r == Type.efEmpty()) l
-        else if (l == Type.efUni()) Type.mkCompl(r)
-        else if (r == Type.efUni()) Type.mkCompl(l)
-        else Type.mkAp(Type.mkAp(Type.efXor(), l), r)
-    }
-
-    pub def mkCompl(i: Type): Type = {
-        if (i == Type.efEmpty()) Type.efUni()
-        else if (i == Type.efUni()) Type.efEmpty()
-        else match tryComl(i) {
-            case Some(t) => 
-                if (t == Type.efEmpty()) Type.efUni() 
-                else if (t == Type.efUni()) Type.efEmpty() 
-                else t
-            case None => Type.mkAp(Type.efCompl(), i)
-        }
-    }
-
-    pub def mkExclusion(l: Type, r: Type): Type = {
-        mkIntersect(l, mkCompl(r))
-    }
+pub def mkExclusion(l: Type, r: Type): Type = {
+    mkIntersect(l, mkCompl(r))
 }
 
 pub def kindOf(t: Type): Kind = match t {

@@ -241,8 +241,8 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
     let readAssoc = Tyassoc.Tyassoc("ReadEff", Type.Var(arg), Kind.Eff);
     let writeAssoc = Tyassoc.Tyassoc("WriteEff", Type.Var(arg), Kind.Eff);
 
-    let read = Type.efConstant("Read");
-    let write = Type.efConstant("Write");
+    let read = efConstant("Read");
+    let write = efConstant("Write");
 
     let constraintEnv = ConstrEnv.empty()
         |> ConstrEnv.addAssocEq(
@@ -260,15 +260,15 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
             )
         );
 
-    let ty = Type.mkUnion(
+    let ty = mkUnion(
         Type.Assoc(readAssoc),
-        Type.mkCompl(Type.Assoc(writeAssoc))
+        mkCompl(Type.Assoc(writeAssoc))
     );
 
     Assert.assertEq(
-        expected = Some(Type.mkUnion(
+        expected = Some(mkUnion(
             read,
-            Type.mkCompl(Type.Assoc(writeAssoc))
+            mkCompl(Type.Assoc(writeAssoc))
         )),
         ty |> reduce(constraintEnv, Nil)
     )
@@ -281,7 +281,7 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
 def reduceTypeOneStepReducesTyassocInsideSetFormula(): Unit \ Assert = {
     let assocId = "Assoc";
     let arg = Tyvar.Tyvar("x", Kind.Star);
-    let io = Type.efConstant("IO");
+    let io = efConstant("IO");
     let assoc = Tyassoc.Tyassoc(
         assocId,
         Type.Var(arg),
@@ -294,10 +294,10 @@ def reduceTypeOneStepReducesTyassocInsideSetFormula(): Unit \ Assert = {
         ConstrEnv.empty()
     );
 
-    let ty = Type.mkCompl(Type.Assoc(assoc));
+    let ty = mkCompl(Type.Assoc(assoc));
 
     Assert.assertEq(
-        expected = Some(Type.mkCompl(io)),
+        expected = Some(mkCompl(io)),
         ty |> reduce(constraintEnv, Nil)
     )
 }
