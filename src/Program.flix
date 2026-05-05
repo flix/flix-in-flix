@@ -56,8 +56,9 @@ def subsume(
     le: Type, 
     r: Scheme
 ): List[Constr] \ Fresh = 
-    let rcon = List.map(Fresh.freshCon >> Type.Con, Scheme.varKinds(r));
-    let rinst = Instantiate.inst(rcon, Scheme.qual(r));
+    let Scheme.Scheme(varKinds, qual) = r;
+    let rcon = List.map(Fresh.freshCon >> Type.Con, varKinds);
+    let rinst = Instantiate.inst(rcon, qual);
 
     let requiredClsConstrs = Set.toList(Set.map(
         x ->  {

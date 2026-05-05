@@ -50,7 +50,7 @@ mod Expr {
         assumps: Assumps, x: Id, e: Expr
     ): (Type, Type) \ Fresh + Collect =  {
         let newVar = Fresh.freshVar(Kind.Star);
-        let freshVarScheme = Scheme.newUnqual(Type.Var(newVar));
+        let freshVarScheme = mkScheme(Type.Var(newVar));
         let newAssumps = Map.insert(x, freshVarScheme, assumps);
         let (bodyTy, bodyEff) = infer(newAssumps, e);
 

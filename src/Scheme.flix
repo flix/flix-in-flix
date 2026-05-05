@@ -14,20 +14,6 @@ instance FreeVars[Scheme] {
     }
 }
 
-
-mod Scheme {
-    pub def head(sch: Scheme): Type = match sch {
-        case Scheme(_, qua) => Qual.head(qua)
-    }
-    pub def qual(sch: Scheme): Qual[Type] = match sch {
-        case Scheme(_, qua) => qua
-    }
-    pub def varKinds(sch: Scheme): List[Kind] = match sch {
-        case Scheme(kinds, _) => kinds
-    }   
-    pub def newUnqual(t: Type): Scheme = Scheme(Nil, Qual.newUnqual(t))
-}
-
 pub trait Instantiate[a] {
     pub def inst(tys: List[Type], sch: a): a
 }
@@ -36,3 +22,5 @@ instance Instantiate[List[a]] with Instantiate[a] {
     pub def inst(tys: List[Type], sch: List[a]): List[a] = 
         List.map(s -> Instantiate.inst(tys, s), sch)
 }
+
+pub def mkScheme(t: Type): Scheme = Scheme.Scheme(Nil, Qual.Qual(Nil, t))
