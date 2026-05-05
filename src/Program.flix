@@ -31,7 +31,7 @@ def collectAssoc(ty: Type): Set[Tyassoc] = match ty {
     case _ => Set.empty()
 }
 
-def collectAssocInContext(cs: List[Constr]): Set[Tyassoc] = List.foldLeft(
+def collectAssocInCtx(cs: List[Constr]): Set[Tyassoc] = List.foldLeft(
     (set, c) -> match c {
         case Constr.Class(_, t) => set ++ collectAssoc(t)
         case Constr.Eq(l, r) => set ++ collectAssoc(l) ++ collectAssoc(r)
@@ -41,7 +41,7 @@ def collectAssocInContext(cs: List[Constr]): Set[Tyassoc] = List.foldLeft(
 )
 
 def collectAssocInQual(q: Qual[Type]): Set[Tyassoc] = 
-    collectAssocInContext(Qual.context(q)) ++ collectAssoc(Qual.head(q))
+    let Qual.Qual(ctx, head) = q; collectAssocInCtx(ctx) ++ collectAssoc(head)
 
 /// ΘP , [T / a2] π2 |= entail {π1, τ1 = [T /a2]τ2} ->! •; R
 /// where T are fresh type constructors
@@ -70,10 +70,13 @@ def subsume(
     ));
 
     // the substitution should be empty.
-    let (reducedGivs, _) = entailRepeat(e, Nil, Qual.context(rinst));
+    let Qual.Qual(rGivs, rTy) = rinst;
+    let Qual.Qual(lWanteds, lTy) = l;
+
+    let (reducedGivs, _) = entailRepeat(e, Nil, rGivs);
     
-    let tyEq = Constr.Eq(Qual.head(l), Qual.head(rinst));
+    let tyEq = Constr.Eq(lTy, rTy);
     let efPure = Constr.Eq(le, Type.efEmpty());
-    let wanteds = tyEq :: efPure :: Qual.context(l) ++ requiredClsConstrs;
+    let wanteds = tyEq :: efPure :: lWanteds ++ requiredClsConstrs;
 
     fst(entailRepeat(e, reducedGivs, wanteds))

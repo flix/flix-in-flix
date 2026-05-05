@@ -58,14 +58,6 @@ instance Substable[Qual[a]] with Substable[a] {
     }
 }
 
-mod Qual {
-    pub def head(qua: Qual[q]): q = match qua { case Qual(_, q) => q }
-    pub def context(qua: Qual[q]): List[Constr] = match qua {
-        case Qual(ctx, _) => ctx 
-    }
-    pub def newUnqual(q: q): Qual[q] = Qual(Nil, q)
-}
-
 instance Instantiate[Qual[a]] with Instantiate[a] {
     pub def inst(tys: List[Type], sch: Qual[a]): Qual[a] = match sch {
         case Qual.Qual(q, ctx) => Qual.Qual(

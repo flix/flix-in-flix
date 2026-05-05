@@ -23,7 +23,7 @@ def typeCheckProgramLeavesEmptyProgramEmpty(): Unit \ Assert = {
 def typeCheckProgramAcceptsPureMatchingLiteral(): Unit \ Assert = {
     let decls = prDecl(
         "x",
-        Scheme.newUnqual(Type.int32()),
+        mkScheme(Type.int32()),
         Expr.Lit(Type.int32())
     ) :: Nil;
 
@@ -39,7 +39,7 @@ def typeCheckProgramAcceptsPureMatchingLiteral(): Unit \ Assert = {
 def typeCheckProgramUsesSelfAssumptionDuringInference(): Unit \ Assert = {
     let decls = prDecl(
         "x",
-        Scheme.newUnqual(Type.int32()),
+        mkScheme(Type.int32()),
         Expr.Var("x")
     ) :: Nil;
 
@@ -55,11 +55,11 @@ def typeCheckProgramUsesSelfAssumptionDuringInference(): Unit \ Assert = {
 def typeCheckProgramBuildsInitialAssumptionsFromAllDeclarations(): Unit \ Assert = {
     let decls = prDecl(
         "useLater",
-        Scheme.newUnqual(Type.int32()),
+        mkScheme(Type.int32()),
         Expr.Var("provider")
     ) :: prDecl(
         "provider",
-        Scheme.newUnqual(Type.int32()),
+        mkScheme(Type.int32()),
         Expr.Lit(Type.bool())
     ) :: Nil;
 
@@ -77,7 +77,7 @@ def typeCheckProgramBuildsInitialAssumptionsFromAllDeclarations(): Unit \ Assert
 def typeCheckProgramReturnsResidualEffectConstraintForImpureDeclaration(): Unit \ Assert = {
     let decls = prDecl(
         "main",
-        Scheme.newUnqual(Type.unit()),
+        mkScheme(Type.unit()),
         Expr.Do("IO")
     ) :: Nil;
 

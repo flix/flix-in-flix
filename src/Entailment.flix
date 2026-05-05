@@ -6,7 +6,8 @@ pub def entailOne(env: ConstrEnv, giv: List[Constr], goal: Constr):
                 entailClassOne(env, giv, id, ty)
             )
         case Constr.Eq(lhs, rhs) => Option.map(
-            res -> (List.map(eq -> Constr.Eq(fst(eq), snd(eq)), fst(res)), snd(res)),
+            res -> let (eqs, sub) = res; 
+                (List.map(eq -> let(l, r) = eq; Constr.Eq(l, r), eqs), sub),
             unifyOne(env, giv, lhs, rhs)
         )
     }
@@ -29,14 +30,12 @@ def entailClassOne(env: ConstrEnv, giv: List[Constr], clsId: Id, clsTy: Type):
             case None => byInst(env, clsId, clsTy)
         }
 
-def tryInst(inst: Inst, clsTy: Type): Option[List[Constr]] = Option.map(
-    sub -> Substable.apply(sub, Inst.context(inst)),
-    matchTy(snd(Inst.head(inst)), clsTy)
-)
+def tryInst(inst: Inst, clsTy: Type): Option[List[Constr]] = 
+    let Qual.Qual(context, (_, ty)) = inst;
+    Option.map(sub -> Substable.apply(sub, context), matchTy(ty, clsTy))
 
 def byInst(env: ConstrEnv, clsId: Id, clsTy: Type): Option[List[Constr]] =
     List.findMap(i -> tryInst(i, clsTy), ConstrEnv.getClassInsts(clsId, env))
-
 
 def reduceClass(env: ConstrEnv, giv: List[Constr], clsId: Id, clsTy: Type): 
     Option[ClassConstr] = Option.map(

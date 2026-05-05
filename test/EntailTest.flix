@@ -18,11 +18,10 @@ def enMkInstance(
     className: Id,
     classType: Type,
     context: List[Constr]
-): Inst =
-    Inst.Inst(Qual.Qual(
-        context,
-        enMkClassConstraint(className, classType)
-    ))
+): Inst = Qual.Qual(
+    context,
+    enMkClassConstraint(className, classType)
+)
 
 
 // `x ~ Int32 -> Some([], { x -> Int32 })`

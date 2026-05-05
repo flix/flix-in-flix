@@ -23,9 +23,9 @@ mod Expr {
     def inferVar(assumps: Assumps, x: Id): (Type, Type) \ Fresh + Collect = 
         match Map.get(x, assumps) {
             case Some(sch) => {
-                let qual = Fresh.freshInst(sch);
-                foreach (c <- Qual.context(qual)) Collect.collect(c);
-                (Qual.head(qual), Type.efEmpty())
+                let Qual.Qual(context, ty) = Fresh.freshInst(sch);
+                foreach (c <- context) Collect.collect(c);
+                (ty, Type.efEmpty())
             }
             case None => (
                 Type.Var(Fresh.freshVar(Kind.Star)),

@@ -1,19 +1,9 @@
-pub enum Inst(Qual[ClassConstr])
-
-mod Inst {
-    pub def head(inst: Inst): ClassConstr = match inst {
-        case Inst(qua) => Qual.head(qua)
-    }
-
-    pub def context(inst: Inst): List[Constr] = match inst {
-        case Inst(qua) => Qual.context(qua)
-    }
-}
+pub type alias Inst = Qual[ClassConstr]
 
 pub enum ConstrEnv(
     // Map from associated member id to the equality constraints
     Map[Id, List[EqConstr]],
-    Map[Id, List[Inst]],
+    Map[Id, List[Qual[ClassConstr]]],
     Map[Id, Id],
     Set[(Id, Id)]
 )
@@ -49,7 +39,7 @@ mod ConstrEnv {
         )
     }
 
-    pub def addInst(id: Id, inst: Inst, env: ConstrEnv): ConstrEnv = match env {
+    pub def addInst(id: Id, inst: Qual[ClassConstr], env: ConstrEnv): ConstrEnv = match env {
         case ConstrEnv(amap, cmap, assocs, sups) => ConstrEnv(
             amap,
             Map.insertWith(List.append, id, inst :: Nil, cmap),
@@ -85,7 +75,7 @@ mod ConstrEnv {
             )
         }
 
-    pub def getClassInsts(id: Id, env: ConstrEnv): List[Inst] = {
+    pub def getClassInsts(id: Id, env: ConstrEnv): List[Qual[ClassConstr]] = {
         Option.getWithDefault(Nil, Map.get(id, match env {
             case ConstrEnv(_, cmap, _, _) => cmap
         }))
