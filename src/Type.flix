@@ -1,10 +1,10 @@
-pub enum Tyvar(Id, Kind) with Eq, ToString, Hash, Order
+pub enum Tyvar(Id, Kind) with Eq, ToString, Order
 
-pub enum Tycon(Id, Kind) with Eq, ToString, Hash, Order
+pub enum Tycon(Id, Kind) with Eq, ToString, Order
 
-pub enum Tyassoc(Id, Type, Kind) with Eq, ToString, Hash, Order
+pub enum Tyassoc(Id, Type, Kind) with Eq, ToString, Order
 
-pub enum Type with Eq, ToString, Hash, Order {
+pub enum Type with Eq, ToString, Order {
     case Var(Tyvar)
     case Con(Tycon)
     case Assoc(Tyassoc)

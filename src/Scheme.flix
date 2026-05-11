@@ -1,4 +1,4 @@
-pub enum Scheme(List[Kind], Qual[Type]) with ToString
+pub enum Scheme(List[Kind], Qual[Type])
 
 instance Substable[Scheme] {
     pub def apply(subst: Subst, a: Scheme): Scheme = match a {

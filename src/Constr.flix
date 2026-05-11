@@ -9,7 +9,7 @@ instance Substable[(a, b)] with Substable[a], Substable[b] {
     }
 }
 
-pub enum Constr with Eq, ToString, Hash, Order {
+pub enum Constr with Eq, ToString, Order {
     case Class(Id, Type),
     case Eq(Type, Type)
 }
@@ -41,7 +41,7 @@ instance Instantiate[Constr] {
 }
 
 
-pub enum Qual[a](List[Constr], a) with Eq, ToString, Hash, Order
+pub enum Qual[a](List[Constr], a)
 
 instance FreeVars[Qual[a]] with FreeVars[a] {
     pub def fvs(a: Qual[a]): Set[Tyvar] = match a {
