@@ -3,11 +3,6 @@ pub def unify(e: ConstrEnv, l: Type, r: Type): Option[(List[EqConstr], Subst)] =
     else unifyNoEq(e, l, r)
 def unifyNoEq(e: ConstrEnv, l: Type, r: Type): Option[(List[EqConstr], Subst)] = 
     match (l, r) {
-        case (Type.Ap(lF, lA), Type.Ap(rF, rA)) => Some((
-            (lF, rF) :: (lA, rA) :: Nil, Subst.empty()
-        ))
-        case (Type.Var(v), _) => Option.map(sub -> (Nil, sub), bindVar(v, r))
-        case (_, Type.Var(v)) => Option.map(sub -> (Nil, sub), bindVar(v, l))
         case (Type.Assoc(a), _) => Option.map(
             s -> (s, Subst.empty()), 
             reduceUnifyAssoc(e, a, r)
@@ -16,8 +11,13 @@ def unifyNoEq(e: ConstrEnv, l: Type, r: Type): Option[(List[EqConstr], Subst)] =
             eqs -> (eqs, Subst.empty()), 
             reduceUnifyAssoc(e, a, l)
         )
+        case (Type.Var(v), _) => Option.map(sub -> (Nil, sub), bindVar(v, r))
+        case (_, Type.Var(v)) => Option.map(sub -> (Nil, sub), bindVar(v, l))
         case _ if kindOf(l) == Kind.Eff and kindOf(r) == Kind.Eff => 
-            Option.map(s -> (Nil, s), boolUnify(l, r)) 
+            Option.map(s -> (Nil, s), boolUnify(l, r))
+        case (Type.Ap(lF, lA), Type.Ap(rF, rA)) => Some((
+            (lF, rF) :: (lA, rA) :: Nil, Subst.empty()
+        ))
         case _ => None
     }
 def reduceUnifyAssoc(e: ConstrEnv, a: Tyassoc, t: Type): Option[List[EqConstr]] 
