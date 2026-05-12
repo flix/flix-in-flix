@@ -84,15 +84,10 @@ def inferSemi(
 
     (e2Ty, mkUnion(e1Eff, e2Eff))
 
-def inferRunWith(
-    assums: Assumps, e: Expr, ef: Id, hs: Nel[Handler]
-): (Type, Type) \ Fresh + Collect = {
-    let (eTy, eEff) = infer(assums, e);
-
-    let freshEf = Type.Var(Fresh.freshVar(Kind.Eff));
-    let kTy = mkArrow(tUnit(), freshEf, eTy);
-
-    let hEffs = Nel.map(
+def inferHandlers(
+    assums: Assumps, hs: Nel[Handler], kTy: Type, eTy: Type
+): Nel[Type] \ Fresh + Collect =  {
+    Nel.map(
         x -> {
             let (kId, h) = x;
             let (ht, he) = infer(Map.insert(kId, mkScheme(kTy), assums), h);
@@ -100,17 +95,23 @@ def inferRunWith(
             he
         },
         hs
-    );
+    )
+}
 
+def inferRunWith(
+    assums: Assumps, e: Expr, ef: Id, hs: Nel[Handler]
+): (Type, Type) \ Fresh + Collect = {
+    let (eTy, eEff) = infer(assums, e);
+    let kEf = Type.Var(Fresh.freshVar(Kind.Eff));
+    let kTy = mkArrow(tUnit(), kEf, eTy);
+    let hEffs = inferHandlers(assums, hs, kTy, eTy);
     let excluded = mkExclusion(eEff, efConstant(ef));
     let runWithEff = Nel.foldLeft(
         (acc, hEff) -> mkUnion(acc, hEff),
         excluded,
         hEffs
     );
-
-    Collect.collect(Constr.Eq((freshEf, runWithEff)));
-
+    Collect.collect(Constr.Eq((kEf, runWithEff)));
     (eTy, runWithEff)
 }
 
