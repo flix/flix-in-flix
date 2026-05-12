@@ -7,6 +7,7 @@ pub enum Expr {
     case Lam(Id, Expr),
     case Do(Id),
     case IfElse(Expr, Expr, Expr),
+    case Semi(Expr, Expr),
     
     // represent the `run <e> with <e>` constructor
     // where
@@ -24,6 +25,7 @@ pub def infer(assumps: Assumps, expr: Expr): (Type, Type) \ Fresh + Collect
         case Expr.Do(ef) => inferDo(ef)
         case Expr.Lam(x, e) => inferLam(assumps, x, e)
         case Expr.IfElse(c, t, f) => inferIfElse(assumps, c, t, f)
+        case Expr.Semi(e1, e2) => inferSemi(assumps, e1, e2)
         case Expr.RunWith(e, ef, hs) => inferRunWith(assumps, e, ef, hs)
     }
 
@@ -71,6 +73,16 @@ def inferIfElse(
     Collect.collect(Constr.Eq((tTy, fTy)));
 
     (tTy, mkUnion(cEff, mkUnion(tEff, fEff)))
+
+def inferSemi(
+    assums: Assumps, e1: Expr, e2: Expr
+): (Type, Type) \ Fresh + Collect =
+    let (e1Ty, e1Eff) = infer(assums, e1);
+    let (e2Ty, e2Eff) = infer(assums, e2);
+
+    Collect.collect(Constr.Eq((e1Ty, tUnit())));
+
+    (e2Ty, mkUnion(e1Eff, e2Eff))
 
 def inferRunWith(
     assums: Assumps, e: Expr, ef: Id, hs: Nel[Handler]
