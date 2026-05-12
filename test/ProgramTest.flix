@@ -65,7 +65,7 @@ def typeCheckProgramBuildsInitialAssumptionsFromAllDeclarations(): Unit \ Assert
 
     Assert.assertEq(
         expected = ("useLater", Nil)
-            :: ("provider", Constr.Eq(tBool(), tInt32()) :: Nil)
+            :: ("provider", Constr.Eq((tBool(), tInt32())) :: Nil)
             :: Nil,
         Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
     )
@@ -82,7 +82,7 @@ def typeCheckProgramReturnsResidualEffectConstraintForImpureDeclaration(): Unit 
     ) :: Nil;
 
     Assert.assertEq(
-        expected = ("main", Constr.Eq(efIo(), efEmpty()) :: Nil) :: Nil,
+        expected = ("main", Constr.Eq((efIo(), efEmpty())) :: Nil) :: Nil,
         Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
     )
 }

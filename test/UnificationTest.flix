@@ -4,11 +4,26 @@ def unMkEquality(left: Type, right: Type): EqConstr =
 
 
 def unMkGivenEquality(left: Type, right: Type): Constr =
-    Constr.Eq(left, right)
+    Constr.Eq((left, right))
 
 
 def unEmptyConstraintEnv(): ConstrEnv =
     ConstrEnv.empty()
+
+
+def unEnvWithGivens(givens: List[Constr]): ConstrEnv =
+    ConstrEnv.addGivens(givens, unEmptyConstraintEnv())
+
+
+def unEntailRepeat(env: ConstrEnv, constraints: List[EqConstr]): (List[EqConstr], Subst) = {
+    let (remaining, subst) = entailRepeat(env, List.map(Constr.Eq, constraints));
+    let remainingEqs = List.map(c -> match c {
+        case Constr.Eq(eq) => eq
+        case _ => bug!("Expected equality constraint")
+    }, remaining);
+
+    (remainingEqs, subst)
+}
 
 
 // `x ~ Int32 -> { x -> Int32 }`
@@ -175,7 +190,7 @@ def unifyOneApplicationCreatesEqualityConstraints(): Unit \ Assert = {
             :: Nil,
             Subst.empty()
         )),
-        unifyOne(unEmptyConstraintEnv(), Nil, left, right)
+        unify(unEmptyConstraintEnv(), left, right)
     )
 }
 
@@ -188,12 +203,7 @@ def unifyOneVariableCreatesSubstitution(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = Some((Nil, Subst.singleton(x, int32))),
-        unifyOne(
-            unEmptyConstraintEnv(),
-            Nil,
-            Type.Var(x),
-            int32
-        )
+        unify(unEmptyConstraintEnv(), Type.Var(x), int32)
     )
 }
 
@@ -209,12 +219,7 @@ def unifyOneVariableRejectsOccursCheckFailure(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = None,
-        unifyOne(
-            unEmptyConstraintEnv(),
-            Nil,
-            Type.Var(x),
-            unaryX
-        )
+        unify(unEmptyConstraintEnv(), Type.Var(x), unaryX)
     )
 }
 
@@ -227,12 +232,7 @@ def unifyOneRightVariableRejectsKindMismatch(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = None,
-        unifyOne(
-            unEmptyConstraintEnv(),
-            Nil,
-            int32,
-            Type.Var(effectVar)
-        )
+        unify(unEmptyConstraintEnv(), int32, Type.Var(effectVar))
     )
 }
 
@@ -244,7 +244,7 @@ def unifyOneIdenticalTypesShortCircuits(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = Some((Nil, Subst.empty())),
-        unifyOne(unEmptyConstraintEnv(), Nil, int32, int32)
+        unify(unEmptyConstraintEnv(), int32, int32)
     )
 }
 
@@ -257,7 +257,7 @@ def unifyOneDifferentConstructorsHaveNoApplicableRule(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = None,
-        unifyOne(unEmptyConstraintEnv(), Nil, int32, bool)
+        unify(unEmptyConstraintEnv(), int32, bool)
     )
 }
 
@@ -271,7 +271,7 @@ def unifyOneBooleanEffectsCreateSubstitution(): Unit \ Assert = {
 
     assertEq(
         expected = true, 
-        unifyOne(unEmptyConstraintEnv(), Nil, ioEf, right) |> Option.nonEmpty
+        unify(unEmptyConstraintEnv(), ioEf, right) |> Option.nonEmpty
     )
 }
 
@@ -284,7 +284,7 @@ def unifyOneUnsatisfiableBooleanEffectsHaveNoApplicableRule(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = None,
-        unifyOne(unEmptyConstraintEnv(), Nil, ioEf, notIo)
+        unify(unEmptyConstraintEnv(), ioEf, notIo)
     )
 }
 
@@ -298,12 +298,7 @@ def unifyOneBooleanEffectsTreatGroundEffectTyassocAsRigidConstant(): Unit \ Asse
 
     Assert.assertEq(
         expected = Some((Nil, Subst.empty())),
-        unifyOne(
-            unEmptyConstraintEnv(),
-            Nil,
-            efUni(),
-            tautology
-        )
+        unify(unEmptyConstraintEnv(), efUni(), tautology)
     )
 }
 
@@ -317,12 +312,7 @@ def unifyOneBooleanEffectsTreatGroundEffectTyassocAsRigidConstantInContradiction
 
     Assert.assertEq(
         expected = Some((Nil, Subst.empty())),
-        unifyOne(
-            unEmptyConstraintEnv(),
-            Nil,
-            efEmpty(),
-            contradiction
-        )
+        unify(unEmptyConstraintEnv(), efEmpty(), contradiction)
     )
 }
 
@@ -336,12 +326,7 @@ def unifyOneBooleanEffectsRejectUnsatisfiableGroundEffectTyassocFormula(): Unit 
 
     Assert.assertEq(
         expected = None,
-        unifyOne(
-            unEmptyConstraintEnv(),
-            Nil,
-            efEmpty(),
-            tautology
-        )
+        unify(unEmptyConstraintEnv(), efEmpty(), tautology)
     )
 }
 
@@ -359,9 +344,8 @@ def unifyOneTyassocUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
             unMkEquality(bool, bool) :: Nil,
             Subst.empty()
         )),
-        unifyOne(
-            unEmptyConstraintEnv(),
-            unMkGivenEquality(Type.Assoc(assoc), bool) :: Nil,
+        unify(
+            unEnvWithGivens(unMkGivenEquality(Type.Assoc(assoc), bool) :: Nil),
             Type.Assoc(assoc),
             bool
         )
@@ -370,22 +354,26 @@ def unifyOneTyassocUsesGivenReductionOneStepAtATime(): Unit \ Assert = {
 
 
 // given: { Elem a = a }
-// `Elem Int32 ~ Int32 -> NoApplicableRule`
+// `Elem Int32 ~ Int32 -> { Int32 ~ Int32 }`
 @Test
-def unifyOneTyassocDoesNotInstantiateGivenEquality(): Unit \ Assert = {
+def unifyOneTyassocInstantiatesGivenEquality(): Unit \ Assert = {
     let a = Tyvar.Tyvar("a", Kind.Star);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
     let genericAssoc = Tyassoc.Tyassoc("Elem", Type.Var(a), Kind.Star);
     let specificAssoc = Tyassoc.Tyassoc("Elem", int32, Kind.Star);
 
     Assert.assertEq(
-        expected = None,
-        unifyOne(
-            unEmptyConstraintEnv(),
-            unMkGivenEquality(
-                Type.Assoc(genericAssoc),
-                Type.Var(a)
-            ) :: Nil,
+        expected = Some((
+            unMkEquality(int32, int32) :: Nil,
+            Subst.empty()
+        )),
+        unify(
+            unEnvWithGivens(
+                unMkGivenEquality(
+                    Type.Assoc(genericAssoc),
+                    Type.Var(a)
+                ) :: Nil
+            ),
             Type.Assoc(specificAssoc),
             int32
         )
@@ -416,12 +404,7 @@ def unifyOneTyassocInstantiatesConstraintEnvironmentEquality(): Unit \ Assert = 
             unMkEquality(int32, int32) :: Nil,
             Subst.empty()
         )),
-        unifyOne(
-            constraintEnv,
-            Nil,
-            Type.Assoc(specificAssoc),
-            int32
-        )
+        unify(constraintEnv, Type.Assoc(specificAssoc), int32)
     )
 }
 
@@ -440,9 +423,8 @@ def unifyOneTyassocProducesResidualEquality(): Unit \ Assert = {
             unMkEquality(bool, int32) :: Nil,
             Subst.empty()
         )),
-        unifyOne(
-            unEmptyConstraintEnv(),
-            unMkGivenEquality(Type.Assoc(assoc), bool) :: Nil,
+        unify(
+            unEnvWithGivens(unMkGivenEquality(Type.Assoc(assoc), bool) :: Nil),
             Type.Assoc(assoc),
             int32
         )
@@ -465,9 +447,8 @@ def unifyOneEffectTyassocProducesBooleanResidualEquality(): Unit \ Assert = {
             unMkEquality(ioEf, right) :: Nil,
             Subst.empty()
         )),
-        unifyOne(
-            unEmptyConstraintEnv(),
-            unMkGivenEquality(Type.Assoc(assoc), ioEf) :: Nil,
+        unify(
+            unEnvWithGivens(unMkGivenEquality(Type.Assoc(assoc), ioEf) :: Nil),
             Type.Assoc(assoc),
             right
         )
@@ -476,9 +457,9 @@ def unifyOneEffectTyassocProducesBooleanResidualEquality(): Unit \ Assert = {
 
 
 // constraintEnv: { ReadEff x = Read }
-// `ReadEff x ~ Int32 -> KindMismatch`
+// `ReadEff x ~ Int32 -> { Read ~ Int32 }`
 @Test
-def unifyOneTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
+def unifyOneTyassocProducesResidualEqualityAfterReduction(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let readAssoc = Tyassoc.Tyassoc("ReadEff", Type.Var(x), Kind.Eff);
     let read = efConstant("Read");
@@ -491,13 +472,11 @@ def unifyOneTyassocRejectsKindMismatchAfterReduction(): Unit \ Assert = {
     );
 
     Assert.assertEq(
-        expected = None,
-        unifyOne(
-            constraintEnv,
-            Nil,
-            Type.Assoc(readAssoc),
-            int32
-        )
+        expected = Some((
+            unMkEquality(read, int32) :: Nil,
+            Subst.empty()
+        )),
+        unify(constraintEnv, Type.Assoc(readAssoc), int32)
     )
 }
 
@@ -511,12 +490,7 @@ def unifyOneTyassocWithoutReductionHasNoApplicableRule(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = None,
-        unifyOne(
-            unEmptyConstraintEnv(),
-            Nil,
-            Type.Assoc(assoc),
-            int32
-        )
+        unify(unEmptyConstraintEnv(), Type.Assoc(assoc), int32)
     )
 }
 
@@ -535,7 +509,7 @@ def unifyRepeatApplicationFullyUnifies(): Unit \ Assert = {
         Type.Ap(unary, int32)
     ) :: Nil;
 
-    let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
+    let (remaining, subst) = unEntailRepeat(unEmptyConstraintEnv(), constraints);
 
     Assert.assertEq(expected = Nil, remaining);
     Assert.assertEq(expected = Some(int32), subst |> Subst.get(x))
@@ -561,7 +535,7 @@ def unifyRepeatSolvesStarAndBooleanEffectConstraintsTogether(): Unit \ Assert = 
         mkUnion(Type.Var(effVar), ioEf)
     ) :: Nil;
 
-    let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
+    let (remaining, subst) = unEntailRepeat(unEmptyConstraintEnv(), constraints);
 
     Assert.assertEq(expected = Nil, remaining);
     Assert.assertEq(expected = Some(int32), subst |> Subst.get(x));
@@ -591,7 +565,7 @@ def unifyRepeatSolvesBooleanResidualFromEffectTyassocReduction(): Unit \ Assert 
         mkUnion(Type.Var(effVar), ioEf)
     ) :: Nil;
 
-    let (remaining, subst) = unifyRepeat(constraintEnv, Nil, constraints);
+    let (remaining, subst) = unEntailRepeat(constraintEnv, constraints);
 
     Assert.assertEq(expected = Nil, remaining);
     Assert.assertEq(expected = false, subst |> Subst.get(effVar) |> Option.isEmpty)
@@ -609,7 +583,7 @@ def unifyRepeatPreservesUnsolvedConstraints(): Unit \ Assert = {
         :: unMkEquality(Type.Var(x), int32)
         :: Nil;
 
-    let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
+    let (remaining, subst) = unEntailRepeat(unEmptyConstraintEnv(), constraints);
 
     Assert.assertEq(expected = unMkEquality(int32, bool) :: Nil, remaining);
     Assert.assertEq(expected = Some(int32), subst |> Subst.get(x))
@@ -628,7 +602,7 @@ def unifyRepeatPreservesUnsolvedStarConstraintsWhileSolvingBooleanEffects(): Uni
         :: unMkEquality(ioEf, mkUnion(Type.Var(effVar), ioEf))
         :: Nil;
 
-    let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
+    let (remaining, subst) = unEntailRepeat(unEmptyConstraintEnv(), constraints);
 
     Assert.assertEq(expected = unMkEquality(int32, bool) :: Nil, remaining);
     Assert.assertEq(expected = false, subst |> Subst.get(effVar) |> Option.isEmpty)
@@ -645,9 +619,8 @@ def unifyRepeatConsumesResidualEqualityFromTyassocReduction(): Unit \ Assert = {
 
     let constraints = unMkEquality(Type.Assoc(assoc), bool) :: Nil;
 
-    let (remaining, subst) = unifyRepeat(
-        unEmptyConstraintEnv(),
-        unMkGivenEquality(Type.Assoc(assoc), bool) :: Nil,
+    let (remaining, subst) = unEntailRepeat(
+        unEnvWithGivens(unMkGivenEquality(Type.Assoc(assoc), bool) :: Nil),
         constraints
     );
 
@@ -668,7 +641,7 @@ def unifyRepeatPreservesUnsolvedBooleanEffectsWhileSolvingStarConstraints(): Uni
         :: unMkEquality(ioEf, notIo)
         :: Nil;
 
-    let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
+    let (remaining, subst) = unEntailRepeat(unEmptyConstraintEnv(), constraints);
 
     Assert.assertEq(expected = unMkEquality(ioEf, notIo) :: Nil, remaining);
     Assert.assertEq(expected = Some(int32), subst |> Subst.get(x))
@@ -694,7 +667,7 @@ def unifyRepeatPreservesUnsolvedBooleanResidualFromEffectTyassocReduction(): Uni
 
     let constraints = unMkEquality(Type.Assoc(specificAssoc), ioEf) :: Nil;
 
-    let (remaining, subst) = unifyRepeat(constraintEnv, Nil, constraints);
+    let (remaining, subst) = unEntailRepeat(constraintEnv, constraints);
 
     Assert.assertEq(expected = unMkEquality(notIo, ioEf) :: Nil, remaining);
     Assert.assertEq(expected = Subst.empty(), subst)
@@ -725,7 +698,7 @@ def unifyRepeatFullyReducesChainedTyassocs(): Unit \ Assert = {
 
     let constraints = unMkEquality(Type.Assoc(assocA), int32) :: Nil;
 
-    let (remaining, subst) = unifyRepeat(constraintEnv, Nil, constraints);
+    let (remaining, subst) = unEntailRepeat(constraintEnv, constraints);
 
     Assert.assertEq(expected = Nil, remaining);
     Assert.assertEq(expected = Subst.empty(), subst)
@@ -743,7 +716,7 @@ def unifyRepeatComposesSubstitutionsAcrossSteps(): Unit \ Assert = {
         :: unMkEquality(Type.Var(y), Type.Var(x))
         :: Nil;
 
-    let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
+    let (remaining, subst) = unEntailRepeat(unEmptyConstraintEnv(), constraints);
 
     Assert.assertEq(expected = Nil, remaining);
     Assert.assertEq(expected = Some(int32), subst |> Subst.get(x));
@@ -762,7 +735,7 @@ def unifyRepeatComposesSubstitutionsAcrossStepsInReverseOrder(): Unit \ Assert =
         :: unMkEquality(Type.Var(x), int32)
         :: Nil;
 
-    let (remaining, subst) = unifyRepeat(unEmptyConstraintEnv(), Nil, constraints);
+    let (remaining, subst) = unEntailRepeat(unEmptyConstraintEnv(), constraints);
 
     Assert.assertEq(expected = Nil, remaining);
     Assert.assertEq(expected = Some(int32), subst |> Subst.get(x));
