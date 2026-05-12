@@ -16,4 +16,3 @@ mod Collect {
         (res, Ref.get(constrs))
     }
 }
-

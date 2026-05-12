@@ -1,4 +1,4 @@
-pub type alias Handler = (Id /* effect op id isn't even used */, Id, Expr)
+pub type alias Handler = (Id, Expr)
 
 pub enum Expr {
     case Var(Id),
@@ -47,7 +47,7 @@ def inferAp(assums: Assumps, f: Expr, a: Expr): (Type, Type) \ Fresh + Collect =
     let freshE = Type.Var(Fresh.freshVar(Kind.Eff));
     let freshR = Type.Var(Fresh.freshVar(Kind.Star));
 
-    Collect.collect(Constr.Eq(funTy, mkArrow(argTy, freshE, freshR)));
+    Collect.collect(Constr.Eq((funTy, mkArrow(argTy, freshE, freshR))));
 
     (freshR, mkUnion(argE, mkUnion(funE, freshE)))
 
@@ -67,8 +67,8 @@ def inferIfElse(
     let (tTy, tEff) = infer(assums, t);
     let (fTy, fEff) = infer(assums, f);
 
-    Collect.collect(Constr.Eq(cTy, tBool()));
-    Collect.collect(Constr.Eq(tTy, fTy));
+    Collect.collect(Constr.Eq((cTy, tBool())));
+    Collect.collect(Constr.Eq((tTy, fTy)));
 
     (tTy, mkUnion(cEff, mkUnion(tEff, fEff)))
 
@@ -82,9 +82,9 @@ def inferRunWith(
 
     let hEffs = Nel.map(
         x -> {
-            let (_, kId, h) = x;
+            let (kId, h) = x;
             let (ht, he) = infer(Map.insert(kId, mkScheme(kTy), assums), h);
-            Collect.collect(Constr.Eq(ht, eTy));
+            Collect.collect(Constr.Eq((ht, eTy)));
             he
         },
         hs
@@ -97,7 +97,7 @@ def inferRunWith(
         hEffs
     );
 
-    Collect.collect(Constr.Eq(freshEf, runWithEff));
+    Collect.collect(Constr.Eq((freshEf, runWithEff)));
 
     (eTy, runWithEff)
 }

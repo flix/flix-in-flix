@@ -5,10 +5,7 @@ pub type alias TopLevelDecl = (Id, Scheme, Expr)
 /// contains the Id of the Expr declared, and a list of unsatisfied constraints.
 pub type alias Check = (Id, List[Constr])
 
-pub def typeCheckProgram(
-    env: ConstrEnv, 
-    decls: List[TopLevelDecl]
-): List[Check] \ Fresh = {
+pub def typeCheckProgram(env: ConstrEnv, decls: List[TopLevelDecl]): List[Check] \ Fresh = {
     let initialAssums = List.map(x -> let (id, sch, _) = x; (id, sch), decls) 
         |> List.toMap;
 
@@ -33,8 +30,8 @@ def collectAssoc(ty: Type): Set[Tyassoc] = match ty {
 
 def collectAssocInCtx(cs: List[Constr]): Set[Tyassoc] = List.foldLeft(
     (set, c) -> match c {
-        case Constr.Class(_, t) => set ++ collectAssoc(t)
-        case Constr.Eq(l, r) => set ++ collectAssoc(l) ++ collectAssoc(r)
+        case Constr.Class((_, t)) => set ++ collectAssoc(t)
+        case Constr.Eq((l, r)) => set ++ collectAssoc(l) ++ collectAssoc(r)
     }, 
     Set.empty(), 
     cs
@@ -64,7 +61,7 @@ def subsume(
         x ->  {
             let Tyassoc.Tyassoc(id, arg, _) = x;
             let traitId = ConstrEnv.getTraitOfAssoc(id, e);
-            Constr.Class(traitId, arg)
+            Constr.Class((traitId, arg))
         },
         collectAssocInQual(rinst)
     ));
@@ -73,10 +70,11 @@ def subsume(
     let Qual.Qual(rGivs, rTy) = rinst;
     let Qual.Qual(lWanteds, lTy) = l;
 
-    let (reducedGivs, _) = entailRepeat(e, Nil, rGivs);
+    let (reducedGivs, _) = entailRepeat(e, rGivs);
     
-    let tyEq = Constr.Eq(lTy, rTy);
-    let efPure = Constr.Eq(le, efEmpty());
+    let tyEq = Constr.Eq((lTy, rTy));
+    let efPure = Constr.Eq((le, efEmpty()));
     let wanteds = tyEq :: efPure :: lWanteds ++ requiredClsConstrs;
+    let eWithGivs = ConstrEnv.addGivens(reducedGivs, e);
 
-    fst(entailRepeat(e, reducedGivs, wanteds))
+    fst(entailRepeat(eWithGivs, wanteds))

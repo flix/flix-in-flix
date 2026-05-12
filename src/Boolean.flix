@@ -1,7 +1,6 @@
 def sve(f: Type, vars: List[Tyvar]): Option[Subst] = 
     if (not isSat(f)) Some(Subst.empty()) else match vars {
-        case Nil => None
-        case x :: xs => {
+        case Nil => None case x :: xs => {
             let l = Substable.apply(Subst.singleton(x, efEmpty()), f);
             let r = Substable.apply(Subst.singleton(x, efUni()), f);
             let lr = mkIntersect(l, r);

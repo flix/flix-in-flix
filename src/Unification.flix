@@ -1,74 +1,28 @@
-pub def unifyOne(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type): 
-    Option[(List[EqConstr], Subst)] =
-        if (equiv(lhs, rhs)) Some((Nil, Subst.empty()))
-        else unifyNoEq(env, giv, lhs, rhs)
-
-def unifyNoEq(env: ConstrEnv, giv: List[Constr], lhs: Type, rhs: Type): 
-    Option[(List[EqConstr], Subst)] = match (lhs, rhs) {
-        case (Type.Ap(lhsFn, lhsArg), Type.Ap(rhsFn, rhsArg)) => Some((
-            (lhsFn, rhsFn) :: (lhsArg, rhsArg) :: Nil,
-            Subst.empty()
+pub def unify(e: ConstrEnv, l: Type, r: Type): Option[(List[EqConstr], Subst)] =
+    if (equiv(l, r)) Some((Nil, Subst.empty()))
+    else unifyNoEq(e, l, r)
+def unifyNoEq(e: ConstrEnv, l: Type, r: Type): Option[(List[EqConstr], Subst)] = 
+    match (l, r) {
+        case (Type.Ap(lF, lA), Type.Ap(rF, rA)) => Some((
+            (lF, rF) :: (lA, rA) :: Nil, Subst.empty()
         ))
-        case (Type.Var(tvar), _) 
-            => Option.map(sub -> (Nil, sub), bindVar(tvar, rhs))
-        case (_, Type.Var(tvar)) 
-            => Option.map(sub -> (Nil, sub), bindVar(tvar, lhs))
-        case (Type.Assoc(am), _) => Option.map(
-            eqs -> (eqs, Subst.empty()), 
-            bindAssoc(env, giv, am, rhs)
+        case (Type.Var(v), _) => Option.map(sub -> (Nil, sub), bindVar(v, r))
+        case (_, Type.Var(v)) => Option.map(sub -> (Nil, sub), bindVar(v, l))
+        case (Type.Assoc(a), _) => Option.map(
+            s -> (s, Subst.empty()), 
+            reduceUnifyAssoc(e, a, r)
         )
-        case (_, Type.Assoc(am)) => Option.map(
+        case (_, Type.Assoc(a)) => Option.map(
             eqs -> (eqs, Subst.empty()), 
-            bindAssoc(env, giv, am, lhs)
+            reduceUnifyAssoc(e, a, l)
         )
-        case _ if kindOf(lhs) == Kind.Eff and kindOf(rhs) == Kind.Eff => 
-            Option.map(s -> (Nil, s), boolUnify(lhs, rhs)) 
+        case _ if kindOf(l) == Kind.Eff and kindOf(r) == Kind.Eff => 
+            Option.map(s -> (Nil, s), boolUnify(l, r)) 
         case _ => None
     }
-
-def bindAssoc(env: ConstrEnv, giv: List[Constr], am: Tyassoc, ty: Type): 
-    Option[List[EqConstr]] = forM (
-        redAm <- reduce(env, giv, Type.Assoc(am));
-        _ <- if (kindOf(redAm) != kindOf(ty)) None
-            else Some(())
-    ) yield (redAm, ty) :: Nil
-
-def bindVar(tvar: Tyvar, ty: Type): Option[Subst] = {
+def reduceUnifyAssoc(e: ConstrEnv, a: Tyassoc, t: Type): Option[List[EqConstr]] 
+    = forM(redAm <- reduce(e, Type.Assoc(a))) yield (redAm, t) :: Nil
+def bindVar(tvar: Tyvar, ty: Type): Option[Subst] = 
     if (Set.memberOf(tvar, FreeVars.fvs(ty)) 
         or kindOf(Type.Var(tvar)) != kindOf(ty)) None
     else Some(Subst.singleton(tvar, ty))
-}
-
-def unifyRepeatHelper(
-    env: ConstrEnv,
-    giv: List[Constr],
-    eqs: List[EqConstr],
-    curSub: Subst
-): (List[EqConstr], Subst) = {
-    def findStep(done: List[EqConstr], rest: List[EqConstr]): 
-        Option[(List[EqConstr], Subst)] = match rest {
-            case Nil => None
-
-            case (l, r) :: tail => match unifyOne(env, giv, l, r) {
-                case Some((newEqs, sub)) => {
-                    let doneS = List.map(Substable.apply(sub), done);
-                    let tailS = List.map(Substable.apply(sub), tail);
-                    Some((doneS ++ newEqs ++ tailS, sub))
-                }
-
-                case None => findStep((l, r) :: done, tail)
-            }
-    };
-
-    match findStep(Nil, eqs) {
-        case Some((nextEqs, sub)) 
-            => unifyRepeatHelper(env, giv, nextEqs, Subst.compose(sub, curSub))
-        case None => (eqs, curSub)
-    }
-}
-
-pub def unifyRepeat(
-    env: ConstrEnv,
-    giv: List[Constr],
-    eqs: List[EqConstr]
-): (List[EqConstr], Subst) = unifyRepeatHelper(env, giv, eqs, Subst.empty())
