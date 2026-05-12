@@ -8,6 +8,16 @@ def prDecl(id: Id, sch: Scheme, expr: Expr): TopLevelDecl =
     (id, sch, expr)
 
 
+def prMkHandlerBody(effectId: Id, kId: Id): Expr =
+    Expr.Semi(
+        Expr.Do(effectId),
+        Expr.Ap(
+            Expr.Var(kId),
+            Expr.Lit(tUnit())
+        )
+    )
+
+
 // `[] -> []`
 @Test
 def typeCheckProgramLeavesEmptyProgramEmpty(): Unit \ Assert = {
@@ -83,6 +93,46 @@ def typeCheckProgramReturnsResidualEffectConstraintForImpureDeclaration(): Unit 
 
     Assert.assertEq(
         expected = ("main", Constr.Eq((efIo(), efEmpty())) :: Nil) :: Nil,
+        Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
+    )
+}
+
+
+// `test: forall a. a -> Unit \ {B + C} = \x -> run do A with handlers [k1 => do B; k1(()), k2 => do C; k2(())] -> []`
+@Test
+def typeCheckProgramAcceptsHandledProgramFromTestCase(): Unit \ Assert = {
+    let scheme = Scheme.Scheme(
+        Kind.Star :: Nil,
+        Qual.Qual(
+            Nil,
+            mkArrow(
+                Type.Gen(0),
+                mkUnion(efConstant("B"), efConstant("C")),
+                tUnit()
+            )
+        )
+    );
+
+    let handlers = Nel.Nel(
+        ("k1", prMkHandlerBody("B", "k1")),
+        ("k2", prMkHandlerBody("C", "k2")) :: Nil
+    );
+
+    let decls = prDecl(
+        "test",
+        scheme,
+        Expr.Lam(
+            "x",
+            Expr.RunWith(
+                Expr.Do("A"),
+                "A",
+                handlers
+            )
+        )
+    ) :: Nil;
+
+    Assert.assertEq(
+        expected = ("test", Nil) :: Nil,
         Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
     )
 }
