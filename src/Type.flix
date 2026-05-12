@@ -34,7 +34,7 @@ pub def efHttp(): Type = efConstant("Http")
 pub def efUni(): Type = efConstant("EffectUniverse")
 
 pub def mkArrow(arg: Type, ef: Type, res: Type): Type = {
-    mkAp(mkAp(tArrow(), arg), mkAp(ef, res))
+    mkAp(mkAp(mkAp(tArrow(), arg), ef), res)
 }
 
 def tryComl(t: Type) : Option[Type] = match t {
