@@ -1,3 +1,5 @@
+pub type alias Handler = (Id /* effect op id isn't even used */, Id, Expr)
+
 pub enum Expr {
     case Var(Id),
     case Lit(Type),
@@ -10,9 +12,8 @@ pub enum Expr {
     // where
     // - Expr is the body of the `run` with effectful computation
     // - Id is the effect being handled
-    // - Id is the name of the continuation variable in the handler
-    // - Expr is the handler body, which can refer to the continuation variable
-    case RunWith(Expr, Id, Id, Expr)
+    // - Nel[Handler] is the list of handlers for each operation of the effect
+    case RunWith(Expr, Id, Nel[Handler])
 }
 
 pub def infer(assumps: Assumps, expr: Expr): (Type, Type) \ Fresh + Collect 
@@ -23,7 +24,7 @@ pub def infer(assumps: Assumps, expr: Expr): (Type, Type) \ Fresh + Collect
         case Expr.Do(ef) => inferDo(ef)
         case Expr.Lam(x, e) => inferLam(assumps, x, e)
         case Expr.IfElse(c, t, f) => inferIfElse(assumps, c, t, f)
-        case Expr.RunWith(e, ef, k, h) => inferRunWith(assumps, e, ef, k, h)
+        case Expr.RunWith(e, ef, hs) => inferRunWith(assumps, e, ef, hs)
     }
 
 def inferVar(assumps: Assumps, x: Id): (Type, Type) \ Fresh + Collect = 
@@ -72,20 +73,33 @@ def inferIfElse(
     (tTy, mkUnion(cEff, mkUnion(tEff, fEff)))
 
 def inferRunWith(
-    assums: Assumps, e: Expr, ef: Id, kId: Id, h: Expr
+    assums: Assumps, e: Expr, ef: Id, hs: Nel[Handler]
 ): (Type, Type) \ Fresh + Collect = {
     let (eTy, eEff) = infer(assums, e);
 
+    let freshEf = Type.Var(Fresh.freshVar(Kind.Eff));
+    let kTy = mkArrow(tUnit(), freshEf, eTy);
+
+    let hEffs = Nel.map(
+        x -> {
+            let (_, kId, h) = x;
+            let (ht, he) = infer(Map.insert(kId, mkScheme(kTy), assums), h);
+            Collect.collect(Constr.Eq(ht, eTy));
+            he
+        },
+        hs
+    );
+
     let excluded = mkExclusion(eEff, efConstant(ef));
-    let kTy = mkArrow(tUnit(), excluded, eTy);
-    let newAssumps = Map.insert(kId, mkScheme(kTy), assums);
+    let runWithEff = Nel.foldLeft(
+        (acc, hEff) -> mkUnion(acc, hEff),
+        excluded,
+        hEffs
+    );
 
-    let (hTy, hEff) = infer(newAssumps, h);
+    Collect.collect(Constr.Eq(freshEf, runWithEff));
 
-    Collect.collect(Constr.Eq(hTy, eTy));
-    Collect.collect(Constr.Eq(hEff, excluded));
-
-    (eTy, excluded)
+    (eTy, runWithEff)
 }
 
 def inferDo(ef: Id): (Type, Type) = (tUnit(), efConstant(ef))
