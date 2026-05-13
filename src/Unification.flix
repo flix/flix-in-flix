@@ -11,8 +11,10 @@ def unifyNoEq(e: ConstrEnv, l: Type, r: Type): Option[(List[EqConstr], Subst)] =
             eqs -> (eqs, Subst.empty()), 
             reduceUnifyAssoc(e, a, l)
         )
-        case (Type.Var(v), _) => Option.map(sub -> (Nil, sub), bindVar(v, r))
-        case (_, Type.Var(v)) => Option.map(sub -> (Nil, sub), bindVar(v, l))
+        case (Type.Var(v), x) if not Set.memberOf(v, FreeVars.fvs(x)) 
+            => Option.map(sub -> (Nil, sub), bindVar(v, r))
+        case (x, Type.Var(v)) if not Set.memberOf(v, FreeVars.fvs(x)) 
+            => Option.map(sub -> (Nil, sub), bindVar(v, l))
         case _ if kindOf(l) == Kind.Eff and kindOf(r) == Kind.Eff => 
             Option.map(s -> (Nil, s), boolUnify(l, r))
         case (Type.Ap(lF, lA), Type.Ap(rF, rA)) => Some((
@@ -23,6 +25,5 @@ def unifyNoEq(e: ConstrEnv, l: Type, r: Type): Option[(List[EqConstr], Subst)] =
 def reduceUnifyAssoc(e: ConstrEnv, a: Tyassoc, t: Type): Option[List[EqConstr]] 
     = forM(redAm <- reduce(e, Type.Assoc(a))) yield (redAm, t) :: Nil
 def bindVar(tvar: Tyvar, ty: Type): Option[Subst] = 
-    if (Set.memberOf(tvar, FreeVars.fvs(ty)) 
-        or kindOf(Type.Var(tvar)) != kindOf(ty)) None
+    if (kindOf(Type.Var(tvar)) != kindOf(ty)) None
     else Some(Subst.singleton(tvar, ty))
