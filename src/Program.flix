@@ -15,7 +15,7 @@ pub def typeCheckProgram(env: ConstrEnv, decls: List[TopLevelDecl]): List[Check]
             let ((ty, ef), constrs) = 
                 Collect.withCollect(() -> infer(initialAssums, expr));
 
-            (id, subsume(env, Qual.Qual(constrs, ty), ef, sch))
+            (id, subsume(env, ty, constrs, ef, sch))
         }, 
         decls
     )
@@ -40,41 +40,28 @@ def collectAssocInCtx(cs: List[Constr]): Set[Tyassoc] = List.foldLeft(
 def collectAssocInQual(q: Qual[Type]): Set[Tyassoc] = 
     let Qual.Qual(ctx, head) = q; collectAssocInCtx(ctx) ++ collectAssoc(head)
 
-/// ΘP , [T / a2] π2 |= entail {π1, τ1 = [T /a2]τ2} ->! •; R
-/// where T are fresh type constructors
-/// --------------------------------------------------
-/// ΘP |- subsume (∀a1.π1 ⇒τ1) ≤ (∀a2.π2 ⇒τ2)
-///
-/// But the `l` is already instantiated with fresh inference variables and the 
-/// eff must be pure.
-def subsume(
-    e: ConstrEnv, 
-    l: Qual[Type], 
-    le: Type, 
-    r: Scheme
-): List[Constr] \ Fresh = 
-    let Scheme.Scheme(varKinds, qual) = r;
-    let rcon = List.map(Fresh.freshCon >> Type.Con, varKinds);
-    let rinst = Instantiate.inst(rcon, qual);
+def skolemize(sch: Scheme): Qual[Type] \ Fresh = {
+    let Scheme.Scheme(varKinds, qual) = sch;
+    let skolems = List.map(Fresh.freshCon >> Type.Con, varKinds);
+    Instantiate.inst(skolems, qual)
+}
 
+def subsume(
+    env: ConstrEnv, eTy: Type, eConstrs: List[Constr], eEff: Type, ann: Scheme
+): List[Constr] \ Fresh = 
+    let instAnnQual = skolemize(ann);
     let requiredClsConstrs = Set.toList(Set.map(
         x ->  {
             let Tyassoc.Tyassoc(id, arg, _) = x;
-            let traitId = ConstrEnv.getTraitOfAssoc(id, e);
+            let traitId = ConstrEnv.getTraitOfAssoc(id, env);
             Constr.Class((traitId, arg))
         },
-        collectAssocInQual(rinst)
+        collectAssocInQual(instAnnQual)
     ));
-
-    // the substitution should be empty.
-    let Qual.Qual(rGivs, rTy) = rinst;
-    let Qual.Qual(lWanteds, lTy) = l;
-
-    let (reducedGivs, _) = entailRepeat(e, rGivs);
-    
-    let tyEq = Constr.Eq((lTy, rTy));
-    let efPure = Constr.Eq((le, efEmpty()));
-    let wanteds = tyEq :: efPure :: lWanteds ++ requiredClsConstrs;
-    let eWithGivs = ConstrEnv.addGivens(reducedGivs, e);
-
+    let Qual.Qual(givs, instAnnTy) = instAnnQual;
+    let (reducedGivs, _) = entailRepeat(env, givs);
+    let tyEq = Constr.Eq((eTy, instAnnTy));
+    let efPure = Constr.Eq((eEff, efEmpty()));
+    let wanteds = tyEq :: efPure :: eConstrs ++ requiredClsConstrs;
+    let eWithGivs = ConstrEnv.addGivens(reducedGivs, env);
     fst(entailRepeat(eWithGivs, wanteds))
