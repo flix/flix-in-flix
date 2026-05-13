@@ -10,12 +10,19 @@ pub def typeCheckProgram(env: ConstrEnv, decls: List[TopLevelDecl]): List[Check]
         |> List.toMap;
 
     List.map(
-        x -> {
+        x -> region r {
             let (id, sch, expr) = x;
-            let ((ty, ef), constrs) = 
-                Collect.withCollect(() -> infer(initialAssums, expr));
+            let constrs = Ref.fresh(r, Nil);
 
-            (id, subsume(env, ty, constrs, ef, sch))
+            let (ty, ef) = run infer(initialAssums, expr)
+                with handler Collect {
+                    def collect(c, res) = {
+                        Ref.put(c :: Ref.get(constrs), constrs);
+                        res(())
+                    }
+                };
+
+            (id, subsume(env, ty, Ref.get(constrs), ef, sch))
         }, 
         decls
     )
@@ -40,6 +47,16 @@ def collectAssocInCtx(cs: List[Constr]): Set[Tyassoc] = List.foldLeft(
 def collectAssocInQual(q: Qual[Type]): Set[Tyassoc] = 
     let Qual.Qual(ctx, head) = q; collectAssocInCtx(ctx) ++ collectAssoc(head)
 
+def assocWfConstrs(q: Qual[Type], env: ConstrEnv): List[Constr] 
+    = Set.toList(Set.map(
+        x -> {
+            let Tyassoc.Tyassoc(id, arg, _) = x;
+            let traitId = ConstrEnv.getTraitOfAssoc(id, env);
+            Constr.Class((traitId, arg))
+        },
+        collectAssocInQual(q)
+    ))
+
 def skolemize(sch: Scheme): Qual[Type] \ Fresh = {
     let Scheme.Scheme(varKinds, qual) = sch;
     let skolems = List.map(Fresh.freshCon >> Type.Con, varKinds);
@@ -49,19 +66,10 @@ def skolemize(sch: Scheme): Qual[Type] \ Fresh = {
 def subsume(
     env: ConstrEnv, eTy: Type, eConstrs: List[Constr], eEff: Type, ann: Scheme
 ): List[Constr] \ Fresh = 
-    let instAnnQual = skolemize(ann);
-    let requiredClsConstrs = Set.toList(Set.map(
-        x ->  {
-            let Tyassoc.Tyassoc(id, arg, _) = x;
-            let traitId = ConstrEnv.getTraitOfAssoc(id, env);
-            Constr.Class((traitId, arg))
-        },
-        collectAssocInQual(instAnnQual)
-    ));
-    let Qual.Qual(givs, instAnnTy) = instAnnQual;
-    let (reducedGivs, _) = entailRepeat(env, givs);
-    let tyEq = Constr.Eq((eTy, instAnnTy));
-    let efPure = Constr.Eq((eEff, efEmpty()));
-    let wanteds = tyEq :: efPure :: eConstrs ++ requiredClsConstrs;
-    let eWithGivs = ConstrEnv.addGivens(reducedGivs, env);
-    fst(entailRepeat(eWithGivs, wanteds))
+    let skolemizedQual = skolemize(ann);
+    let Qual.Qual(givs, annTy) = skolemizedQual;
+    fst(entailRepeat(
+        ConstrEnv.addGivens(fst(entailRepeat(env, givs)), env), 
+        Constr.Eq((eTy, annTy)) :: Constr.Eq((eEff, efEmpty())) 
+            :: eConstrs ++ assocWfConstrs(skolemizedQual, env)
+    ))
