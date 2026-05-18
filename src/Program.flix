@@ -51,7 +51,10 @@ def assocWfConstrs(q: Qual[Type], env: ConstrEnv): List[Constr]
     = Set.toList(Set.map(
         x -> {
             let Tyassoc.Tyassoc(id, arg, _) = x;
-            let traitId = getTraitOfAssoc(id, env);
+            let traitId = match Map.get(id, env#assocToClass) {
+                case Some(traitId) => traitId
+                case None => bug!("Unknown associated member: " + id)
+            };
             Constr.Class((traitId, arg))
         },
         collectAssocInQual(q)

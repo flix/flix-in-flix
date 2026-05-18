@@ -27,7 +27,7 @@ def byInst(env: ConstrEnv, clsId: Id, clsTy: Type): Option[List[Constr]] =
     List.findMap(
         i -> let Qual.Qual(ctx, (_, ty)) = i;
             Option.map(sub -> Substable.apply(sub, ctx), matchTy(ty, clsTy)),
-        getClassInsts(clsId, env)
+        Map.getWithDefault(clsId, Nil, env#classInsts)
     )
 
 def reduceClass(env: ConstrEnv, clsId: Id, clsTy: Type): Option[ClassConstr] = 

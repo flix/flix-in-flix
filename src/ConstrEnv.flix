@@ -2,7 +2,7 @@ pub type alias Inst = Qual[ClassConstr]
 
 
 pub type alias ConstrEnv = {
-    tyassocs = Map[Id, List[EqConstr]], 
+    tyAssocEqs = Map[Id, List[EqConstr]], 
     classInsts = Map[Id, List[Qual[ClassConstr]]],
     assocToClass = Map[Id, Id],
     givenClasses = List[ClassConstr],
@@ -10,7 +10,7 @@ pub type alias ConstrEnv = {
 }
 
 pub def emptyConstrEnv(): ConstrEnv = {
-    tyassocs = Map.empty(),
+    tyAssocEqs = Map.empty(),
     classInsts = Map.empty(),
     assocToClass = Map.empty(),
     givenClasses = Nil,
@@ -33,7 +33,7 @@ def exAssocEq(m: Map[Id, List[EqConstr]], eq: List[Constr]):
     }
 
 pub def addGivens(givens: List[Constr], env: ConstrEnv): ConstrEnv = {
-    tyassocs = exAssocEq(env#tyassocs, givens),
+    tyAssocEqs = exAssocEq(env#tyAssocEqs, givens),
     givenClasses = env#givenClasses ++ List.filterMap(
         c -> match c {
             case Constr.Class(id) => Some(id)
@@ -45,7 +45,7 @@ pub def addGivens(givens: List[Constr], env: ConstrEnv): ConstrEnv = {
 }
 
 pub def addAssocEq(id: Id, eq: EqConstr, env: ConstrEnv): ConstrEnv = {
-    tyassocs = Map.insertWith(List.append, id, eq :: Nil, env#tyassocs) | env
+    tyAssocEqs = Map.insertWith(List.append, id, eq :: Nil, env#tyAssocEqs) | env
 }
 
 pub def addClass(id: Id, env: ConstrEnv): ConstrEnv = {
@@ -60,26 +60,9 @@ pub def addSuper(sub: Id, sup: Id, env: ConstrEnv): ConstrEnv = {
     sups = Set.insert((sub, sup), env#sups) | env
 }
 
-pub def getTraitOfAssoc(id: Id, env: ConstrEnv): Id 
-    = match Map.get(id, env#assocToClass) {
-        case Some(traitId) => traitId
-        case None => bug!("Unknown associated member: " + id)
-    }
-
 pub def addAssocTo(assocId: Id, classId: Id, env: ConstrEnv): ConstrEnv = {
     assocToClass = Map.insert(assocId, classId, env#assocToClass) | env
 }
-
-pub def getClassInsts(id: Id, env: ConstrEnv): List[Qual[ClassConstr]] = {
-    Option.getWithDefault(Nil, Map.get(id, env#classInsts))
-}
-
-pub def lookupTyassoc(id: Id, env: ConstrEnv): List[EqConstr] = {
-    Option.getWithDefault(Nil, Map.get(id, env#tyassocs))
-}
-
-pub def superFact(env: ConstrEnv): #{ StrictSuper(Id, Id) | r } =
-    inject env#sups into StrictSuper/2
 
 pub def parentClasses(id: Id, env: ConstrEnv): Set[Id] =
     let rules: #{ Super(Id, Id), StrictSuper(Id, Id) } = #{
@@ -87,7 +70,8 @@ pub def parentClasses(id: Id, env: ConstrEnv): Set[Id] =
         Super(x, y) :- StrictSuper(x, z), Super(z, y).
     };
 
-    Vector.toSet(query superFact(env), rules, #{ Super(id, id). }
+    Vector.toSet(
+        query (inject env#sups into StrictSuper/2), rules, #{ Super(id, id). }
         select x from Super(id, x)
     )
 
