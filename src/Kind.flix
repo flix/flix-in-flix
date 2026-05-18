@@ -4,14 +4,12 @@ pub enum Kind with Eq, ToString, Hash, Order {
     case KFun(Kind, Kind)
 }
 
-mod Kind {
-    pub def arrow(): Kind = Kind.KFun(
-        Kind.Star, 
-        Kind.KFun(Kind.Eff, Kind.KFun(Kind.Star, Kind.Star))
-    )
+pub def kArrow(): Kind = Kind.KFun(
+    Kind.Star, 
+    Kind.KFun(Kind.Eff, Kind.KFun(Kind.Star, Kind.Star))
+)
 
-    pub def efUnary(): Kind = Kind.KFun(Kind.Eff, Kind.Eff)
+pub def kEfUnary(): Kind = Kind.KFun(Kind.Eff, Kind.Eff)
 
-    pub def efBinary(): Kind 
-        = Kind.KFun(Kind.Eff, Kind.KFun(Kind.Eff, Kind.Eff))
-}
+pub def kEfBinary(): Kind 
+    = Kind.KFun(Kind.Eff, Kind.KFun(Kind.Eff, Kind.Eff))
