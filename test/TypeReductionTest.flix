@@ -7,11 +7,11 @@ def trMkGivenEquality(left: Type, right: Type): Constr =
 
 
 def trEmptyConstraintEnv(): ConstrEnv =
-    ConstrEnv.empty()
+    emptyConstrEnv()
 
 
 def trEnvWithGivens(givens: List[Constr]): ConstrEnv =
-    ConstrEnv.addGivens(givens, trEmptyConstraintEnv())
+    addGivens(givens, trEmptyConstraintEnv())
 
 
 // `x, Int32, Gen(0) -> None`
@@ -86,13 +86,13 @@ def reduceTypeOneStepInstantiatesConstraintEnvironmentEquality(): Unit \ Assert 
     let genericAssoc = Tyassoc.Tyassoc("Elem", Type.Var(a), Kind.Star);
     let specificAssoc = Tyassoc.Tyassoc("Elem", int32, Kind.Star);
 
-    let constraintEnv = ConstrEnv.addAssocEq(
+    let constraintEnv = addAssocEq(
         "Elem",
         trMkEquality(
             Type.Assoc(genericAssoc),
             Type.Var(a)
         ),
-        ConstrEnv.empty()
+        emptyConstrEnv()
     );
 
     Assert.assertEq(
@@ -119,12 +119,12 @@ def reduceTypeOneStepReducesTyassocArgumentBeforeOuterLookup(): Unit \ Assert = 
     let bool = Type.Con(Tycon.Tycon("Bool", Kind.Star));
     let outerAfterArgReduction = Tyassoc.Tyassoc("Outer", int32, Kind.Star);
 
-    let constraintEnv = ConstrEnv.empty()
-        |> ConstrEnv.addAssocEq(
+    let constraintEnv = emptyConstrEnv()
+        |> addAssocEq(
             "Inner",
             trMkEquality(Type.Assoc(inner), int32)
         )
-        |> ConstrEnv.addAssocEq(
+        |> addAssocEq(
             "Outer",
             trMkEquality(Type.Assoc(outerAfterArgReduction), bool)
         );
@@ -156,12 +156,12 @@ def reduceTypeOneStepApplicationReducesFunctionBeforeArgument(): Unit \ Assert =
     );
     let unary = Type.Con(Tycon.Tycon("Unary", unaryKind));
 
-    let constraintEnv = ConstrEnv.empty()
-        |> ConstrEnv.addAssocEq(
+    let constraintEnv = emptyConstrEnv()
+        |> addAssocEq(
             "UnaryCtor",
             trMkEquality(Type.Assoc(funcAssoc), unary)
         )
-        |> ConstrEnv.addAssocEq(
+        |> addAssocEq(
             "Elem",
             trMkEquality(
                 Type.Assoc(argAssoc),
@@ -194,10 +194,10 @@ def reduceTypeOneStepApplicationReducesArgumentWhenFunctionIsStable(): Unit \ As
     );
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstrEnv.addAssocEq(
+    let constraintEnv = addAssocEq(
         "Elem",
         trMkEquality(Type.Assoc(argAssoc), int32),
-        ConstrEnv.empty()
+        emptyConstrEnv()
     );
 
     let ty = Type.Ap(unary, Type.Assoc(argAssoc));
@@ -218,15 +218,15 @@ def reduceTypeOneStepReducesChainedTyassocsOneRuleAtATime(): Unit \ Assert = {
     let assocB = Tyassoc.Tyassoc("AssocB", Type.Var(x), Kind.Star);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstrEnv.empty()
-        |> ConstrEnv.addAssocEq(
+    let constraintEnv = emptyConstrEnv()
+        |> addAssocEq(
             "AssocA",
             trMkEquality(
                 Type.Assoc(assocA),
                 Type.Assoc(assocB)
             )
         )
-        |> ConstrEnv.addAssocEq(
+        |> addAssocEq(
             "AssocB",
             trMkEquality(Type.Assoc(assocB), int32)
         );
@@ -249,15 +249,15 @@ def reduceTypeOneStepTraversesNestedSetFormulaLeftToRight(): Unit \ Assert = {
     let read = efConstant("Read");
     let write = efConstant("Write");
 
-    let constraintEnv = ConstrEnv.empty()
-        |> ConstrEnv.addAssocEq(
+    let constraintEnv = emptyConstrEnv()
+        |> addAssocEq(
             "ReadEff",
             trMkEquality(
                 Type.Assoc(readAssoc),
                 read
             )
         )
-        |> ConstrEnv.addAssocEq(
+        |> addAssocEq(
             "WriteEff",
             trMkEquality(
                 Type.Assoc(writeAssoc),
@@ -293,10 +293,10 @@ def reduceTypeOneStepReducesTyassocInsideSetFormula(): Unit \ Assert = {
         Kind.Eff
     );
 
-    let constraintEnv = ConstrEnv.addAssocEq(
+    let constraintEnv = addAssocEq(
         assocId,
         (Type.Assoc(assoc), io),
-        ConstrEnv.empty()
+        emptyConstrEnv()
     );
 
     let ty = mkCompl(Type.Assoc(assoc));

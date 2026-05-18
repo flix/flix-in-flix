@@ -8,7 +8,7 @@ def reduceAssocEnv(env: ConstrEnv, am: Tyassoc): Option[Type] =
             sub -> Substable.apply(sub, rhs),
             matchTy(lhs, Type.Assoc(am))
         ),
-        ConstrEnv.lookupTyassoc(id, env)
+        lookupTyassoc(id, env)
     )
 def reduceAssoc(env: ConstrEnv, am: Tyassoc): Option[Type] =
     match reduceAssocEnv(env, am) {

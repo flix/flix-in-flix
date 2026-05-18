@@ -15,7 +15,7 @@ def enMkGivenClass(name: Id, ty: Type): Constr =
 
 
 def enEnvWithGivens(givens: List[Constr]): ConstrEnv =
-    ConstrEnv.addGivens(givens, ConstrEnv.empty())
+    addGivens(givens, emptyConstrEnv())
 
 
 def enMkInstance(
@@ -37,7 +37,7 @@ def entailDelegatesEqualityGoalsToUnification(): Unit \ Assert = {
     Assert.assertEq(
         expected = Some((Nil, Subst.singleton(x, int32))),
         entail(
-            ConstrEnv.empty(),
+            emptyConstrEnv(),
             Constr.Eq((Type.Var(x), int32))
         )
     )
@@ -83,13 +83,13 @@ def entailInstantiatesEqualityFromConstraintEnvironment(): Unit \ Assert = {
     let genericAssoc = Tyassoc.Tyassoc("Elem", Type.Var(a), Kind.Star);
     let specificAssoc = Tyassoc.Tyassoc("Elem", int32, Kind.Star);
 
-    let constraintEnv = ConstrEnv.addAssocEq(
+    let constraintEnv = addAssocEq(
         "Elem",
         enMkEquality(
             Type.Assoc(genericAssoc),
             Type.Var(a)
         ),
-        ConstrEnv.empty()
+        emptyConstrEnv()
     );
 
     Assert.assertEq(
@@ -114,10 +114,10 @@ def entailInstantiatesEqualityFromConstraintEnvironment(): Unit \ Assert = {
 def entailDischargesClassGoalByGivenSuperclass(): Unit \ Assert = {
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstrEnv.empty()
-        |> ConstrEnv.addClass("Ord")
-        |> ConstrEnv.addSuper("Ord", "Eq")
-        |> ConstrEnv.addGivens(enMkGivenClass("Ord", int32) :: Nil);
+    let constraintEnv = emptyConstrEnv()
+        |> addClass("Ord")
+        |> addSuper("Ord", "Eq")
+        |> addGivens(enMkGivenClass("Ord", int32) :: Nil);
 
     Assert.assertEq(
         expected = Some((Nil, Subst.empty())),
@@ -138,13 +138,13 @@ def entailReducesClassGoalTypeBeforeOtherEntailmentRules(): Unit \ Assert = {
     let genericAssoc = Tyassoc.Tyassoc("Elem", Type.Var(a), Kind.Star);
     let specificAssoc = Tyassoc.Tyassoc("Elem", int32, Kind.Star);
 
-    let constraintEnv = ConstrEnv.addAssocEq(
+    let constraintEnv = addAssocEq(
         "Elem",
         enMkEquality(
             Type.Assoc(genericAssoc),
             Type.Var(a)
         ),
-        ConstrEnv.empty()
+        emptyConstrEnv()
     );
 
     Assert.assertEq(
@@ -170,9 +170,9 @@ def entailInstantiatesMatchingInstanceContext(): Unit \ Assert = {
     let a = Tyvar.Tyvar("a", Kind.Star);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
-    let constraintEnv = ConstrEnv.empty()
-        |> ConstrEnv.addClass("Eq")
-        |> ConstrEnv.addInst(
+    let constraintEnv = emptyConstrEnv()
+        |> addClass("Eq")
+        |> addInst(
             "Eq",
             enMkInstance(
                 "Eq",
@@ -229,16 +229,16 @@ def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
     let genericAssoc = Tyassoc.Tyassoc("Elem", Type.Var(a), Kind.Star);
     let specificAssoc = Tyassoc.Tyassoc("Elem", int32, Kind.Star);
 
-    let constraintEnv = ConstrEnv.empty()
-        |> ConstrEnv.addAssocEq(
+    let constraintEnv = emptyConstrEnv()
+        |> addAssocEq(
             "Elem",
             enMkEquality(
                 Type.Assoc(genericAssoc),
                 Type.Var(a)
             )
         )
-        |> ConstrEnv.addClass("Eq")
-        |> ConstrEnv.addInst(
+        |> addClass("Eq")
+        |> addInst(
             "Eq",
             enMkInstance(
                 "Eq",
@@ -246,7 +246,7 @@ def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
                 enMkGivenClass("Show", Type.Var(a)) :: Nil
             )
         )
-        |> ConstrEnv.addGivens(enMkGivenClass("Show", int32) :: Nil);
+        |> addGivens(enMkGivenClass("Show", int32) :: Nil);
 
     let (remaining, subst) = entailRepeat(
         constraintEnv,

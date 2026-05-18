@@ -11,8 +11,8 @@ pub def entail(env: ConstrEnv, goal: Constr): Option[(List[Constr], Subst)] =
 def bySuper(env: ConstrEnv, id: Id, ty: Type): Bool 
     = List.exists(
         gc -> let (gid, gty) = gc; equiv(gty, ty) 
-            and Set.memberOf(id, ConstrEnv.parentClasses(gid, env)),
-        ConstrEnv.givenClasses(env)
+            and Set.memberOf(id, parentClasses(gid, env)),
+        givenClasses(env)
     )
 
 def entailClass(env: ConstrEnv, clsId: Id, clsTy: Type): 
@@ -27,7 +27,7 @@ def byInst(env: ConstrEnv, clsId: Id, clsTy: Type): Option[List[Constr]] =
     List.findMap(
         i -> let Qual.Qual(ctx, (_, ty)) = i;
             Option.map(sub -> Substable.apply(sub, ctx), matchTy(ty, clsTy)),
-        ConstrEnv.getClassInsts(clsId, env)
+        getClassInsts(clsId, env)
     )
 
 def reduceClass(env: ConstrEnv, clsId: Id, clsTy: Type): Option[ClassConstr] = 

@@ -1,7 +1,7 @@
 use Assert.assertEq
 
 def prEmptyConstraintEnv(): ConstrEnv =
-    ConstrEnv.empty()
+    emptyConstrEnv()
 
 
 def prDecl(id: Id, sch: Scheme, expr: Expr): TopLevelDecl =

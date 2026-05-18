@@ -51,7 +51,7 @@ def assocWfConstrs(q: Qual[Type], env: ConstrEnv): List[Constr]
     = Set.toList(Set.map(
         x -> {
             let Tyassoc.Tyassoc(id, arg, _) = x;
-            let traitId = ConstrEnv.getTraitOfAssoc(id, env);
+            let traitId = getTraitOfAssoc(id, env);
             Constr.Class((traitId, arg))
         },
         collectAssocInQual(q)
@@ -69,7 +69,7 @@ def subsume(
     let skolemizedQual = skolemize(ann);
     let Qual.Qual(givs, annTy) = skolemizedQual;
     fst(entailRepeat(
-        ConstrEnv.addGivens(fst(entailRepeat(env, givs)), env), 
+        addGivens(fst(entailRepeat(env, givs)), env), 
         Constr.Eq((eTy, annTy)) :: Constr.Eq((eEff, efEmpty())) 
             :: eConstrs ++ assocWfConstrs(skolemizedQual, env)
     ))
