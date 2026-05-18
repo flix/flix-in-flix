@@ -27,3 +27,14 @@ def reduceUnifyAssoc(e: ConstrEnv, a: Tyassoc, t: Type): Option[List[EqConstr]]
 def bindVar(tvar: Tyvar, ty: Type): Option[Subst] = 
     if (kindOf(Type.Var(tvar)) != kindOf(ty)) None
     else Some(Subst.singleton(tvar, ty))
+// used in overlapping instance checking.
+def mgu(l: Type, r: Type): Option[Subst] = match (l, r) {
+    case (Type.Var(v), t) => bindVar(v, t)
+    case (t, Type.Var(v)) => bindVar(v, t)
+    case (Type.Ap(lF, lA), Type.Ap(rF, rA)) => forM(
+        fSub <- mgu(lF, rF);
+        aSub <- mgu(Substable.apply(fSub, lA), Substable.apply(fSub, rA))
+    ) yield Subst.compose(aSub, fSub)
+    case (Type.Con(lc), Type.Con(rc)) if lc == rc => Some(Subst.empty())
+    case _ => None
+}

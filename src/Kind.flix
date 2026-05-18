@@ -1,4 +1,4 @@
-pub enum Kind with Eq, ToString, Hash, Order {
+pub enum Kind with Eq, ToString, Order {
     case Eff,
     case Star,
     case KFun(Kind, Kind)
@@ -11,5 +11,5 @@ pub def kArrow(): Kind = Kind.KFun(
 
 pub def kEfUnary(): Kind = Kind.KFun(Kind.Eff, Kind.Eff)
 
-pub def kEfBinary(): Kind 
+pub def kEfBinary(): Kind
     = Kind.KFun(Kind.Eff, Kind.KFun(Kind.Eff, Kind.Eff))
