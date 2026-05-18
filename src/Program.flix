@@ -66,13 +66,23 @@ def skolemize(sch: Scheme): Qual[Type] \ Fresh = {
     Instantiate.inst(skolems, qual)
 }
 
+pub def contextReduce(env: ConstrEnv, givs: List[Constr]): List[Constr] =
+    def loop(acc: List[Constr], rest: List[Constr]): List[Constr] = match rest {
+        case Nil => acc, case head :: tail => {
+            let (newCs, _) = solveAll(addGivens(acc ++ tail, env), head :: Nil);
+            loop(acc ++ newCs, tail)
+        }
+    };
+
+    loop(Nil, givs)
+
 def subsume(
     env: ConstrEnv, eTy: Type, eConstrs: List[Constr], eEff: Type, ann: Scheme
 ): List[Constr] \ Fresh = 
     let skolemizedQual = skolemize(ann);
     let Qual.Qual(givs, annTy) = skolemizedQual;
     fst(solveAll(
-        addGivens(fst(solveAll(env, givs)), env), 
+        addGivens(contextReduce(env, givs), env),
         Constr.Eq((eTy, annTy)) :: Constr.Eq((eEff, efEmpty())) 
             :: eConstrs ++ assocWfConstrs(skolemizedQual, env)
     ))

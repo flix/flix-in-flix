@@ -14,7 +14,6 @@ pub def matchTy(l: Type, r: Type): Option[Subst] = match (l, r) {
         Type.Assoc(Tyassoc.Tyassoc(rid, rarg, _))
     ) if rid == lid => matchTy(larg, rarg)
     case _ if kindOf(l) == Kind.Eff and kindOf(r) == Kind.Eff 
-        // REMARK: is boolMatch necessary here?
         => boolMatch(l, r),
     case _ => None
 }

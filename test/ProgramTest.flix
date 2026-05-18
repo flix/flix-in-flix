@@ -4,6 +4,14 @@ def prEmptyConstraintEnv(): ConstrEnv =
     emptyConstrEnv()
 
 
+def prMkGivenEquality(left: Type, right: Type): Constr =
+    Constr.Eq((left, right))
+
+
+def prMkGivenClass(name: Id, ty: Type): Constr =
+    Constr.Class((name, ty))
+
+
 def prDecl(id: Id, sch: Scheme, expr: Expr): TopLevelDecl =
     (id, sch, expr)
 
@@ -134,5 +142,60 @@ def typeCheckProgramAcceptsHandledProgramFromTestCase(): Unit \ Assert = {
     Assert.assertEq(
         expected = ("test", Nil) :: Nil,
         Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
+    )
+}
+
+
+// given: { Iterable.Elm (List a) = a, SomeClass (Iterable.Elm (List Int32)) }
+// `contextReduce -> { SomeClass Int32, Iterable.Elm (List a) = a }`
+@Test
+def contextReduceReducesGivenClassTypesUsingOtherGivenEqualities(): Unit \ Assert = {
+    let a = Tyvar.Tyvar("a", Kind.Star);
+    let listA = mkAp(tList(), Type.Var(a));
+    let listInt32 = mkAp(tList(), tInt32());
+    let genericAssoc = Tyassoc.Tyassoc("Iterable.Elm", listA, Kind.Star);
+    let specificAssoc = Tyassoc.Tyassoc("Iterable.Elm", listInt32, Kind.Star);
+
+    let givens = prMkGivenClass("SomeClass", Type.Assoc(specificAssoc))
+        :: prMkGivenEquality(Type.Assoc(genericAssoc), Type.Var(a))
+        :: Nil;
+
+    Assert.assertEq(
+        expected = prMkGivenClass("SomeClass", tInt32())
+            :: prMkGivenEquality(Type.Assoc(genericAssoc), Type.Var(a))
+            :: Nil,
+        contextReduce(prEmptyConstraintEnv(), givens)
+    )
+}
+
+
+// given: { Iterable.Elm (List a) = a, SomeClass (Iterable.Elm (List Int32)) }
+// `SomeClass Int32 -> None` before context reduction, `Some([])` after
+@Test
+def contextReduceMakesReducedGivensAvailableForEntailment(): Unit \ Assert = {
+    let a = Tyvar.Tyvar("a", Kind.Star);
+    let listA = mkAp(tList(), Type.Var(a));
+    let listInt32 = mkAp(tList(), tInt32());
+    let genericAssoc = Tyassoc.Tyassoc("Iterable.Elm", listA, Kind.Star);
+    let specificAssoc = Tyassoc.Tyassoc("Iterable.Elm", listInt32, Kind.Star);
+
+    let givens = prMkGivenClass("SomeClass", Type.Assoc(specificAssoc))
+        :: prMkGivenEquality(Type.Assoc(genericAssoc), Type.Var(a))
+        :: Nil;
+    let goal = Constr.Class(("SomeClass", tInt32()));
+
+    Assert.assertEq(
+        expected = None,
+        entail(addGivens(givens, prEmptyConstraintEnv()), goal)
+    );
+    Assert.assertEq(
+        expected = Some((Nil, Subst.empty())),
+        entail(
+            addGivens(
+                contextReduce(prEmptyConstraintEnv(), givens),
+                prEmptyConstraintEnv()
+            ),
+            goal
+        )
     )
 }
