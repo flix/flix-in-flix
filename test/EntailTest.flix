@@ -28,6 +28,13 @@ def enMkInstance(
 )
 
 
+def enAddInst(inst: Inst, env: ConstrEnv): ConstrEnv =
+    match addInst(inst, env) {
+        case Ok(nextEnv) => nextEnv
+        case Err(err)    => bug!(err)
+    }
+
+
 // `x ~ Int32 -> Some([], { x -> Int32 })`
 @Test
 def entailDelegatesEqualityGoalsToUnification(): Unit \ Assert = {
@@ -163,20 +170,21 @@ def entailReducesClassGoalTypeBeforeOtherEntailmentRules(): Unit \ Assert = {
 }
 
 
-// classEnv: { Eq instance Eq a if Show a }
-// `Eq Int32 -> Some([Show Int32])`
+// classEnv: { Eq instance Eq (List a) if Show a }
+// `Eq (List Int32) -> Some([Show Int32])`
 @Test
 def entailInstantiatesMatchingInstanceContext(): Unit \ Assert = {
     let a = Tyvar.Tyvar("a", Kind.Star);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
+    let listA = mkAp(tList(), Type.Var(a));
+    let listInt32 = mkAp(tList(), int32);
 
     let constraintEnv = emptyConstrEnv()
         |> addClass("Eq")
-        |> addInst(
-            "Eq",
+        |> enAddInst(
             enMkInstance(
                 "Eq",
-                Type.Var(a),
+                listA,
                 enMkGivenClass("Show", Type.Var(a)) :: Nil
             )
         );
@@ -188,7 +196,7 @@ def entailInstantiatesMatchingInstanceContext(): Unit \ Assert = {
         )),
         entail(
             constraintEnv,
-            Constr.Class(("Eq", int32))
+            Constr.Class(("Eq", listInt32))
         )
     )
 }
@@ -220,7 +228,7 @@ def entailRepeatAppliesEqualitySubstitutionToRemainingGoals(): Unit \ Assert = {
 }
 
 
-// given: { Show Int32 }, classEnv: { Eq instance Eq a if Show a, Elem a = a }
+// given: { Show Int32 }, classEnv: { Eq instance Eq (List a) if Show a, Elem a = List a }
 // `Eq (Elem Int32) -> [], {}`
 @Test
 def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
@@ -234,15 +242,14 @@ def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
             "Elem",
             enMkEquality(
                 Type.Assoc(genericAssoc),
-                Type.Var(a)
+                mkAp(tList(), Type.Var(a))
             )
         )
         |> addClass("Eq")
-        |> addInst(
-            "Eq",
+        |> enAddInst(
             enMkInstance(
                 "Eq",
-                Type.Var(a),
+                mkAp(tList(), Type.Var(a)),
                 enMkGivenClass("Show", Type.Var(a)) :: Nil
             )
         )
