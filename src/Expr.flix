@@ -30,9 +30,15 @@ pub def infer(assumps: Assumps, expr: Expr): (Type, Type) \ Fresh + Collect
     }
 
 def inferVar(assumps: Assumps, x: Id): (Type, Type) \ Fresh + Collect = 
+    // In case of variable not found, should we:
+    // - Panic? since we don't want to concern with error handling, it will
+    // be easier to just panic and we don't need to clutter the code with 
+    // error handling logic?
+    // - Leave it like this
+    // - Build an error handling mechanism.
     match Map.get(x, assumps) {
         case Some(sch) => {
-            let Qual.Qual(context, ty) = Fresh.freshInst(sch);
+            let Qual.Qual(context, ty) = freshInst(sch);
             foreach (c <- context) Collect.collect(c);
             (ty, efEmpty())
         }
