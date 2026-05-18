@@ -16,7 +16,7 @@ def unEnvWithGivens(givens: List[Constr]): ConstrEnv =
 
 
 def unEntailRepeat(env: ConstrEnv, constraints: List[EqConstr]): (List[EqConstr], Subst) = {
-    let (remaining, subst) = entailRepeat(env, List.map(Constr.Eq, constraints));
+    let (remaining, subst) = solveAll(env, List.map(Constr.Eq, constraints));
     let remainingEqs = List.map(c -> match c {
         case Constr.Eq(eq) => eq
         case _ => bug!("Expected equality constraint")

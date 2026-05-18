@@ -210,7 +210,7 @@ def entailRepeatAppliesEqualitySubstitutionToRemainingGoals(): Unit \ Assert = {
 
     let constraintEnv = enEnvWithGivens(enMkGivenClass("Show", int32) :: Nil);
 
-    let (remaining, subst) = entailRepeat(
+    let (remaining, subst) = solveAll(
         constraintEnv,
         constraints
     );
@@ -248,7 +248,7 @@ def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
         )
         |> addGivens(enMkGivenClass("Show", int32) :: Nil);
 
-    let (remaining, subst) = entailRepeat(
+    let (remaining, subst) = solveAll(
         constraintEnv,
         Constr.Class((
             "Eq",

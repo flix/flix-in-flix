@@ -55,5 +55,5 @@ def iterate(e: ConstrEnv, cs: List[Constr], s: Subst): (List[Constr], Subst) =
         case None => (cs, s)
     }
 
-pub def entailRepeat(env: ConstrEnv, cs: List[Constr]): (List[Constr], Subst) =
+pub def solveAll(env: ConstrEnv, cs: List[Constr]): (List[Constr], Subst) =
     iterate(env, cs, Subst.empty())

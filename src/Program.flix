@@ -71,8 +71,8 @@ def subsume(
 ): List[Constr] \ Fresh = 
     let skolemizedQual = skolemize(ann);
     let Qual.Qual(givs, annTy) = skolemizedQual;
-    fst(entailRepeat(
-        addGivens(fst(entailRepeat(env, givs)), env), 
+    fst(solveAll(
+        addGivens(fst(solveAll(env, givs)), env), 
         Constr.Eq((eTy, annTy)) :: Constr.Eq((eEff, efEmpty())) 
             :: eConstrs ++ assocWfConstrs(skolemizedQual, env)
     ))
