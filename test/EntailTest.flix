@@ -1,22 +1,17 @@
 def enMkEquality(left: Type, right: Type): EqConstr =
     (left, right)
 
-
 def enMkGivenEquality(left: Type, right: Type): Constr =
     Constr.Eq((left, right))
-
 
 def enMkClassConstraint(name: Id, ty: Type): ClassConstr =
     (name, ty)
 
-
 def enMkGivenClass(name: Id, ty: Type): Constr =
     Constr.Class((name, ty))
 
-
 def enEnvWithGivens(givens: List[Constr]): ConstrEnv =
     addGivens(givens, emptyConstrEnv())
-
 
 def enMkInstance(
     className: Id,
@@ -27,13 +22,11 @@ def enMkInstance(
     enMkClassConstraint(className, classType)
 )
 
-
 def enAddInst(inst: Inst, env: ConstrEnv): ConstrEnv =
     match addInst(inst, env) {
         case Ok(nextEnv) => nextEnv
         case Err(err)    => bug!(err)
     }
-
 
 // `x ~ Int32 -> Some([], { x -> Int32 })`
 @Test
@@ -42,14 +35,13 @@ def entailDelegatesEqualityGoalsToUnification(): Unit \ Assert = {
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
     Assert.assertEq(
-        expected = Some((Nil, Subst.singleton(x, int32))),
+        expected = Some((Nil, Map.singleton(x, int32))),
         entail(
             emptyConstrEnv(),
             Constr.Eq((Type.Var(x), int32))
         )
     )
 }
-
 
 // given: { Elem a = a }
 // `Elem Int32 ~ Int32 -> Some([Int32 ~ Int32], {})`
@@ -61,25 +53,29 @@ def entailInstantiatesEqualityGiven(): Unit \ Assert = {
     let specificAssoc = Tyassoc.Tyassoc("Elem", int32, Kind.Star);
 
     Assert.assertEq(
-        expected = Some((
-            Constr.Eq((int32, int32)) :: Nil,
-            Subst.empty()
-        )),
+        expected = Some(
+            (
+                Constr.Eq((int32, int32)) :: Nil,
+                Map.empty()
+            )
+        ),
         entail(
             enEnvWithGivens(
                 enMkGivenEquality(
                     Type.Assoc(genericAssoc),
                     Type.Var(a)
-                ) :: Nil
+                )
+                    :: Nil
             ),
-            Constr.Eq((
-                Type.Assoc(specificAssoc),
-                int32
-            ))
+            Constr.Eq(
+                (
+                    Type.Assoc(specificAssoc),
+                    int32
+                )
+            )
         )
     )
 }
-
 
 // constraintEnv: { Elem a = a }
 // `Elem Int32 ~ Int32 -> Some([Int32 ~ Int32], {})`
@@ -100,20 +96,23 @@ def entailInstantiatesEqualityFromConstraintEnvironment(): Unit \ Assert = {
     );
 
     Assert.assertEq(
-        expected = Some((
-            Constr.Eq((int32, int32)) :: Nil,
-            Subst.empty()
-        )),
+        expected = Some(
+            (
+                Constr.Eq((int32, int32)) :: Nil,
+                Map.empty()
+            )
+        ),
         entail(
             constraintEnv,
-            Constr.Eq((
-                Type.Assoc(specificAssoc),
-                int32
-            ))
+            Constr.Eq(
+                (
+                    Type.Assoc(specificAssoc),
+                    int32
+                )
+            )
         )
     )
 }
-
 
 // given: { Ord Int32 }, classEnv: { Ord : Eq }
 // `Eq Int32 -> Some([])`
@@ -127,14 +126,13 @@ def entailDischargesClassGoalByGivenSuperclass(): Unit \ Assert = {
         |> addGivens(enMkGivenClass("Ord", int32) :: Nil);
 
     Assert.assertEq(
-        expected = Some((Nil, Subst.empty())),
+        expected = Some((Nil, Map.empty())),
         entail(
             constraintEnv,
             Constr.Class(("Eq", int32))
         )
     )
 }
-
 
 // constraintEnv: { Elem a = a }
 // `Show (Elem Int32) -> Some([Show Int32])`
@@ -155,20 +153,23 @@ def entailReducesClassGoalTypeBeforeOtherEntailmentRules(): Unit \ Assert = {
     );
 
     Assert.assertEq(
-        expected = Some((
-            Constr.Class(("Show", int32)) :: Nil,
-            Subst.empty()
-        )),
+        expected = Some(
+            (
+                Constr.Class(("Show", int32)) :: Nil,
+                Map.empty()
+            )
+        ),
         entail(
             constraintEnv,
-            Constr.Class((
-                "Show",
-                Type.Assoc(specificAssoc)
-            ))
+            Constr.Class(
+                (
+                    "Show",
+                    Type.Assoc(specificAssoc)
+                )
+            )
         )
     )
 }
-
 
 // classEnv: { Eq instance Eq (List a) if Show a }
 // `Eq (List Int32) -> Some([Show Int32])`
@@ -190,10 +191,12 @@ def entailInstantiatesMatchingInstanceContext(): Unit \ Assert = {
         );
 
     Assert.assertEq(
-        expected = Some((
-            enMkGivenClass("Show", int32) :: Nil,
-            Subst.empty()
-        )),
+        expected = Some(
+            (
+                enMkGivenClass("Show", int32) :: Nil,
+                Map.empty()
+            )
+        ),
         entail(
             constraintEnv,
             Constr.Class(("Eq", listInt32))
@@ -201,20 +204,25 @@ def entailInstantiatesMatchingInstanceContext(): Unit \ Assert = {
     )
 }
 
-
 // `x ~ Int32, Show x` with given `{ Show Int32 } -> [], { x -> Int32 }`
 @Test
 def entailRepeatAppliesEqualitySubstitutionToRemainingGoals(): Unit \ Assert = {
     let x = Tyvar.Tyvar("x", Kind.Star);
     let int32 = Type.Con(Tycon.Tycon("Int32", Kind.Star));
 
-    let constraints = Constr.Eq((
-        Type.Var(x),
-        int32
-    )) :: Constr.Class((
-        "Show",
-        Type.Var(x)
-    )) :: Nil;
+    let constraints = Constr.Eq(
+        (
+            Type.Var(x),
+            int32
+        )
+    )
+        :: Constr.Class(
+            (
+                "Show",
+                Type.Var(x)
+            )
+        )
+        :: Nil;
 
     let constraintEnv = enEnvWithGivens(enMkGivenClass("Show", int32) :: Nil);
 
@@ -224,9 +232,8 @@ def entailRepeatAppliesEqualitySubstitutionToRemainingGoals(): Unit \ Assert = {
     );
 
     Assert.assertEq(expected = Nil, remaining);
-    Assert.assertEq(expected = Some(int32), subst |> Subst.get(x))
+    Assert.assertEq(expected = Some(int32), subst |> Map.get(x))
 }
-
 
 // given: { Show Int32 }, classEnv: { Eq instance Eq (List a) if Show a, Elem a = List a }
 // `Eq (Elem Int32) -> [], {}`
@@ -257,12 +264,15 @@ def entailRepeatChainsReductionAndInstanceEntailment(): Unit \ Assert = {
 
     let (remaining, subst) = solveAll(
         constraintEnv,
-        Constr.Class((
-            "Eq",
-            Type.Assoc(specificAssoc)
-        )) :: Nil
+        Constr.Class(
+            (
+                "Eq",
+                Type.Assoc(specificAssoc)
+            )
+        )
+            :: Nil
     );
 
     Assert.assertEq(expected = Nil, remaining);
-    Assert.assertEq(expected = Subst.empty(), subst)
+    Assert.assertEq(expected = Map.empty(), subst)
 }

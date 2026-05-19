@@ -124,14 +124,11 @@ pub def kindOf(t: Type): Kind = match t {
 
 instance Substable[Type] {
     pub def apply(s: Subst, t: Type): Type = match t {
-        case Type.Var(v) => Option.getWithDefault(t, Subst.get(v, s))
-        case Type.Ap(f, x) => Type.Ap(Substable.apply(s, f), Substable.apply(s, x))
+        case Type.Var(v) => Option.getWithDefault(t, Map.get(v, s))
+        case Type.Ap(f, x) =>
+            Type.Ap(Substable.apply(s, f), Substable.apply(s, x))
         case Type.Assoc(Tyassoc.Tyassoc(i, a, k)) => Type.Assoc(
-            Tyassoc.Tyassoc(
-                i,
-                Substable.apply(s, a),
-                k
-            )
+            Tyassoc.Tyassoc(i, Substable.apply(s, a), k)
         )
         case Type.Gen(_) => t
         case Type.Con(_) => t
