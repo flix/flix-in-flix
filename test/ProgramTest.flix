@@ -12,11 +12,20 @@ def prMkGivenClass(name: Id, ty: Type): Constr =
 def prDecl(id: Id, sch: Scheme, expr: Expr): TopLevelDecl =
     (id, sch, expr)
 
+def prCheckResults(checks: List[Check]): List[(Id, List[Constr])] =
+    List.map(
+        check -> {
+            let (id, _, constrs) = check;
+            (id, constrs)
+        },
+        checks
+    )
+
 def prMkHandlerBody(effectId: Id, kId: Id): Expr =
     Expr.Semi(
         Expr.Do(effectId),
         Expr.Ap(
-            Expr.Var(kId),
+            Expr.Var(kId, Type.Var(Tyvar.Tyvar("x", Kind.Star))),
             Expr.Lit(tUnit())
         )
     )
@@ -26,7 +35,9 @@ def prMkHandlerBody(effectId: Id, kId: Id): Expr =
 def typeCheckProgramLeavesEmptyProgramEmpty(): Unit \ Assert = {
     Assert.assertEq(
         expected = Nil,
-        Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), Nil))
+        Fresh.withFresh(
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), Nil))
+        )
     )
 }
 
@@ -42,7 +53,9 @@ def typeCheckProgramAcceptsPureMatchingLiteral(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = ("x", Nil) :: Nil,
-        Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
+        Fresh.withFresh(
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), decls))
+        )
     )
 }
 
@@ -52,13 +65,15 @@ def typeCheckProgramUsesSelfAssumptionDuringInference(): Unit \ Assert = {
     let decls = prDecl(
         "x",
         mkScheme(tInt32()),
-        Expr.Var("x")
+        Expr.Var("x", tInt32())
     )
         :: Nil;
 
     Assert.assertEq(
         expected = ("x", Nil) :: Nil,
-        Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
+        Fresh.withFresh(
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), decls))
+        )
     )
 }
 
@@ -68,7 +83,7 @@ def typeCheckProgramBuildsInitialAssumptionsFromAllDeclarations(): Unit \ Assert
     let decls = prDecl(
         "useLater",
         mkScheme(tInt32()),
-        Expr.Var("provider")
+        Expr.Var("provider", tInt32())
     )
         :: prDecl(
             "provider",
@@ -81,7 +96,9 @@ def typeCheckProgramBuildsInitialAssumptionsFromAllDeclarations(): Unit \ Assert
         expected = ("useLater", Nil)
             :: ("provider", Constr.Eq((tBool(), tInt32())) :: Nil)
             :: Nil,
-        Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
+        Fresh.withFresh(
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), decls))
+        )
     )
 }
 
@@ -97,7 +114,9 @@ def typeCheckProgramReturnsResidualEffectConstraintForImpureDeclaration(): Unit 
 
     Assert.assertEq(
         expected = ("main", Constr.Eq((efIo(), efEmpty())) :: Nil) :: Nil,
-        Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
+        Fresh.withFresh(
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), decls))
+        )
     )
 }
 
@@ -120,16 +139,19 @@ def typeCheckProgramAcceptsHandledProgramFromTestCase(): Unit \ Assert = {
         ("k1", prMkHandlerBody("B", "k1")),
         ("k2", prMkHandlerBody("C", "k2")) :: Nil
     );
+    let paramTy = Type.Var(Tyvar.Tyvar("a", Kind.Star));
 
     let decls = prDecl(
         "test",
         scheme,
         Expr.Lam(
             "x",
+            paramTy,
             Expr.RunWith(
                 Expr.Do("A"),
                 "A",
-                handlers
+                handlers,
+                Type.Var(Tyvar.Tyvar("x", Kind.Eff))
             )
         )
     )
@@ -137,7 +159,9 @@ def typeCheckProgramAcceptsHandledProgramFromTestCase(): Unit \ Assert = {
 
     Assert.assertEq(
         expected = ("test", Nil) :: Nil,
-        Fresh.withFresh(_ -> typeCheckProgram(prEmptyConstraintEnv(), decls))
+        Fresh.withFresh(
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), decls))
+        )
     )
 }
 

@@ -23,7 +23,7 @@ pub def typeCheckProgram(env: ConstrEnv, decls: List[TopLevelDecl]): List[Check]
 
             let (resConstrs, subst) = subsume(env, ty, Ref.get(constrs), ef, sch);
 
-            (id, zonkExpr(expr, subst), resConstrs)
+            (id, zonk(expr, subst), resConstrs)
         },
         decls
     )
