@@ -1,32 +1,81 @@
 pub type alias Handler = (Id, Expr)
 
 pub enum Expr {
-    case Var(Id)
+    case Var(Id, Type)
     case Lit(Type)
     case Ap(Expr, Expr)
-    case Lam(Id, Expr)
+    case Lam(Id, Type, Expr)
     case Do(Id)
     case IfElse(Expr, Expr, Expr)
-    case Semi(Expr, Expr) // represent the `run <e> with <e>` constructor
+    case Semi(Expr, Expr)
     // where
     // - Expr is the body of the `run` with effectful computation
     // - Id is the effect being handled
     // - Nel[Handler] is the list of handlers for each operation of the effect
-    case RunWith(Expr, Id, Nel[Handler])
+    case RunWith(Expr, Id, Nel[Handler], Type)
+}
+
+pub def zonk(expr: Expr, subst: Subst): Expr = match expr {
+    case Expr.Var(id, ty) => Expr.Var(id, Substable.apply(subst, ty))
+    case Expr.Lit(ty) => Expr.Lit(ty)
+    case Expr.Ap(fun, arg) => Expr.Ap(zonk(fun, subst), zonk(arg, subst))
+    case Expr.Lam(id, paramTy, body) =>
+        Expr.Lam(id, Substable.apply(subst, paramTy), zonk(body, subst))
+    case Expr.Do(ef) => Expr.Do(ef)
+    case Expr.IfElse(c, t, f) =>
+        Expr.IfElse(zonk(c, subst), zonk(t, subst), zonk(f, subst))
+    case Expr.Semi(e1, e2) => Expr.Semi(zonk(e1, subst), zonk(e2, subst))
+    case Expr.RunWith(e, ef, hs, iRwEff) => Expr.RunWith(
+        zonk(e, subst),
+        ef,
+        Nel.map(h -> (fst(h), zonk(snd(h), subst)), hs),
+        Substable.apply(subst, iRwEff)
+    )
+}
+
+pub def typeOf(expr: Expr): (Type, Type) = match expr {
+    case Expr.Var(_, ty) => (ty, efEmpty())
+    case Expr.Lit(ty) => (ty, efEmpty())
+    case Expr.Do(ef) => (tUnit(), efConstant(ef))
+    case Expr.Ap(fun, _) => match typeOf(fun) {
+        case ((Type.Ap(Type.Ap(_, bodyEf), res)), funEf) => {
+            let (_, argEf) = typeOf(fun);
+            (res, mkUnion(argEf, mkUnion(funEf, bodyEf)))
+        }
+        case _ => unreachable!()
+    }
+    case Expr.Lam(_, paramTy, body) =>
+        let (bodyTy, bodyEf) = typeOf(body);
+        (mkArrow(paramTy, bodyEf, bodyTy), efEmpty())
+    case Expr.Semi(e1, e2) => {
+        let (_, e1Ef) = typeOf(e1);
+        let (e2Ty, e2Ef) = typeOf(e2);
+        (e2Ty, mkUnion(e1Ef, e2Ef))
+    }
+    case Expr.IfElse(c, t, f) => {
+        let (_, cEf) = typeOf(c);
+        let (tTy, tEf) = typeOf(t);
+        let (_, fEf) = typeOf(f);
+        (tTy, mkUnion(cEf, mkUnion(tEf, fEf)))
+    }
+    case Expr.RunWith(e, _, _, iRwEff) => {
+        let (eTy, _) = typeOf(e);
+        (eTy, iRwEff)
+    }
 }
 
 pub def infer(assumps: Assumps, expr: Expr): (Type, Type) \ Fresh + Collect = match expr {
-    case Expr.Var(x)             => inferVar(assumps, x)
-    case Expr.Lit(x)             => (x, efEmpty())
-    case Expr.Ap(fun, arg)       => inferAp(assumps, fun, arg)
-    case Expr.Do(ef)             => inferDo(ef)
-    case Expr.Lam(x, e)          => inferLam(assumps, x, e)
-    case Expr.IfElse(c, t, f)    => inferIfElse(assumps, c, t, f)
-    case Expr.Semi(e1, e2)       => inferSemi(assumps, e1, e2)
-    case Expr.RunWith(e, ef, hs) => inferRunWith(assumps, e, ef, hs)
+    case Expr.Var(x, iVarTy)             => inferVar(assumps, x, iVarTy)
+    case Expr.Lit(x)                     => (x, efEmpty())
+    case Expr.Ap(fun, arg)               => inferAp(assumps, fun, arg)
+    case Expr.Do(ef)                     => inferDo(ef)
+    case Expr.Lam(x, paramT, e)          => inferLam(assumps, x, paramT, e)
+    case Expr.IfElse(c, t, f)            => inferIfElse(assumps, c, t, f)
+    case Expr.Semi(e1, e2)               => inferSemi(assumps, e1, e2)
+    case Expr.RunWith(e, ef, hs, iRwEff) => inferRunWith(assumps, e, ef, hs, iRwEff)
 }
 
-def inferVar(assumps: Assumps, x: Id): (Type, Type) \ Fresh + Collect =
+def inferVar(assumps: Assumps, x: Id, varT: Type): (Type, Type) \ Fresh + Collect =
     // In case of variable not found, should we:
     // - Panic? since we don't want to concern with error handling, it will
     // be easier to just panic and we don't need to clutter the code with
@@ -38,6 +87,7 @@ def inferVar(assumps: Assumps, x: Id): (Type, Type) \ Fresh + Collect =
             let Qual.Qual(context, ty) = freshInst(sch);
             foreach (c <- context)
                 Collect.collect(c);
+            Collect.collect(Constr.Eq((ty, varT)));
             (ty, efEmpty())
         }
         case None =>
@@ -58,13 +108,12 @@ def inferAp(assums: Assumps, f: Expr, a: Expr): (Type, Type) \ Fresh + Collect =
 
     (freshR, mkUnion(argE, mkUnion(funE, freshE)))
 
-def inferLam(assums: Assumps, x: Id, e: Expr): (Type, Type) \ Fresh + Collect =
-    let newVar = Fresh.freshVar(Kind.Star);
-    let freshVarScheme = mkScheme(Type.Var(newVar));
+def inferLam(assums: Assumps, x: Id, paramT: Type, e: Expr): (Type, Type) \ Fresh + Collect =
+    let freshVarScheme = mkScheme(paramT);
     let newAssumps = Map.insert(x, freshVarScheme, assums);
     let (bodyTy, bodyEff) = infer(newAssumps, e);
 
-    (mkArrow(Type.Var(newVar), bodyEff, bodyTy), efEmpty())
+    (mkArrow(paramT, bodyEff, bodyTy), efEmpty())
 
 def inferIfElse(
     assums: Assumps,
@@ -114,11 +163,11 @@ def inferRunWith(
     assums: Assumps,
     e: Expr,
     ef: Id,
-    hs: Nel[Handler]
+    hs: Nel[Handler],
+    inferRwEff: Type
 ): (Type, Type) \ Fresh + Collect = {
     let (eTy, eEff) = infer(assums, e);
-    let kEf = Type.Var(Fresh.freshVar(Kind.Eff));
-    let kTy = mkArrow(tUnit(), kEf, eTy);
+    let kTy = mkArrow(tUnit(), inferRwEff, eTy);
     let hEffs = inferHandlers(assums, hs, kTy, eTy);
     let excluded = mkExclusion(eEff, efConstant(ef));
     let runWithEff = Nel.foldLeft(
@@ -126,7 +175,9 @@ def inferRunWith(
         excluded,
         hEffs
     );
-    Collect.collect(Constr.Eq((kEf, runWithEff)));
+
+    Collect.collect(Constr.Eq((inferRwEff, runWithEff)));
+
     (eTy, runWithEff)
 }
 

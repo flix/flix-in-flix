@@ -1,12 +1,12 @@
 /// Represents name, its type ascribed by the programmer, and its body.
 pub type alias TopLevelDecl = (Id, Scheme, Expr)
 
-/// Represents a typical diagnostic result of type checking of a program: 
+/// Represents a typical diagnostic result of type checking of a program:
 /// contains the Id of the Expr declared, and a list of unsatisfied constraints.
-pub type alias Check = (Id, List[Constr])
+pub type alias Check = (Id, Expr, List[Constr])
 
 pub def typeCheckProgram(env: ConstrEnv, decls: List[TopLevelDecl]): List[Check] \ Fresh = {
-    let initialAssums = List.map(x -> let (id, sch, _) = x; (id, sch), decls) 
+    let initialAssums = List.map(x -> let (id, sch, _) = x; (id, sch), decls)
         |> List.toMap;
 
     List.map(
@@ -14,22 +14,23 @@ pub def typeCheckProgram(env: ConstrEnv, decls: List[TopLevelDecl]): List[Check]
             let (id, sch, expr) = x;
             let constrs = Ref.fresh(r, Nil);
 
-            let (ty, ef) = run infer(initialAssums, expr)
-                with handler Collect {
-                    def collect(c, res) = {
-                        Ref.put(c :: Ref.get(constrs), constrs);
-                        res(())
-                    }
-                };
+            let (ty, ef) = run infer(initialAssums, expr) with handler Collect {
+                def collect(c, res) = {
+                    Ref.put(c :: Ref.get(constrs), constrs);
+                    res(())
+                }
+            };
 
-            (id, subsume(env, ty, Ref.get(constrs), ef, sch))
-        }, 
+            let (resConstrs, subst) = subsume(env, ty, Ref.get(constrs), ef, sch);
+
+            (id, zonkExpr(expr, subst), resConstrs)
+        },
         decls
     )
 }
 
 def collectAssoc(ty: Type): Set[Tyassoc] = match ty {
-    case Type.Assoc(Tyassoc.Tyassoc(id, a, k)) => 
+    case Type.Assoc(Tyassoc.Tyassoc(id, a, k)) =>
         Set.singleton(Tyassoc.Tyassoc(id, a, k)) ++ collectAssoc(a)
     case Type.Ap(l, r) => collectAssoc(l) ++ collectAssoc(r)
     case _ => Set.empty()
@@ -38,27 +39,28 @@ def collectAssoc(ty: Type): Set[Tyassoc] = match ty {
 def collectAssocInCtx(cs: List[Constr]): Set[Tyassoc] = List.foldLeft(
     (set, c) -> match c {
         case Constr.Class((_, t)) => set ++ collectAssoc(t)
-        case Constr.Eq((l, r)) => set ++ collectAssoc(l) ++ collectAssoc(r)
-    }, 
-    Set.empty(), 
+        case Constr.Eq((l, r))    => set ++ collectAssoc(l) ++ collectAssoc(r)
+    },
+    Set.empty(),
     cs
 )
 
-def collectAssocInQual(q: Qual[Type]): Set[Tyassoc] = 
+def collectAssocInQual(q: Qual[Type]): Set[Tyassoc] =
     let Qual.Qual(ctx, head) = q; collectAssocInCtx(ctx) ++ collectAssoc(head)
 
-def assocWfConstrs(q: Qual[Type], env: ConstrEnv): List[Constr] 
-    = Set.toList(Set.map(
+def assocWfConstrs(q: Qual[Type], env: ConstrEnv): List[Constr] = Set.toList(
+    Set.map(
         x -> {
             let Tyassoc.Tyassoc(id, arg, _) = x;
             let traitId = match Map.get(id, env#assocToClass) {
                 case Some(traitId) => traitId
-                case None => bug!("Unknown associated member: " + id)
+                case None          => bug!("Unknown associated member: " + id)
             };
             Constr.Class((traitId, arg))
         },
         collectAssocInQual(q)
-    ))
+    )
+)
 
 def skolemize(sch: Scheme): Qual[Type] \ Fresh = {
     let Scheme.Scheme(varKinds, qual) = sch;
@@ -68,7 +70,8 @@ def skolemize(sch: Scheme): Qual[Type] \ Fresh = {
 
 pub def contextReduce(env: ConstrEnv, givs: List[Constr]): List[Constr] =
     def loop(acc: List[Constr], rest: List[Constr]): List[Constr] = match rest {
-        case Nil => acc, case head :: tail => {
+        case Nil => acc,
+        case head :: tail => {
             let (newCs, _) = solveAll(addGivens(acc ++ tail, env), head :: Nil);
             loop(acc ++ newCs, tail)
         }
@@ -77,12 +80,17 @@ pub def contextReduce(env: ConstrEnv, givs: List[Constr]): List[Constr] =
     loop(Nil, givs)
 
 def subsume(
-    env: ConstrEnv, eTy: Type, eConstrs: List[Constr], eEff: Type, ann: Scheme
-): List[Constr] \ Fresh = 
+    env: ConstrEnv,
+    eTy: Type,
+    eConstrs: List[Constr],
+    eEff: Type,
+    ann: Scheme
+): (List[Constr], Subst) \ Fresh =
     let skolemizedQual = skolemize(ann);
     let Qual.Qual(givs, annTy) = skolemizedQual;
-    fst(solveAll(
+    solveAll(
         addGivens(contextReduce(env, givs), env),
-        Constr.Eq((eTy, annTy)) :: Constr.Eq((eEff, efEmpty())) 
+        Constr.Eq((eTy, annTy))
+            :: Constr.Eq((eEff, efEmpty()))
             :: eConstrs ++ assocWfConstrs(skolemizedQual, env)
-    ))
+    )
