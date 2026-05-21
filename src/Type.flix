@@ -37,74 +37,20 @@ pub def mkArrow(arg: Type, ef: Type, res: Type): Type = {
     mkAp(mkAp(mkAp(tArrow(), arg), ef), res)
 }
 
-def tryComl(t: Type): Option[Type] = match t {
-    case Type.Ap(com, inner) if com == efCompl() => Some(inner)
-    case _                                       => None
-}
-
 pub def mkUnion(l: Type, r: Type): Type = {
-    if (l == r)
-        l
-    else if (tryComl(l) == Some(r) or tryComl(r) == Some(l))
-        efUni()
-    else if (l == efUni() or r == efUni())
-        efUni()
-    else if (l == efEmpty())
-        r
-    else if (r == efEmpty())
-        l
-    else
-        mkAp(mkAp(efUnion(), l), r)
+    mkAp(mkAp(efUnion(), l), r)
 }
 
 pub def mkIntersect(l: Type, r: Type): Type = {
-    if (l == r)
-        l
-    else if (tryComl(l) == Some(r) or tryComl(r) == Some(l))
-        efEmpty()
-    else if (l == efEmpty() or r == efEmpty())
-        efEmpty()
-    else if (l == efUni())
-        r
-    else if (r == efUni())
-        l
-    else
-        mkAp(mkAp(efIntersect(), l), r)
+    mkAp(mkAp(efIntersect(), l), r)
 }
 
 pub def mkXor(l: Type, r: Type): Type = {
-    if (l == r)
-        efEmpty()
-    else if (tryComl(l) == Some(r) or tryComl(r) == Some(l))
-        efUni()
-    else if (l == efEmpty())
-        r
-    else if (r == efEmpty())
-        l
-    else if (l == efUni())
-        mkCompl(r)
-    else if (r == efUni())
-        mkCompl(l)
-    else
-        mkAp(mkAp(efXor(), l), r)
+    mkAp(mkAp(efXor(), l), r)
 }
 
 pub def mkCompl(i: Type): Type = {
-    if (i == efEmpty())
-        efUni()
-    else if (i == efUni())
-        efEmpty()
-    else
-        match tryComl(i) {
-            case Some(t) =>
-                if (t == efEmpty())
-                    efUni()
-                else if (t == efUni())
-                    efEmpty()
-                else
-                    t
-            case None => mkAp(efCompl(), i)
-        }
+    mkAp(efCompl(), i)
 }
 
 pub def mkExclusion(l: Type, r: Type): Type = {
