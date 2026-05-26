@@ -9,10 +9,8 @@ instance Substable[List[a]] with Substable[a] {
         List.map(x -> Substable.apply(subst, x), list)
 }
 
-pub def compose(sub1: Subst, sub2: Subst): Subst = {
-    let cmap = Map.map(ty -> Substable.apply(sub1, ty), sub2);
-    Map.union(cmap, sub1)
-}
+pub def compose(sub1: Subst, sub2: Subst): Subst =
+    Map.union(Map.map(ty -> Substable.apply(sub1, ty), sub2), sub1)
 
 pub def merge(sub1: Subst, sub2: Subst): Option[Subst] = {
     let keys = Set.filter(k -> Map.memberOf(k, sub2), Map.keysOf(sub1));

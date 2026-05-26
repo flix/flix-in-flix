@@ -15,8 +15,17 @@ def prDecl(id: Id, sch: Scheme, expr: Expr): TopLevelDecl =
 def prCheckResults(checks: List[Check]): List[(Id, List[Constr])] =
     List.map(
         check -> {
-            let (id, _, constrs) = check;
+            let (id, _, constrs, _) = check;
             (id, constrs)
+        },
+        checks
+    )
+
+def prCheckErrors(checks: List[Check]): List[(Id, List[String])] =
+    List.map(
+        check -> {
+            let (id, _, _, errors) = check;
+            (id, errors)
         },
         checks
     )
@@ -36,7 +45,7 @@ def typeCheckProgramLeavesEmptyProgramEmpty(): Unit \ Assert = {
     Assert.assertEq(
         expected = Nil,
         Fresh.withFresh(
-            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), Nil))
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), Map.empty(), Nil))
         )
     )
 }
@@ -54,7 +63,7 @@ def typeCheckProgramAcceptsPureMatchingLiteral(): Unit \ Assert = {
     Assert.assertEq(
         expected = ("x", Nil) :: Nil,
         Fresh.withFresh(
-            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), decls))
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), Map.empty(), decls))
         )
     )
 }
@@ -72,7 +81,7 @@ def typeCheckProgramUsesSelfAssumptionDuringInference(): Unit \ Assert = {
     Assert.assertEq(
         expected = ("x", Nil) :: Nil,
         Fresh.withFresh(
-            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), decls))
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), Map.empty(), decls))
         )
     )
 }
@@ -97,7 +106,25 @@ def typeCheckProgramBuildsInitialAssumptionsFromAllDeclarations(): Unit \ Assert
             :: ("provider", Constr.Eq((tBool(), tInt32())) :: Nil)
             :: Nil,
         Fresh.withFresh(
-            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), decls))
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), Map.empty(), decls))
+        )
+    )
+}
+
+// `missing: Int32 = unknown -> ["Unbound variable: unknown"]`
+@Test
+def typeCheckProgramReportsUnboundVariables(): Unit \ Assert = {
+    let decls = prDecl(
+        "missing",
+        mkScheme(tInt32()),
+        Expr.Var("unknown", tInt32())
+    )
+        :: Nil;
+
+    Assert.assertEq(
+        expected = ("missing", "Unbound variable: unknown" :: Nil) :: Nil,
+        Fresh.withFresh(
+            _ -> prCheckErrors(typeCheckProgram(prEmptyConstraintEnv(), Map.empty(), decls))
         )
     )
 }
@@ -115,7 +142,7 @@ def typeCheckProgramReturnsResidualEffectConstraintForImpureDeclaration(): Unit 
     Assert.assertEq(
         expected = ("main", Constr.Eq((efIo(), efEmpty())) :: Nil) :: Nil,
         Fresh.withFresh(
-            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), decls))
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), Map.empty(), decls))
         )
     )
 }
@@ -160,7 +187,7 @@ def typeCheckProgramAcceptsHandledProgramFromTestCase(): Unit \ Assert = {
     Assert.assertEq(
         expected = ("test", Nil) :: Nil,
         Fresh.withFresh(
-            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), decls))
+            _ -> prCheckResults(typeCheckProgram(prEmptyConstraintEnv(), Map.empty(), decls))
         )
     )
 }

@@ -3,27 +3,44 @@ pub type alias TopLevelDecl = (Id, Scheme, Expr)
 
 /// Represents a typical diagnostic result of type checking of a program:
 /// contains the Id of the Expr declared, and a list of unsatisfied constraints.
-pub type alias Check = (Id, Expr, List[Constr])
+pub type alias Check = (Id, Expr, List[Constr], List[String])
 
-pub def typeCheckProgram(env: ConstrEnv, decls: List[TopLevelDecl]): List[Check] \ Fresh = {
-    let initialAssums = List.map(x -> let (id, sch, _) = x; (id, sch), decls)
-        |> List.toMap;
+pub def typeCheckProgram(
+    env: ConstrEnv,
+    initialAssumps: Assumps,
+    decls: List[TopLevelDecl]
+): List[Check] \ Fresh = {
+    let assumps = Map.union(
+        initialAssumps,
+        List.toMap(List.map(x -> let (id, sch, _) = x; (id, sch), decls))
+    );
 
     List.map(
         x -> region r {
             let (id, sch, expr) = x;
+
+            let errors = Ref.fresh(r, Nil);
             let constrs = Ref.fresh(r, Nil);
 
-            let (ty, ef) = run infer(initialAssums, expr) with handler Collect {
-                def collect(c, res) = {
-                    Ref.put(c :: Ref.get(constrs), constrs);
-                    res(())
+            let (ty, ef) =
+                run {
+                    infer(assumps, expr)
+                } with handler Collect {
+                    def collect(c, res) = {
+                        Ref.put(c :: Ref.get(constrs), constrs);
+                        res(())
+                    }
                 }
-            };
+                  with handler Report {
+                    def report(msg, res) = {
+                        Ref.put(msg :: Ref.get(errors), errors);
+                        res(())
+                    }
+                };
 
             let (resConstrs, subst) = subsume(env, ty, Ref.get(constrs), ef, sch);
 
-            (id, zonk(expr, subst), resConstrs)
+            (id, zonk(expr, subst), resConstrs, Ref.get(errors))
         },
         decls
     )

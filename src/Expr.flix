@@ -58,13 +58,20 @@ pub def typeOf(expr: Expr): (Type, Type) = match expr {
         let (_, fEf) = typeOf(f);
         (tTy, mkUnion(cEf, mkUnion(tEf, fEf)))
     }
-    case Expr.RunWith(e, _, _, iRwEff) => {
-        let (eTy, _) = typeOf(e);
-        (eTy, iRwEff)
+    case Expr.RunWith(e, ef, hs, _) => {
+        let (eTy, eEf) = typeOf(e);
+        let excluded = mkExclusion(eEf, efConstant(ef));
+        let finalEf = Nel.foldLeft(
+            (acc, h) -> mkUnion(acc, snd(typeOf(snd(h)))),
+            excluded,
+            hs
+        );
+
+        (eTy, finalEf)
     }
 }
 
-pub def infer(assumps: Assumps, expr: Expr): (Type, Type) \ Fresh + Collect = match expr {
+pub def infer(assumps: Assumps, expr: Expr): (Type, Type) \ Fresh + Collect + Report = match expr {
     case Expr.Var(x, iVarTy)             => inferVar(assumps, x, iVarTy)
     case Expr.Lit(x)                     => (x, efEmpty())
     case Expr.Ap(fun, arg)               => inferAp(assumps, fun, arg)
@@ -75,13 +82,7 @@ pub def infer(assumps: Assumps, expr: Expr): (Type, Type) \ Fresh + Collect = ma
     case Expr.RunWith(e, ef, hs, iRwEff) => inferRunWith(assumps, e, ef, hs, iRwEff)
 }
 
-def inferVar(assumps: Assumps, x: Id, varT: Type): (Type, Type) \ Fresh + Collect =
-    // In case of variable not found, should we:
-    // - Panic? since we don't want to concern with error handling, it will
-    // be easier to just panic and we don't need to clutter the code with
-    // error handling logic?
-    // - Leave it like this
-    // - Build an error handling mechanism.
+def inferVar(assumps: Assumps, x: Id, varT: Type): (Type, Type) \ Fresh + Collect + Report =
     match Map.get(x, assumps) {
         case Some(sch) => {
             let Qual.Qual(context, ty) = freshInst(sch);
@@ -91,13 +92,14 @@ def inferVar(assumps: Assumps, x: Id, varT: Type): (Type, Type) \ Fresh + Collec
             (ty, efEmpty())
         }
         case None =>
+            Report.report("Unbound variable: " + x);
             (
                 Type.Var(Fresh.freshVar(Kind.Star)),
                 Type.Var(Fresh.freshVar(Kind.Eff))
             )
     }
 
-def inferAp(assums: Assumps, f: Expr, a: Expr): (Type, Type) \ Fresh + Collect =
+def inferAp(assums: Assumps, f: Expr, a: Expr): (Type, Type) \ Fresh + Collect + Report =
     let (funTy, funE) = infer(assums, f);
     let (argTy, argE) = infer(assums, a);
 
@@ -108,7 +110,7 @@ def inferAp(assums: Assumps, f: Expr, a: Expr): (Type, Type) \ Fresh + Collect =
 
     (freshR, mkUnion(argE, mkUnion(funE, freshE)))
 
-def inferLam(assums: Assumps, x: Id, paramT: Type, e: Expr): (Type, Type) \ Fresh + Collect =
+def inferLam(assums: Assumps, x: Id, paramT: Type, e: Expr): (Type, Type) \ Fresh + Collect + Report =
     let freshVarScheme = mkScheme(paramT);
     let newAssumps = Map.insert(x, freshVarScheme, assums);
     let (bodyTy, bodyEff) = infer(newAssumps, e);
@@ -120,7 +122,7 @@ def inferIfElse(
     c: Expr,
     t: Expr,
     f: Expr
-): (Type, Type) \ Fresh + Collect =
+): (Type, Type) \ Fresh + Collect + Report =
     let (cTy, cEff) = infer(assums, c);
     let (tTy, tEff) = infer(assums, t);
     let (fTy, fEff) = infer(assums, f);
@@ -134,7 +136,7 @@ def inferSemi(
     assums: Assumps,
     e1: Expr,
     e2: Expr
-): (Type, Type) \ Fresh + Collect =
+): (Type, Type) \ Fresh + Collect + Report =
     let (e1Ty, e1Eff) = infer(assums, e1);
     let (e2Ty, e2Eff) = infer(assums, e2);
 
@@ -147,7 +149,7 @@ def inferHandlers(
     hs: Nel[Handler],
     kTy: Type,
     eTy: Type
-): Nel[Type] \ Fresh + Collect = {
+): Nel[Type] \ Fresh + Collect + Report = {
     Nel.map(
         x -> {
             let (kId, h) = x;
@@ -165,7 +167,7 @@ def inferRunWith(
     ef: Id,
     hs: Nel[Handler],
     inferRwEff: Type
-): (Type, Type) \ Fresh + Collect = {
+): (Type, Type) \ Fresh + Collect + Report = {
     let (eTy, eEff) = infer(assums, e);
     let kTy = mkArrow(tUnit(), inferRwEff, eTy);
     let hEffs = inferHandlers(assums, hs, kTy, eTy);
