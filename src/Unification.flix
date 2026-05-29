@@ -13,8 +13,8 @@ def unifyNoEq(e: ConstrEnv, l: Type, r: Type): Option[(List[EqConstr], Subst)] =
             eqs -> (eqs, Map.empty()),
             reduceUnifyAssoc(e, a, l)
         )
-        case (Type.Var(v), x) if not Set.memberOf(v, FreeVars.fvs(x)) => Option.map(sub -> (Nil, sub), bindVar(v, r))
-        case (x, Type.Var(v)) if not Set.memberOf(v, FreeVars.fvs(x)) => Option.map(sub -> (Nil, sub), bindVar(v, l))
+        case (Type.Var(v), x) if not Set.memberOf(v, fvs(x)) => Option.map(sub -> (Nil, sub), bindVar(v, r))
+        case (x, Type.Var(v)) if not Set.memberOf(v, fvs(x)) => Option.map(sub -> (Nil, sub), bindVar(v, l))
         case _ if kindOf(l) == Kind.Eff and kindOf(r) == Kind.Eff =>
             Option.map(s -> (Nil, s), boolUnify(l, r))
         case (Type.Ap(lF, lA), Type.Ap(rF, rA)) => Some(

@@ -35,7 +35,9 @@ def prMkHandlerBody(effectId: Id, kId: Id): Expr =
         Expr.Do(effectId),
         Expr.Ap(
             Expr.Var(kId, Type.Var(Tyvar.Tyvar("x", Kind.Star))),
-            Expr.Lit(tUnit())
+            Expr.Lit(tUnit()),
+            Type.Var(Tyvar.Tyvar("y", Kind.Star)),
+            Type.Var(Tyvar.Tyvar("z", Kind.Eff))
         )
     )
 
@@ -177,8 +179,7 @@ def typeCheckProgramAcceptsHandledProgramFromTestCase(): Unit \ Assert = {
             Expr.RunWith(
                 Expr.Do("A"),
                 "A",
-                handlers,
-                Type.Var(Tyvar.Tyvar("x", Kind.Eff))
+                handlers
             )
         )
     )

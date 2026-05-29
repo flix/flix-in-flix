@@ -3,14 +3,9 @@ pub enum Scheme(List[Kind], Qual[Type])
 instance Substable[Scheme] {
     pub def apply(subst: Subst, a: Scheme): Scheme = match a {
         case Scheme.Scheme(kinds, qua) => Scheme.Scheme(
-            kinds, Substable.apply(subst, qua)
+            kinds,
+            Substable.apply(subst, qua)
         )
-    }
-}
-
-instance FreeVars[Scheme] {
-    pub def fvs(a: Scheme): Set[Tyvar] = match a {
-        case Scheme.Scheme(_, qua) => FreeVars.fvs(qua)
     }
 }
 
@@ -19,7 +14,7 @@ pub trait Instantiate[a] {
 }
 
 instance Instantiate[List[a]] with Instantiate[a] {
-    pub def inst(tys: List[Type], sch: List[a]): List[a] = 
+    pub def inst(tys: List[Type], sch: List[a]): List[a] =
         List.map(s -> Instantiate.inst(tys, s), sch)
 }
 

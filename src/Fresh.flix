@@ -9,12 +9,12 @@ mod Fresh {
         let varRef = Ref.fresh(r, 0);
 
         run f() with handler Fresh {
-            def freshCon(k, res) = 
+            def freshCon(k, res) =
                 let curr = Ref.get(conRef);
                 Ref.put(curr + 1, conRef);
                 res(Tycon.Tycon("!c${curr}", k))
 
-            def freshVar(k, res) = 
+            def freshVar(k, res) =
                 let curr = Ref.get(varRef);
                 Ref.put(curr + 1, varRef);
                 res(Tyvar.Tyvar("!v${curr}", k))

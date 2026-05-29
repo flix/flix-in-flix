@@ -1,26 +1,20 @@
-def sve(f: Type, vars: List[Tyvar]): Option[Subst] =
-    if (not isSat(f))
-        Some(Map.empty())
-    else
-        match vars {
-            case Nil => None
-            case x :: xs => {
-                let l = Substable.apply(Map.singleton(x, efEmpty()), f);
-                let r = Substable.apply(Map.singleton(x, efUni()), f);
-                let lr = mkIntersect(l, r);
+def sve(f: Type, vars: List[Tyvar]): Option[Subst] = match (isSat(f), vars) {
+    case (false, _) => Some(Map.empty())
+    case (_, Nil) => None
+    case (_, x :: xs) => {
+        let l = Substable.apply(Map.singleton(x, efEmpty()), f);
+        let r = Substable.apply(Map.singleton(x, efUni()), f);
+        let lr = mkIntersect(l, r);
 
-                forM (sub <- sve(lr, xs))
-                    yield let newH = mkUnion(
-                        Substable.apply(sub, l),
-                        mkIntersect(
-                            Type.Var(x),
-                            mkCompl(Substable.apply(sub, r))
-                        )
-                    );
+        forM (sub <- sve(lr, xs))
+            yield let newH = mkUnion(
+                Substable.apply(sub, l),
+                mkIntersect(Type.Var(x), mkCompl(Substable.apply(sub, r)))
+            );
 
-                    Map.union(sub, Map.singleton(x, newH))
-            }
-        }
+            Map.union(sub, Map.singleton(x, newH))
+    }
+}
 
 def isSat(f: Type): Bool = evaluteAll(f, Set.toList(boolVars(f)), Set.empty())
 
@@ -77,11 +71,11 @@ def boolVars(t: Type): Set[Type] = match t {
 }
 
 pub def boolMatch(t1: Type, t2: Type): Option[Subst] =
-    sve(mkXor(t1, t2), Set.toList(FreeVars.fvs(t1)))
+    sve(mkXor(t1, t2), Set.toList(fvs(t1)))
 
 pub def boolUnify(f1: Type, f2: Type): Option[Subst] = {
     let eqType = mkXor(f1, f2);
-    sve(eqType, Set.toList(FreeVars.fvs(eqType)))
+    sve(eqType, Set.toList(fvs(eqType)))
 }
 
 def boolFormEq(f1: Type, f2: Type): Bool = not (isSat(mkXor(f1, f2)))

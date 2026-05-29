@@ -81,14 +81,12 @@ instance Substable[Type] {
     }
 }
 
-instance FreeVars[Type] {
-    pub def fvs(t: Type): Set[Tyvar] = match t {
-        case Type.Var(v)                          => Set.singleton(v)
-        case Type.Con(_)                          => Set.empty()
-        case Type.Assoc(Tyassoc.Tyassoc(_, a, _)) => FreeVars.fvs(a)
-        case Type.Ap(f, x)                        => FreeVars.fvs(f) ++ FreeVars.fvs(x)
-        case Type.Gen(_)                          => Set.empty()
-    }
+pub def fvs(t: Type): Set[Tyvar] = match t {
+    case Type.Var(v)                          => Set.singleton(v)
+    case Type.Con(_)                          => Set.empty()
+    case Type.Assoc(Tyassoc.Tyassoc(_, a, _)) => fvs(a)
+    case Type.Ap(f, x)                        => fvs(f) ++ fvs(x)
+    case Type.Gen(_)                          => Set.empty()
 }
 
 instance Instantiate[Type] {
